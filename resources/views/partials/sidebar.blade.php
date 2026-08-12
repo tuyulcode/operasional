@@ -1,13 +1,13 @@
 {{-- SIDEBAR --}}
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
-    <a href="{{ route('dashboard') }}" class="brand-logo">
-      <i class="fa-solid fa-shapes"></i>
-      <span class="brand-title">e-Rekap</span>
-    </a>
     <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle Navigation">
       <i class="fa-solid fa-bars-staggered"></i>
     </button>
+    <a href="{{ route('dashboard') }}" class="brand-logo">
+      <img src="{{ asset('images/logo.png') }}" alt="Logo" class="brand-logo-img">
+      <span class="brand-title">e-Operasional</span>
+    </a>
   </div>
 
   <div class="sidebar-menu">

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>Login — e-Rekap Operasional</title>
+  <title>Login — e-Operasional</title>
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -342,9 +342,9 @@
 
       <div class="login-brand">
         <div class="brand-icon">
-          <i class="fa-solid fa-shapes"></i>
+          <img src="{{ asset('images/logo.png') }}" alt="Logo" style="width: 48px; height: auto;">
         </div>
-        <h1>e-Rekap Operasional</h1>
+        <h1>e-Operasional</h1>
         <p>Sistem Manajemen Operasional</p>
       </div>
 
@@ -392,7 +392,7 @@
       </form>
 
       <div class="login-footer">
-        Copyright &copy; {{ date('Y') }} <strong>e-Rekap Operasional</strong>. All rights reserved.
+        Copyright &copy; {{ date('Y') }} <strong>e-Operasional</strong>. All rights reserved.
       </div>
 
     </div>

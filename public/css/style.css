@@ -118,24 +118,25 @@ body {
 }
 
 .sidebar-header {
-  height: var(--header-height);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
+  padding: 16px 15px 14px;
   background-color: #142037;
   border-bottom: 1px solid rgba(255,255,255,0.05);
+  position: relative;
 }
 
 .brand-logo {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   color: #fff;
   text-decoration: none;
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .brand-logo i {
@@ -143,13 +144,30 @@ body {
   font-size: 1.5rem;
 }
 
+.brand-logo-img {
+  width: 120px;
+  height: auto;
+  object-fit: contain;
+}
+
+.brand-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  opacity: 0.85;
+}
+
 .sidebar-toggle-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
   background: transparent;
   border: none;
   color: var(--sidebar-text);
-  font-size: 1.2rem;
+  font-size: 1rem;
   cursor: pointer;
   transition: color 0.2s;
+  z-index: 2;
 }
 
 .sidebar-toggle-btn:hover {
