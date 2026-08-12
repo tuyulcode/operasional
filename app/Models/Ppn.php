@@ -7,12 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Ppn extends Model
 {
     protected $table = 'ppn';
-    protected $fillable = ['persentase', 'tanggal_mulai', 'tanggal_selesai', 'status'];
-
-    protected $casts = [
-        'tanggal_mulai' => 'date',
-        'tanggal_selesai' => 'date',
-    ];
+    protected $fillable = ['persentase', 'status'];
 
     public function tagihanAir()
     {

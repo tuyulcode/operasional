@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class TitikMeter extends Model
 {
     protected $table = 'titik_meter';
-    protected $fillable = ['pengambil_pemakai_id', 'nama', 'meter_faktor', 'tarif_harga', 'status'];
+    protected $fillable = ['area_id', 'nama', 'meter_faktor', 'tarif_harga', 'status'];
 
-    public function pengambilPemakai()
+    public function area()
     {
-        return $this->belongsTo(PengambilPemakai::class, 'pengambil_pemakai_id');
+        return $this->belongsTo(Area::class, 'area_id');
     }
 
     public function tagihanAir()

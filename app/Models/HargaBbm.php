@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class HargaBbm extends Model
 {
     protected $table = 'harga_bbm';
-    protected $fillable = ['harga_paiton', 'harga_luar_paiton', 'status'];
+    protected $fillable = ['jenis', 'harga_paiton', 'harga_luar_paiton'];
 
     public function pemakaianBbm()
     {
