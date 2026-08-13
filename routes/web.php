@@ -7,6 +7,7 @@ use App\Http\Controllers\PpnController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\TitikMeterController;
 use App\Http\Controllers\HargaBbmController;
+use App\Http\Controllers\JenisKendaraanController;
 
 // Guest routes
 Route::middleware('guest')->group(function () {
@@ -44,6 +45,13 @@ Route::middleware('auth')->group(function () {
     Route::prefix('harga-bbm')->name('harga-bbm.')->group(function () {
         Route::get('/', [HargaBbmController::class, 'index'])->name('index');
         Route::post('/', [HargaBbmController::class, 'store'])->name('store');
+    });
+
+    Route::prefix('jenis-kendaraan')->name('jenis-kendaraan.')->group(function () {
+        Route::get('/', [JenisKendaraanController::class, 'index'])->name('index');
+        Route::post('/', [JenisKendaraanController::class, 'store'])->name('store');
+        Route::put('/{id}', [JenisKendaraanController::class, 'update'])->name('update');
+        Route::delete('/{id}', [JenisKendaraanController::class, 'destroy'])->name('destroy');
     });
 });
 
