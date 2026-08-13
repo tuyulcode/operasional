@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>Login — e-Operasional</title>
+  <title>Masuk — e-Operasional</title>
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,170 +23,250 @@
 
     body {
       min-height: 100vh;
+      background-color: #eef2f7;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+      padding: 24px;
+    }
+
+    /* ============ LOGIN CARD ============ */
+    .login-card {
+      display: flex;
+      width: 900px;
+      max-width: 100%;
+      background-color: #fff;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14);
+      animation: fadeUp 0.45s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============ LEFT VISUAL PANEL ============ */
+    .login-visual {
+      flex: 0 0 46%;
+      background: linear-gradient(155deg, #1d4ed8 0%, #2563eb 45%, #2f8ff5 100%);
+      color: #fff;
+      padding: 42px 38px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
       position: relative;
       overflow: hidden;
     }
 
-    /* Animated background circles */
-    body::before,
-    body::after {
+    .login-visual::before {
       content: '';
       position: absolute;
+      width: 260px;
+      height: 260px;
       border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.3;
-      animation: float 8s ease-in-out infinite;
-    }
-    body::before {
-      width: 400px;
-      height: 400px;
-      background: linear-gradient(135deg, #4099ff, #2ed8b6);
-      top: -100px;
-      right: -100px;
-    }
-    body::after {
-      width: 350px;
-      height: 350px;
-      background: linear-gradient(135deg, #FF5370, #FFB64D);
-      bottom: -80px;
-      left: -80px;
-      animation-delay: -4s;
+      background: rgba(255, 255, 255, 0.07);
+      top: -90px;
+      right: -70px;
     }
 
-    @keyframes float {
-      0%, 100% { transform: translateY(0px) scale(1); }
-      50% { transform: translateY(-30px) scale(1.05); }
+    .login-visual::after {
+      content: '';
+      position: absolute;
+      width: 160px;
+      height: 160px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      bottom: -60px;
+      left: -50px;
     }
 
-    .login-container {
+    .visual-logo {
       position: relative;
-      z-index: 10;
-      width: 100%;
-      max-width: 440px;
-      padding: 20px;
+      z-index: 1;
     }
 
-    .login-card {
-      background: rgba(30, 41, 59, 0.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      padding: 48px 40px;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
-      animation: slideUp 0.6s ease-out;
+    .visual-logo img {
+      height: 42px;
+      width: auto;
+      display: block;
     }
 
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
+    .visual-welcome {
+      position: relative;
+      z-index: 1;
+      margin: 8px 0 28px;
     }
 
-    .login-brand {
-      text-align: center;
-      margin-bottom: 36px;
+    .visual-welcome h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 10px;
     }
 
-    .login-brand .brand-icon {
-      width: 64px;
-      height: 64px;
-      background: linear-gradient(135deg, #4099ff, #2ed8b6);
-      border-radius: 16px;
+    .visual-welcome p {
+      font-size: 0.85rem;
+      line-height: 1.7;
+      color: rgba(255, 255, 255, 0.82);
+    }
+
+    .visual-features {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .visual-features .feature {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.82rem;
+      color: #e7eeff;
+    }
+
+    .visual-features .feature i {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.16);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 16px;
-      box-shadow: 0 8px 25px rgba(64, 153, 255, 0.3);
-      animation: pulse 2s ease-in-out infinite;
+      font-size: 0.7rem;
+      flex-shrink: 0;
     }
 
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 8px 25px rgba(64, 153, 255, 0.3); }
-      50% { box-shadow: 0 8px 35px rgba(64, 153, 255, 0.5); }
+    .visual-footer {
+      position: relative;
+      z-index: 1;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
     }
 
-    .login-brand .brand-icon i {
-      font-size: 1.8rem;
-      color: #fff;
+    /* ============ RIGHT FORM PANEL ============ */
+    .login-form {
+      flex: 1;
+      padding: 46px 44px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
-    .login-brand h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #f1f5f9;
-      letter-spacing: -0.5px;
+    .form-heading {
+      margin-bottom: 26px;
     }
 
-    .login-brand p {
+    .form-heading h2 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 6px;
+    }
+
+    .form-heading p {
       font-size: 0.85rem;
-      color: #94a3b8;
-      margin-top: 4px;
+      color: #64748b;
+    }
+
+    .alert-error {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background-color: #fdf2f3;
+      border: 1px solid #f5c6cd;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 20px;
+    }
+
+    .alert-error i {
+      color: #d6334f;
+      font-size: 0.95rem;
+      margin-top: 1px;
+    }
+
+    .alert-error span {
+      font-size: 0.82rem;
+      color: #b0253d;
+      line-height: 1.5;
     }
 
     .form-group {
-      margin-bottom: 22px;
-      position: relative;
+      margin-bottom: 18px;
     }
 
     .form-group label {
       display: block;
       font-size: 0.8rem;
       font-weight: 500;
-      color: #94a3b8;
-      margin-bottom: 8px;
-      letter-spacing: 0.3px;
+      color: #475569;
+      margin-bottom: 7px;
     }
 
     .input-wrapper {
       position: relative;
     }
 
-    .input-wrapper i {
-      position: absolute;
-      left: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #64748b;
-      font-size: 0.95rem;
-      transition: color 0.3s;
-    }
-
     .input-wrapper input {
       width: 100%;
-      padding: 14px 16px 14px 46px;
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(100, 116, 139, 0.3);
-      border-radius: 12px;
+      padding: 12px 42px 12px 40px;
+      background-color: #fff;
+      border: 1px solid #d7dee8;
+      border-radius: 9px;
       font-size: 0.9rem;
-      color: #f1f5f9;
+      color: #1e293b;
       outline: none;
-      transition: all 0.3s ease;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
     .input-wrapper input::placeholder {
-      color: #475569;
+      color: #9aa7b8;
     }
 
     .input-wrapper input:focus {
       border-color: #4099ff;
-      background: rgba(15, 23, 42, 0.8);
-      box-shadow: 0 0 0 3px rgba(64, 153, 255, 0.15);
+      box-shadow: 0 0 0 3px rgba(64, 153, 255, 0.14);
     }
 
-    .input-wrapper input:focus + i,
-    .input-wrapper input:focus ~ i {
+    .input-wrapper > i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      transition: color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .toggle-password:hover {
       color: #4099ff;
+      background-color: #f1f5f9;
     }
 
     .form-options {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
     }
 
     .remember-me {
@@ -194,158 +274,111 @@
       align-items: center;
       gap: 8px;
       cursor: pointer;
+      font-size: 0.82rem;
+      color: #475569;
+      user-select: none;
     }
 
     .remember-me input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
+      width: 15px;
+      height: 15px;
       accent-color: #4099ff;
       cursor: pointer;
     }
 
-    .remember-me span {
-      font-size: 0.8rem;
-      color: #94a3b8;
-    }
-
     .btn-login {
       width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, #4099ff 0%, #2ed8b6 100%);
+      padding: 13px;
+      background: linear-gradient(120deg, #2f8ff5 0%, #2ed8b6 100%);
       border: none;
-      border-radius: 12px;
+      border-radius: 9px;
       color: #fff;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       font-weight: 600;
+      font-family: inherit;
       cursor: pointer;
-      letter-spacing: 0.5px;
-      transition: all 0.3s ease;
-      box-shadow: 0 6px 20px rgba(64, 153, 255, 0.3);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .btn-login::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      transition: left 0.5s;
+      box-shadow: 0 8px 20px rgba(64, 153, 255, 0.3);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
 
     .btn-login:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(64, 153, 255, 0.4);
-    }
-
-    .btn-login:hover::before {
-      left: 100%;
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(64, 153, 255, 0.38);
     }
 
     .btn-login:active {
       transform: translateY(0);
     }
 
-    .alert-error {
-      background: rgba(255, 83, 112, 0.15);
-      border: 1px solid rgba(255, 83, 112, 0.3);
-      border-radius: 10px;
-      padding: 12px 16px;
-      margin-bottom: 22px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      animation: shake 0.4s ease-in-out;
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-5px); }
-      75% { transform: translateX(5px); }
-    }
-
-    .alert-error i {
-      color: #FF5370;
-      font-size: 1.1rem;
-    }
-
-    .alert-error span {
-      font-size: 0.82rem;
-      color: #fca5a5;
-    }
-
-    .login-footer {
+    .form-footer {
+      margin-top: 26px;
       text-align: center;
-      margin-top: 28px;
       font-size: 0.75rem;
-      color: #475569;
+      color: #94a3b8;
     }
 
-    .login-footer a {
-      color: #4099ff;
-      text-decoration: none;
-    }
-
-    /* Particles / decorative dots */
-    .particle {
-      position: absolute;
-      width: 4px;
-      height: 4px;
-      background: rgba(64, 153, 255, 0.3);
-      border-radius: 50%;
-      animation: particle-float 6s ease-in-out infinite;
-    }
-
-    .particle:nth-child(1) { top: 20%; left: 15%; animation-delay: 0s; }
-    .particle:nth-child(2) { top: 60%; left: 80%; animation-delay: -2s; }
-    .particle:nth-child(3) { top: 80%; left: 30%; animation-delay: -4s; }
-    .particle:nth-child(4) { top: 10%; left: 70%; animation-delay: -1s; }
-    .particle:nth-child(5) { top: 40%; left: 90%; animation-delay: -3s; }
-
-    @keyframes particle-float {
-      0%, 100% { transform: translateY(0px) scale(1); opacity: 0.3; }
-      50% { transform: translateY(-20px) scale(1.5); opacity: 0.8; }
-    }
-
-    /* Toggle password visibility */
-    .toggle-password {
-      position: absolute;
-      right: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
+    .form-footer strong {
       color: #64748b;
-      cursor: pointer;
-      font-size: 0.95rem;
-      transition: color 0.3s;
+      font-weight: 500;
     }
-    .toggle-password:hover {
-      color: #4099ff;
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 860px) {
+      .login-visual {
+        display: none;
+      }
+
+      .login-form {
+        padding: 38px 30px;
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- Decorative particles -->
-  <div class="particle"></div>
-  <div class="particle"></div>
-  <div class="particle"></div>
-  <div class="particle"></div>
-  <div class="particle"></div>
+  <div class="login-card">
 
-  <div class="login-container">
-    <div class="login-card">
+    {{-- LEFT VISUAL PANEL --}}
+    <aside class="login-visual">
+      <div class="visual-logo">
+        <img src="{{ asset('images/logo.png') }}" alt="e-Operasional">
+      </div>
 
-      <div class="login-brand">
-        <div class="brand-icon">
-          <img src="{{ asset('images/logo.png') }}" alt="Logo" style="width: 48px; height: auto;">
+      <div>
+        <div class="visual-welcome">
+          <h2>Selamat Datang</h2>
+          <p>
+            Kelola operasional perusahaan Anda — pencatatan E-Toll, BBM, dan
+            tagihan air dalam satu sistem yang terintegrasi.
+          </p>
         </div>
-        <h1>e-Operasional</h1>
-        <p>Sistem Manajemen Operasional</p>
+
+        <div class="visual-features">
+          <div class="feature">
+            <i class="fa-solid fa-check"></i>
+            Pencatatan pemakaian E-Toll kendaraan
+          </div>
+          <div class="feature">
+            <i class="fa-solid fa-check"></i>
+            Pemakaian BBM bensin &amp; solar
+          </div>
+          <div class="feature">
+            <i class="fa-solid fa-check"></i>
+            Monitoring tagihan air per titik meter
+          </div>
+        </div>
+      </div>
+
+      <div class="visual-footer">
+        Copyright &copy; {{ date('Y') }} e-Operasional
+      </div>
+    </aside>
+
+    {{-- RIGHT FORM PANEL --}}
+    <section class="login-form">
+      <div class="form-heading">
+        <h2>Masuk</h2>
+        <p>Silakan masuk dengan akun Anda untuk melanjutkan.</p>
       </div>
 
       @if($errors->any())
@@ -387,15 +420,15 @@
         </div>
 
         <button type="submit" class="btn-login" id="btnLogin">
-          <i class="fa-solid fa-right-to-bracket"></i>&nbsp; Masuk
+          Masuk
         </button>
       </form>
 
-      <div class="login-footer">
-        Copyright &copy; {{ date('Y') }} <strong>e-Operasional</strong>. All rights reserved.
+      <div class="form-footer">
+        Copyright &copy; {{ date('Y') }} <strong>e-Operasional</strong>. Seluruh hak cipta dilindungi.
       </div>
+    </section>
 
-    </div>
   </div>
 
   <script>
