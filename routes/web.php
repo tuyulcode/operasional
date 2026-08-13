@@ -11,6 +11,7 @@ use App\Http\Controllers\EtollController;
 use App\Http\Controllers\PemegangKendaraanController;
 use App\Http\Controllers\JenisKendaraanController;
 use App\Http\Controllers\KendaraanController;
+use App\Http\Controllers\ProfileController;
 
 // Guest routes
 Route::middleware('guest')->group(function () {
@@ -23,6 +24,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/', fn() => redirect()->route('dashboard'));
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [ProfileController::class, 'index'])->name('index');
+    });
 
     Route::prefix('ppn')->name('ppn.')->group(function () {
         Route::get('/', [PpnController::class, 'index'])->name('index');
