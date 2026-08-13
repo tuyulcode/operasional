@@ -9,6 +9,7 @@ use App\Http\Controllers\TitikMeterController;
 use App\Http\Controllers\HargaBbmController;
 use App\Http\Controllers\EtollController;
 use App\Http\Controllers\PemegangKendaraanController;
+use App\Http\Controllers\JenisKendaraanController;
 
 // Guest routes
 Route::middleware('guest')->group(function () {
