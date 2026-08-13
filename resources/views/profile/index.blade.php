@@ -27,6 +27,13 @@
     </div>
   @endif
 
+  @if($errors->any())
+    <div class="alert-custom alert-danger">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <span>{{ $errors->first() }}</span>
+    </div>
+  @endif
+
   <div class="card">
     <div class="card-header">
       <div class="card-header-title">
@@ -47,6 +54,45 @@
           </span>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+      <div class="card-header-title">
+        <h3>Ubah Password</h3>
+        <p>Pastikan gunakan password yang kuat dan mudah kamu ingat</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ route('profile.password.update') }}">
+        @csrf
+        @method('PUT')
+
+        <div class="form-group">
+          <label for="current_password">Password Lama</label>
+          <input type="password" id="current_password" name="current_password" class="form-control"
+                 placeholder="Masukkan password lama" required>
+        </div>
+
+        <div class="form-group">
+          <label for="new_password">Password Baru</label>
+          <input type="password" id="new_password" name="new_password" class="form-control"
+                 placeholder="Minimal 8 karakter" minlength="8" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="new_password_confirmation">Konfirmasi Password Baru</label>
+          <input type="password" id="new_password_confirmation" name="new_password_confirmation" class="form-control"
+                 placeholder="Ulangi password baru" minlength="8" required>
+        </div>
+
+        <div style="margin-top: 20px; text-align: right;">
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-key"></i> Simpan Password Baru
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
