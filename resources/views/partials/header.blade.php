@@ -28,7 +28,7 @@
       <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem; color: #888;"></i>
 
       <div class="dropdown-menu" id="profileMenu">
-        <a href="#" class="dropdown-item"><i class="fa-solid fa-user"></i> Profil Saya</a>
+        <a href="{{ route('profile.index') }}" class="dropdown-item"><i class="fa-solid fa-user"></i> Profil Saya</a>
         <a href="#" class="dropdown-item"><i class="fa-solid fa-gear"></i> Pengaturan</a>
         <div class="dropdown-divider"></div>
         <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
