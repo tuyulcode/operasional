@@ -4,13 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class PengambilPemakai extends Model
+class Area extends Model
 {
-    protected $table = 'pengambil_pemakai';
+    protected $table = 'area';
     protected $fillable = ['nama', 'alamat'];
 
     public function titikMeter()
     {
-        return $this->hasMany(TitikMeter::class, 'pengambil_pemakai_id');
+        return $this->hasMany(TitikMeter::class, 'area_id');
     }
 }

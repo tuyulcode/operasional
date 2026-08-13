@@ -1,13 +1,13 @@
 {{-- SIDEBAR --}}
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
-    <a href="{{ route('dashboard') }}" class="brand-logo">
-      <i class="fa-solid fa-shapes"></i>
-      <span class="brand-title">e-Rekap</span>
-    </a>
     <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle Navigation">
       <i class="fa-solid fa-bars-staggered"></i>
     </button>
+    <a href="{{ route('dashboard') }}" class="brand-logo">
+      <img src="{{ asset('images/logo.png') }}" alt="Logo" class="brand-logo-img">
+      <span class="brand-title">e-Operasional</span>
+    </a>
   </div>
 
   <div class="sidebar-menu">
@@ -70,8 +70,8 @@
       </ul>
     </li>
 
-    <li class="menu-item">
-      <a href="#" class="menu-link">
+    <li class="menu-item {{ request()->routeIs('harga-bbm.*') ? 'active' : '' }}">
+      <a href="{{ route('harga-bbm.index') }}" class="menu-link">
         <div class="link-left">
           <i class="fa-solid fa-money-bill-wave link-icon"></i>
           <span class="link-text">Harga BBM</span>
@@ -79,7 +79,7 @@
       </a>
     </li>
 
-    <li class="menu-item menu-item-has-sub">
+    <li class="menu-item menu-item-has-sub {{ request()->routeIs('ppn.*', 'area.*', 'titik-meter.*') ? 'open' : '' }}">
       <a href="#" class="menu-link">
         <div class="link-left">
           <i class="fa-solid fa-faucet-drip link-icon"></i>
@@ -88,9 +88,9 @@
         <i class="fa-solid fa-chevron-right chevron-icon"></i>
       </a>
       <ul class="submenu">
-        <li><a href="#" class="submenu-link"><i class="fa-solid fa-angle-right"></i> Pengambil/Pemakai</a></li>
-        <li><a href="#" class="submenu-link"><i class="fa-solid fa-angle-right"></i> Titik Meter</a></li>
-        <li><a href="#" class="submenu-link"><i class="fa-solid fa-angle-right"></i> PPN</a></li>
+        <li><a href="{{ route('area.index') }}" class="submenu-link {{ request()->routeIs('area.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Area</a></li>
+        <li><a href="{{ route('titik-meter.index') }}" class="submenu-link {{ request()->routeIs('titik-meter.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Titik Meter</a></li>
+        <li><a href="{{ route('ppn.index') }}" class="submenu-link {{ request()->routeIs('ppn.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> PPN</a></li>
       </ul>
     </li>
 

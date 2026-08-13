@@ -21,10 +21,12 @@ return new class extends Migration
 
         Schema::create('harga_bbm', function (Blueprint $table) {
             $table->increments('id');
+            $table->string('jenis', 20)->comment('bensin, solar');
             $table->decimal('harga_paiton', 15, 2)->comment('Harga BBM per liter di Paiton');
             $table->decimal('harga_luar_paiton', 15, 2)->comment('Harga BBM per liter di luar Paiton');
-            $table->string('status', 20)->default('aktif')->comment('aktif, nonaktif');
             $table->timestamps();
+
+            $table->unique('jenis');
         });
 
         Schema::create('jenis_kendaraan', function (Blueprint $table) {
@@ -75,9 +77,9 @@ return new class extends Migration
             $table->foreign('dicatat_oleh')->references('id')->on('users');
         });
 
-        Schema::create('pengambil_pemakai', function (Blueprint $table) {
+        Schema::create('area', function (Blueprint $table) {
             $table->increments('id');
-            $table->string('nama', 150)->comment('NAMA / PENGAMBIL / PEMAKAI');
+            $table->string('nama', 150)->comment('NAMA AREA');
             $table->string('alamat', 255)->nullable()->comment('ALAMAT');
             $table->timestamps();
         });
@@ -85,22 +87,20 @@ return new class extends Migration
         Schema::create('ppn', function (Blueprint $table) {
             $table->increments('id');
             $table->decimal('persentase', 5, 2)->comment('Contoh: 11 untuk 11%');
-            $table->date('tanggal_mulai');
-            $table->date('tanggal_selesai')->nullable();
             $table->string('status', 20)->default('aktif')->comment('aktif, nonaktif');
             $table->timestamps();
         });
 
         Schema::create('titik_meter', function (Blueprint $table) {
             $table->increments('id');
-            $table->unsignedInteger('pengambil_pemakai_id');
+            $table->unsignedInteger('area_id');
             $table->string('nama', 100)->comment('Contoh: Barak 1, Barak 2, Wisma');
             $table->decimal('meter_faktor', 10, 2)->default(1);
             $table->decimal('tarif_harga', 15, 2)->default(0);
             $table->string('status', 20)->default('aktif')->comment('aktif, nonaktif');
             $table->timestamps();
 
-            $table->foreign('pengambil_pemakai_id')->references('id')->on('pengambil_pemakai');
+            $table->foreign('area_id')->references('id')->on('area');
         });
 
         Schema::create('tagihan_air', function (Blueprint $table) {
@@ -132,7 +132,7 @@ return new class extends Migration
         Schema::dropIfExists('tagihan_air');
         Schema::dropIfExists('titik_meter');
         Schema::dropIfExists('ppn');
-        Schema::dropIfExists('pengambil_pemakai');
+        Schema::dropIfExists('area');
         Schema::dropIfExists('pemakaian_etoll');
         Schema::dropIfExists('pemakaian_bbm');
         Schema::dropIfExists('kendaraan');
