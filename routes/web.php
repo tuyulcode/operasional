@@ -10,6 +10,7 @@ use App\Http\Controllers\HargaBbmController;
 use App\Http\Controllers\EtollController;
 use App\Http\Controllers\PemegangKendaraanController;
 use App\Http\Controllers\JenisKendaraanController;
+use App\Http\Controllers\KendaraanController;
 
 // Guest routes
 Route::middleware('guest')->group(function () {
@@ -61,6 +62,20 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [PemegangKendaraanController::class, 'store'])->name('store');
         Route::put('/{id}', [PemegangKendaraanController::class, 'update'])->name('update');
         Route::delete('/{id}', [PemegangKendaraanController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('kendaraan')->name('kendaraan.')->group(function () {
+        Route::get('/', [KendaraanController::class, 'index'])->name('index');
+        Route::post('/', [KendaraanController::class, 'store'])->name('store');
+        Route::put('/{id}', [KendaraanController::class, 'update'])->name('update');
+        Route::delete('/{id}', [KendaraanController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('jenis-kendaraan')->name('jenis-kendaraan.')->group(function () {
+        Route::get('/', [JenisKendaraanController::class, 'index'])->name('index');
+        Route::post('/', [JenisKendaraanController::class, 'store'])->name('store');
+        Route::put('/{id}', [JenisKendaraanController::class, 'update'])->name('update');
+        Route::delete('/{id}', [JenisKendaraanController::class, 'destroy'])->name('destroy');
     });
 });
 

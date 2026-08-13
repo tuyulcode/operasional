@@ -65,9 +65,9 @@
         <i class="fa-solid fa-chevron-right chevron-icon"></i>
       </a>
       <ul class="submenu">
-        <li><a href="#" class="submenu-link"><i class="fa-solid fa-angle-right"></i> Data Kendaraan</a></li>
+        <li><a href="{{ route('kendaraan.index') }}" class="submenu-link {{ request()->routeIs('kendaraan.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Data Kendaraan</a></li>
         <li><a href="{{ route('pemegang-kendaraan.index') }}" class="submenu-link {{ request()->routeIs('pemegang-kendaraan.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Pemegang Kendaraan</a></li>
-        <li><a href="#" class="submenu-link"><i class="fa-solid fa-angle-right"></i> Jenis Kendaraan</a></li>
+         <li><a href="{{ route('jenis-kendaraan.index') }}" class="submenu-link {{ request()->routeIs('jenis-kendaraan.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Jenis Kendaraan</a></li>
       </ul>
     </li>
 
