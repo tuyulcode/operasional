@@ -7,6 +7,8 @@ use App\Http\Controllers\PpnController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\TitikMeterController;
 use App\Http\Controllers\HargaBbmController;
+use App\Http\Controllers\EtollController;
+use App\Http\Controllers\PemegangKendaraanController;
 use App\Http\Controllers\JenisKendaraanController;
 
 // Guest routes
@@ -47,11 +49,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [HargaBbmController::class, 'store'])->name('store');
     });
 
-    Route::prefix('jenis-kendaraan')->name('jenis-kendaraan.')->group(function () {
-        Route::get('/', [JenisKendaraanController::class, 'index'])->name('index');
-        Route::post('/', [JenisKendaraanController::class, 'store'])->name('store');
-        Route::put('/{id}', [JenisKendaraanController::class, 'update'])->name('update');
-        Route::delete('/{id}', [JenisKendaraanController::class, 'destroy'])->name('destroy');
+    Route::prefix('pemakaian-etoll')->name('pemakaian-etoll.')->group(function () {
+        Route::get('/', [EtollController::class, 'index'])->name('index');
+        Route::post('/', [EtollController::class, 'store'])->name('store');
+        Route::put('/{id}', [EtollController::class, 'update'])->name('update');
+        Route::delete('/{id}', [EtollController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('pemegang-kendaraan')->name('pemegang-kendaraan.')->group(function () {
+        Route::get('/', [PemegangKendaraanController::class, 'index'])->name('index');
+        Route::post('/', [PemegangKendaraanController::class, 'store'])->name('store');
+        Route::put('/{id}', [PemegangKendaraanController::class, 'update'])->name('update');
+        Route::delete('/{id}', [PemegangKendaraanController::class, 'destroy'])->name('destroy');
     });
 });
 
