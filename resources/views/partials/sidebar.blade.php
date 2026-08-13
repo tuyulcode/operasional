@@ -98,8 +98,8 @@
     {{-- Category: Pengaturan --}}
     <div class="menu-category">Pengaturan</div>
 
-    <li class="menu-item">
-      <a href="#" class="menu-link">
+    <li class="menu-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
+      <a href="{{ route('users.index') }}" class="menu-link">
         <div class="link-left">
           <i class="fa-solid fa-users-gear link-icon"></i>
           <span class="link-text">Users</span>
