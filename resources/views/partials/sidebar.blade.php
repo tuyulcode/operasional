@@ -56,7 +56,7 @@
     {{-- Category: Master Data --}}
     <div class="menu-category">Master Data</div>
 
-    <li class="menu-item menu-item-has-sub {{ request()->routeIs('pemegang-kendaraan.*') ? 'open' : '' }}">
+    <li class="menu-item menu-item-has-sub {{ request()->routeIs('kendaraan.*', 'jenis-kendaraan.*', 'pemegang-kendaraan.*') ? 'open' : '' }}">
       <a href="#" class="menu-link">
         <div class="link-left">
           <i class="fa-solid fa-car link-icon"></i>
@@ -67,7 +67,7 @@
       <ul class="submenu">
         <li><a href="{{ route('kendaraan.index') }}" class="submenu-link {{ request()->routeIs('kendaraan.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Data Kendaraan</a></li>
         <li><a href="{{ route('pemegang-kendaraan.index') }}" class="submenu-link {{ request()->routeIs('pemegang-kendaraan.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Pemegang Kendaraan</a></li>
-         <li><a href="{{ route('jenis-kendaraan.index') }}" class="submenu-link {{ request()->routeIs('jenis-kendaraan.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Jenis Kendaraan</a></li>
+        <li><a href="{{ route('jenis-kendaraan.index') }}" class="submenu-link {{ request()->routeIs('jenis-kendaraan.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Jenis Kendaraan</a></li>
       </ul>
     </li>
 
