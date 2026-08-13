@@ -12,6 +12,7 @@ use App\Http\Controllers\PemegangKendaraanController;
 use App\Http\Controllers\JenisKendaraanController;
 use App\Http\Controllers\KendaraanController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserController;
 
 // Guest routes
 Route::middleware('guest')->group(function () {
@@ -81,6 +82,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [JenisKendaraanController::class, 'store'])->name('store');
         Route::put('/{id}', [JenisKendaraanController::class, 'update'])->name('update');
         Route::delete('/{id}', [JenisKendaraanController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [UserController::class, 'index'])->name('index');
+        Route::post('/', [UserController::class, 'store'])->name('store');
+        Route::put('/{id}', [UserController::class, 'update'])->name('update');
+        Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
     });
 });
 

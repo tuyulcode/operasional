@@ -82,14 +82,11 @@
                         onclick="openEditEtoll(this)">
                   <i class="fa-solid fa-pen"></i>
                 </button>
-                <form action="{{ route('pemakaian-etoll.destroy', $item->id) }}" method="POST" style="display: inline;"
-                      onsubmit="return confirm('Yakin ingin menghapus data pemakaian e-toll ini?');">
-                  @csrf
-                  @method('DELETE')
-                  <button type="submit" class="btn btn-icon btn-delete" title="Hapus">
-                    <i class="fa-solid fa-trash-can"></i>
-                  </button>
-                </form>
+                <button type="button" class="btn btn-icon btn-delete" title="Hapus"
+                        data-id="{{ $item->id }}"
+                        onclick="openDeleteEtoll(this)">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
               </td>
             </tr>
             @empty
@@ -159,19 +156,110 @@
     </div>
   </div>
 
+  {{-- MODAL KONFIRMASI HAPUS --}}
+  <div class="modal-overlay" id="deleteEtollModal">
+    <div class="modal modal-confirm">
+      <div class="modal-body modal-confirm-body">
+        <div class="modal-confirm-icon">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 class="modal-confirm-title">Hapus Pemakaian E-Toll?</h3>
+        <p class="modal-confirm-text">
+          Yakin ingin menghapus data pemakaian e-toll ini? Data yang dihapus tidak dapat dikembalikan.
+        </p>
+      </div>
+      <form id="deleteEtollForm" method="POST" action="">
+        @csrf
+        @method('DELETE')
+        <div class="modal-footer modal-confirm-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeDeleteEtollModal()">
+            Batal
+          </button>
+          <button type="submit" class="btn btn-danger">
+            <i class="fa-solid fa-trash-can"></i> Ya, Hapus
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 @endsection
+
+@push('styles')
+<style>
+  .modal-confirm {
+    max-width: 380px;
+  }
+
+  .modal-confirm-body {
+    text-align: center;
+    padding: 32px 24px 8px;
+  }
+
+  .modal-confirm-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: #fef2f2;
+    color: #dc2626;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+
+  .modal-confirm-title {
+    margin: 0 0 8px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1f2937;
+  }
+
+  .modal-confirm-text {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .modal-confirm-footer {
+    justify-content: center;
+    padding-top: 20px;
+  }
+
+  .btn-danger {
+    background-color: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+  }
+
+  .btn-danger:hover {
+    background-color: #b91c1c;
+    border-color: #b91c1c;
+  }
+</style>
+@endpush
 
 @push('scripts')
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const overlay = document.getElementById('etollModal');
+    const deleteOverlay = document.getElementById('deleteEtollModal');
 
     overlay.addEventListener('click', function(e) {
       if (e.target === overlay) closeEtollModal();
     });
 
+    deleteOverlay.addEventListener('click', function(e) {
+      if (e.target === deleteOverlay) closeDeleteEtollModal();
+    });
+
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') closeEtollModal();
+      if (e.key === 'Escape') {
+        closeEtollModal();
+        closeDeleteEtollModal();
+      }
     });
 
     const nominalInput = document.getElementById('nominal');
@@ -220,6 +308,16 @@
 
   function closeEtollModal() {
     document.getElementById('etollModal').classList.remove('show');
+  }
+
+  function openDeleteEtoll(btn) {
+    const form = document.getElementById('deleteEtollForm');
+    form.action = '{{ route('pemakaian-etoll.destroy', '__ID__') }}'.replace('__ID__', btn.dataset.id);
+    document.getElementById('deleteEtollModal').classList.add('show');
+  }
+
+  function closeDeleteEtollModal() {
+    document.getElementById('deleteEtollModal').classList.remove('show');
   }
 </script>
 @endpush
