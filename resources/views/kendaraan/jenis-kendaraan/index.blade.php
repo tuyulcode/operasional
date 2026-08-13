@@ -55,8 +55,6 @@
             <tr>
               <th>No</th>
               <th>Nama Merek</th>
-              <th>Dibuat</th>
-              <th>Diperbarui</th>
               <th>Aksi</th>
             </tr>
           </thead>
@@ -71,8 +69,6 @@
                   </div>
                 </div>
               </td>
-              <td>{{ $jenisKendaraan->created_at?->format('d-m-Y H:i') }}</td>
-              <td>{{ $jenisKendaraan->updated_at?->format('d-m-Y H:i') }}</td>
               <td>
                 <button type="button" class="btn btn-icon btn-edit" title="Edit"
                         data-id="{{ $jenisKendaraan->id }}"
@@ -92,7 +88,7 @@
             </tr>
             @empty
             <tr>
-              <td colspan="5" style="text-align: center; padding: 30px; color: #999;">
+              <td colspan="3" style="text-align: center; padding: 30px; color: #999;">
                 <i class="fa-solid fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
                 Belum ada data jenis kendaraan
               </td>
