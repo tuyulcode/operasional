@@ -48,11 +48,6 @@ class PpnController extends Controller
     {
         $ppn = Ppn::findOrFail($id);
 
-        if ($ppn->tagihanAir()->exists()) {
-            return redirect()->route('ppn.index')
-                ->with('error', 'PPN tidak dapat dihapus karena sudah digunakan pada tagihan air.');
-        }
-
         DB::transaction(function () use ($ppn) {
             $ppn->delete();
 

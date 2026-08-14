@@ -1459,3 +1459,245 @@ body.dark-mode .modal-title {
 body.dark-mode .modal-close:hover {
   background-color: #334155;
 }
+
+/* ==========================================
+   Rekapan
+========================================== */
+.btn-success,
+.btn-danger {
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-success {
+  background-color: #0f9d74;
+}
+.btn-success:hover {
+  background-color: #0c845f;
+}
+.btn-danger {
+  background-color: #d6334f;
+}
+.btn-danger:hover {
+  background-color: #b92b44;
+}
+
+.rekapan-area {
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius);
+  margin: 16px;
+  overflow: hidden;
+}
+
+.rekapan-area-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #4099ff 0%, #2ed8b6 100%);
+  color: #fff;
+}
+
+.rekapan-area-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rekapan-area-total {
+  font-size: 0.85rem;
+}
+
+.rekapan-subtotal-row td {
+  background-color: #f1f5f9;
+}
+
+.rekapan-ppn-row td {
+  background-color: #f8f9fc;
+}
+
+.rekapan-total-row td {
+  background-color: #eef2ff;
+}
+
+.rekapan-grand-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #4099ff 0%, #2ed8b6 100%);
+  color: #fff;
+  font-size: 1rem;
+}
+
+.rekapan-ttd {
+  padding: 32px 24px 24px;
+}
+
+.rekapan-ttd-title {
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.rekapan-ttd-row {
+  display: flex;
+  gap: 24px;
+}
+
+.rekapan-ttd-col {
+  flex: 1;
+  text-align: center;
+}
+
+.ttd-jabatan {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+  text-decoration: underline;
+}
+
+.ttd-space {
+  height: 64px;
+}
+
+.ttd-nama {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.rekapan-ttd-tanggal {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+body.dark-mode .rekapan-ttd-title,
+body.dark-mode .ttd-jabatan,
+body.dark-mode .ttd-nama {
+  color: #f1f5f9;
+}
+
+body.dark-mode .rekapan-area {
+  border-color: #334155;
+}
+
+body.dark-mode .rekapan-subtotal-row td {
+  background-color: #334155;
+}
+
+body.dark-mode .rekapan-ppn-row td {
+  background-color: #263348;
+}
+
+body.dark-mode .rekapan-total-row td {
+  background-color: #2b3a55;
+}
+
+/* ==========================================
+   Tabs
+========================================== */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0 4px;
+  overflow-x: auto;
+}
+
+.tab-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.88rem;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+
+.tab-link:hover {
+  color: var(--text-main);
+}
+
+.tab-link.active {
+  color: #4361ee;
+  border-bottom-color: #4361ee;
+}
+
+body.dark-mode .tabs {
+  border-bottom-color: #334155;
+}
+
+body.dark-mode .tab-link {
+  color: #94a3b8;
+}
+
+body.dark-mode .tab-link:hover {
+  color: #f1f5f9;
+}
+
+body.dark-mode .tab-link.active {
+  color: #93c5fd;
+  border-bottom-color: #93c5fd;
+}
+
+/* ==========================================
+   Form Tagihan Air (full-width)
+========================================== */
+.tagihan-form .form-grid {
+  gap: 22px 36px;
+}
+
+.tagihan-form .form-group {
+  margin-bottom: 4px;
+}
+
+.tagihan-form .form-group small {
+  display: block;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+/* Read-only / disabled: tampilkan sebagai hasil otomatis */
+.form-control[readonly],
+.form-control:disabled {
+  background-color: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.form-control[readonly]:focus,
+.form-control:disabled:focus {
+  border-color: #e2e8f0;
+  box-shadow: none;
+}
+
+/* Input file: hindari tombol "Choose File" terpotong */
+input[type="file"].form-control {
+  height: auto;
+  padding: 8px 10px;
+  line-height: 1.2;
+}
+
+body.dark-mode .form-control[readonly],
+body.dark-mode .form-control:disabled {
+  background-color: #1e293b;
+  color: #94a3b8;
+}
+
+body.dark-mode .form-control[readonly]:focus,
+body.dark-mode .form-control:disabled:focus {
+  border-color: #334155;
+}
