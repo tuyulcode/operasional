@@ -18,9 +18,4 @@ class Kendaraan extends Model
     {
         return $this->hasMany(PemakaianBbm::class, 'kendaraan_id');
     }
-
-    public function pemakaianEtoll()
-    {
-        return $this->hasMany(PemakaianEtoll::class, 'kendaraan_id');
-    }
 }

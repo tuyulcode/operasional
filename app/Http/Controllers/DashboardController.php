@@ -55,7 +55,7 @@ class DashboardController extends Controller
         }
 
         // Transaksi terakhir (latest 5)
-        $latestEtoll = PemakaianEtoll::with('kendaraan', 'pencatat')
+        $latestEtoll = PemakaianEtoll::with('pemegangKendaraan', 'pencatat')
             ->latest('tanggal')
             ->take(5)
             ->get();
