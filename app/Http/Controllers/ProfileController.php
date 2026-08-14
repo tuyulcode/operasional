@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
@@ -47,5 +48,36 @@ class ProfileController extends Controller
 
         return redirect()->route('profile.index')
             ->with('success', 'Password berhasil diperbarui.');
+    }
+
+    /**
+     * Update foto profil user yang sedang login
+     */
+    public function updatePhoto(Request $request)
+    {
+        $request->validate([
+            'photo' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+        ], [
+            'photo.required' => 'Foto profil wajib dipilih.',
+            'photo.image'    => 'File harus berupa gambar.',
+            'photo.mimes'    => 'Format foto harus jpg, jpeg, atau png.',
+            'photo.max'      => 'Ukuran foto maksimal 2MB.',
+        ]);
+
+        $user = Auth::user();
+
+        // Hapus foto lama kalau ada, biar tidak numpuk file yang tidak terpakai
+        if ($user->photo && Storage::disk('public')->exists($user->photo)) {
+            Storage::disk('public')->delete($user->photo);
+        }
+
+        $path = $request->file('photo')->store('profile-photos', 'public');
+
+        $user->update([
+            'photo' => $path,
+        ]);
+
+        return redirect()->route('profile.index')
+            ->with('success', 'Foto profil berhasil diperbarui.');
     }
 }

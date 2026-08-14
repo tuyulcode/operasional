@@ -29,6 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'index'])->name('index');
         Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
+        Route::put('/photo', [ProfileController::class, 'updatePhoto'])->name('photo.update');
     });
 
     Route::prefix('ppn')->name('ppn.')->group(function () {
