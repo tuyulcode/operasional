@@ -1,4 +1,15 @@
 {{-- TOP NAVBAR --}}
+<style>
+  .user-avatar-photo {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: block;
+  }
+</style>
+
 <header class="top-navbar">
   <div class="navbar-left">
     <div class="search-box">
@@ -18,9 +29,13 @@
 
     {{-- User Profile Dropdown --}}
     <div class="user-profile" id="userProfileDropdown">
-      <div class="user-avatar-initial">
-        {{ strtoupper(substr(Auth::user()->username ?? 'U', 0, 1)) }}
-      </div>
+      @if(Auth::user()->photo ?? false)
+        <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="Foto Profil" class="user-avatar-photo">
+      @else
+        <div class="user-avatar-initial">
+          {{ strtoupper(substr(Auth::user()->username ?? 'U', 0, 1)) }}
+        </div>
+      @endif
       <div class="user-info">
         <span class="user-name">{{ Auth::user()->username ?? 'User' }}</span>
         <span class="user-role">{{ ucfirst(Auth::user()->role ?? 'user') }}</span>
