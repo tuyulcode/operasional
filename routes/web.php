@@ -10,6 +10,12 @@ use App\Http\Controllers\TagihanAirController;
 use App\Http\Controllers\RekapanController;
 use App\Http\Controllers\PenandatanganController;
 use App\Http\Controllers\HargaBbmController;
+use App\Http\Controllers\EtollController;
+use App\Http\Controllers\PemegangKendaraanController;
+use App\Http\Controllers\JenisKendaraanController;
+use App\Http\Controllers\KendaraanController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserController;
 
 // Guest routes
 Route::middleware('guest')->group(function () {
@@ -22,6 +28,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/', fn() => redirect()->route('dashboard'));
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [ProfileController::class, 'index'])->name('index');
+        Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
+    });
 
     Route::prefix('ppn')->name('ppn.')->group(function () {
         Route::get('/', [PpnController::class, 'index'])->name('index');
@@ -65,6 +76,41 @@ Route::middleware('auth')->group(function () {
     Route::prefix('harga-bbm')->name('harga-bbm.')->group(function () {
         Route::get('/', [HargaBbmController::class, 'index'])->name('index');
         Route::post('/', [HargaBbmController::class, 'store'])->name('store');
+    });
+
+    Route::prefix('pemakaian-etoll')->name('pemakaian-etoll.')->group(function () {
+        Route::get('/', [EtollController::class, 'index'])->name('index');
+        Route::post('/', [EtollController::class, 'store'])->name('store');
+        Route::put('/{id}', [EtollController::class, 'update'])->name('update');
+        Route::delete('/{id}', [EtollController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('pemegang-kendaraan')->name('pemegang-kendaraan.')->group(function () {
+        Route::get('/', [PemegangKendaraanController::class, 'index'])->name('index');
+        Route::post('/', [PemegangKendaraanController::class, 'store'])->name('store');
+        Route::put('/{id}', [PemegangKendaraanController::class, 'update'])->name('update');
+        Route::delete('/{id}', [PemegangKendaraanController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('kendaraan')->name('kendaraan.')->group(function () {
+        Route::get('/', [KendaraanController::class, 'index'])->name('index');
+        Route::post('/', [KendaraanController::class, 'store'])->name('store');
+        Route::put('/{id}', [KendaraanController::class, 'update'])->name('update');
+        Route::delete('/{id}', [KendaraanController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('jenis-kendaraan')->name('jenis-kendaraan.')->group(function () {
+        Route::get('/', [JenisKendaraanController::class, 'index'])->name('index');
+        Route::post('/', [JenisKendaraanController::class, 'store'])->name('store');
+        Route::put('/{id}', [JenisKendaraanController::class, 'update'])->name('update');
+        Route::delete('/{id}', [JenisKendaraanController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [UserController::class, 'index'])->name('index');
+        Route::post('/', [UserController::class, 'store'])->name('store');
+        Route::put('/{id}', [UserController::class, 'update'])->name('update');
+        Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
     });
 });
 

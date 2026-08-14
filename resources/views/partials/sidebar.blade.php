@@ -26,8 +26,8 @@
     {{-- Category: Transaksi --}}
     <div class="menu-category">Transaksi</div>
 
-    <li class="menu-item">
-      <a href="#" class="menu-link">
+    <li class="menu-item {{ request()->routeIs('pemakaian-etoll.*') ? 'active' : '' }}">
+      <a href="{{ route('pemakaian-etoll.index') }}" class="menu-link">
         <div class="link-left">
           <i class="fa-solid fa-road link-icon"></i>
           <span class="link-text">Pemakaian E-Toll</span>
@@ -44,8 +44,8 @@
       </a>
     </li>
 
-    <li class="menu-item {{ request()->routeIs('tagihan-air.*') ? 'active' : '' }}">
-      <a href="{{ route('tagihan-air.index') }}" class="menu-link">
+    <li class="menu-item">
+      <a href="#" class="menu-link">
         <div class="link-left">
           <i class="fa-solid fa-droplet link-icon"></i>
           <span class="link-text">Tagihan Air</span>
@@ -56,7 +56,7 @@
     {{-- Category: Master Data --}}
     <div class="menu-category">Master Data</div>
 
-    <li class="menu-item menu-item-has-sub">
+    <li class="menu-item menu-item-has-sub {{ request()->routeIs('kendaraan.*', 'jenis-kendaraan.*', 'pemegang-kendaraan.*') ? 'open' : '' }}">
       <a href="#" class="menu-link">
         <div class="link-left">
           <i class="fa-solid fa-car link-icon"></i>
@@ -65,8 +65,9 @@
         <i class="fa-solid fa-chevron-right chevron-icon"></i>
       </a>
       <ul class="submenu">
-        <li><a href="#" class="submenu-link"><i class="fa-solid fa-angle-right"></i> Data Kendaraan</a></li>
-        <li><a href="#" class="submenu-link"><i class="fa-solid fa-angle-right"></i> Jenis Kendaraan</a></li>
+        <li><a href="{{ route('kendaraan.index') }}" class="submenu-link {{ request()->routeIs('kendaraan.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Data Kendaraan</a></li>
+        <li><a href="{{ route('pemegang-kendaraan.index') }}" class="submenu-link {{ request()->routeIs('pemegang-kendaraan.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Pemegang Kendaraan</a></li>
+        <li><a href="{{ route('jenis-kendaraan.index') }}" class="submenu-link {{ request()->routeIs('jenis-kendaraan.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Jenis Kendaraan</a></li>
       </ul>
     </li>
 
@@ -97,17 +98,8 @@
     {{-- Category: Pengaturan --}}
     <div class="menu-category">Pengaturan</div>
 
-    <li class="menu-item {{ request()->routeIs('penandatangan.*') ? 'active' : '' }}">
-      <a href="{{ route('penandatangan.index') }}" class="menu-link">
-        <div class="link-left">
-          <i class="fa-solid fa-signature link-icon"></i>
-          <span class="link-text">Tanda Tangan</span>
-        </div>
-      </a>
-    </li>
-
-    <li class="menu-item">
-      <a href="#" class="menu-link">
+    <li class="menu-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
+      <a href="{{ route('users.index') }}" class="menu-link">
         <div class="link-left">
           <i class="fa-solid fa-users-gear link-icon"></i>
           <span class="link-text">Users</span>

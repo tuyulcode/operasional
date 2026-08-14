@@ -7,15 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 class PemakaianEtoll extends Model
 {
     protected $table = 'pemakaian_etoll';
-    protected $fillable = ['kendaraan_id', 'tanggal', 'nominal', 'dicatat_oleh'];
+    protected $fillable = ['pemegang_kendaraan_id', 'tanggal', 'nominal', 'dicatat_oleh'];
 
     protected $casts = [
         'tanggal' => 'date',
     ];
 
-    public function kendaraan()
+    public function pemegangKendaraan()
     {
-        return $this->belongsTo(Kendaraan::class, 'kendaraan_id');
+        return $this->belongsTo(PemegangKendaraan::class, 'pemegang_kendaraan_id');
     }
 
     public function pencatat()

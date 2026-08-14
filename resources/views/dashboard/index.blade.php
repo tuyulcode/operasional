@@ -135,7 +135,7 @@
               <tr>
                 <th>No</th>
                 <th>Tanggal</th>
-                <th>Kendaraan</th>
+                <th>Nama</th>
                 <th>Nominal</th>
                 <th>Dicatat Oleh</th>
               </tr>
@@ -148,8 +148,7 @@
                 <td>
                   <div class="app-info">
                     <div>
-                      <div class="app-title">{{ $etoll->kendaraan->plat_nomor ?? '-' }}</div>
-                      <div class="app-desc">{{ $etoll->kendaraan->nama_jenis ?? '-' }}</div>
+                      <div class="app-title">{{ $etoll->pemegangKendaraan->nama ?? '-' }}</div>
                     </div>
                   </div>
                 </td>
