@@ -9,6 +9,8 @@
     <ul class="breadcrumb">
       <li><a href="{{ route('dashboard') }}">Dashboard</a></li>
       <li><i class="fa-solid fa-angle-right"></i></li>
+      <li>Transaksi</li>
+      <li><i class="fa-solid fa-angle-right"></i></li>
       <li>Pemakaian BBM</li>
     </ul>
   </div>
