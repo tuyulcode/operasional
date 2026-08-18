@@ -9,35 +9,35 @@
     <td colspan="8"></td>
   </tr>
   <tr>
-    <td colspan="8" style="font-weight: bold; background-color: #E9ECEF; border: 1px solid #6C757D;">A. Roda Empat</td>
+    <td colspan="8" align="center" bgcolor="#DBEAFE" style="font-weight: bold; background-color: #DBEAFE; color: #1F2937; border: 1px solid #000000;">A. Roda Empat</td>
   </tr>
-  <tr style="font-weight: bold; background-color: #343A40; color: #FFFFFF;">
-    <td align="center" style="border: 1px solid #6C757D;">No.</td>
-    <td align="center" style="border: 1px solid #6C757D;">Nama</td>
-    <td align="center" style="border: 1px solid #6C757D;">Minggu-1</td>
-    <td align="center" style="border: 1px solid #6C757D;">Minggu-2</td>
-    <td align="center" style="border: 1px solid #6C757D;">Minggu-3</td>
-    <td align="center" style="border: 1px solid #6C757D;">Minggu-4</td>
-    <td align="center" style="border: 1px solid #6C757D;">Minggu-5</td>
-    <td align="center" style="border: 1px solid #6C757D;">Jumlah (Rp)</td>
+  <tr>
+    <td align="center" bgcolor="#E9ECEF" style="font-weight: bold; background-color: #E9ECEF; color: #1F2937; border: 1px solid #000000;">No.</td>
+    <td align="center" bgcolor="#E9ECEF" style="font-weight: bold; background-color: #E9ECEF; color: #1F2937; border: 1px solid #000000;">Nama</td>
+    <td align="center" bgcolor="#E9ECEF" style="font-weight: bold; background-color: #E9ECEF; color: #1F2937; border: 1px solid #000000;">Minggu-1</td>
+    <td align="center" bgcolor="#E9ECEF" style="font-weight: bold; background-color: #E9ECEF; color: #1F2937; border: 1px solid #000000;">Minggu-2</td>
+    <td align="center" bgcolor="#E9ECEF" style="font-weight: bold; background-color: #E9ECEF; color: #1F2937; border: 1px solid #000000;">Minggu-3</td>
+    <td align="center" bgcolor="#E9ECEF" style="font-weight: bold; background-color: #E9ECEF; color: #1F2937; border: 1px solid #000000;">Minggu-4</td>
+    <td align="center" bgcolor="#E9ECEF" style="font-weight: bold; background-color: #E9ECEF; color: #1F2937; border: 1px solid #000000;">Minggu-5</td>
+    <td align="center" bgcolor="#E9ECEF" style="font-weight: bold; background-color: #E9ECEF; color: #1F2937; border: 1px solid #000000;">Jumlah (Rp)</td>
   </tr>
   @foreach($rows as $i => $row)
   <tr>
-    <td align="center" style="border: 1px solid #ADB5BD;">{{ $i + 1 }}</td>
-    <td style="border: 1px solid #ADB5BD;">{{ $row['nama'] }}</td>
+    <td align="center" style="border: 1px solid #000000;">{{ $i + 1 }}</td>
+    <td style="border: 1px solid #000000;">{{ $row['nama'] }}</td>
     @foreach($row['minggu'] as $val)
-      <td align="right" style="border: 1px solid #ADB5BD;">{{ $val > 0 ? number_format($val, 0, ',', '.') : '-' }}</td>
+      <td align="right" style="border: 1px solid #000000;">{{ $val > 0 ? number_format($val, 0, ',', '.') : '-' }}</td>
     @endforeach
-    <td align="right" style="border: 1px solid #ADB5BD;">{{ $row['jumlah'] > 0 ? number_format($row['jumlah'], 0, ',', '.') : '-' }}</td>
+    <td align="right" style="border: 1px solid #000000;">{{ $row['jumlah'] > 0 ? number_format($row['jumlah'], 0, ',', '.') : '-' }}</td>
   </tr>
   @endforeach
-  <tr style="font-weight: bold; background-color: #F1F3F5;">
-    <td colspan="2" style="border: 1px solid #6C757D;">Jumlah</td>
-    <td style="border: 1px solid #6C757D;"></td>
-    <td style="border: 1px solid #6C757D;"></td>
-    <td style="border: 1px solid #6C757D;"></td>
-    <td style="border: 1px solid #6C757D;"></td>
-    <td style="border: 1px solid #6C757D;"></td>
-    <td align="right" style="border: 1px solid #6C757D;">{{ $totalKeseluruhan > 0 ? number_format($totalKeseluruhan, 0, ',', '.') : '-' }}</td>
+  <tr>
+    <td colspan="2" bgcolor="#F1F3F5" style="font-weight: bold; background-color: #F1F3F5; color: #1F2937; border: 1px solid #000000;">Jumlah</td>
+    <td bgcolor="#F1F3F5" style="background-color: #F1F3F5; border: 1px solid #000000;"></td>
+    <td bgcolor="#F1F3F5" style="background-color: #F1F3F5; border: 1px solid #000000;"></td>
+    <td bgcolor="#F1F3F5" style="background-color: #F1F3F5; border: 1px solid #000000;"></td>
+    <td bgcolor="#F1F3F5" style="background-color: #F1F3F5; border: 1px solid #000000;"></td>
+    <td bgcolor="#F1F3F5" style="background-color: #F1F3F5; border: 1px solid #000000;"></td>
+    <td align="right" bgcolor="#F1F3F5" style="font-weight: bold; background-color: #F1F3F5; color: #1F2937; border: 1px solid #000000;">{{ $totalKeseluruhan > 0 ? number_format($totalKeseluruhan, 0, ',', '.') : '-' }}</td>
   </tr>
 </table>
