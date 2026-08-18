@@ -74,8 +74,12 @@ class EtollController extends Controller
 
     public function exportPdf(Request $request)
     {
-        $bulan = (int) $request->query('bulan', now()->month);
-        $tahun = (int) $request->query('tahun', now()->year);
+        $validated = $this->validatePeriode($request);
+        if (!$validated) {
+            return redirect()->route('pemakaian-etoll.index')
+                ->with('error', 'Pilih bulan dan tahun terlebih dahulu untuk export.');
+        }
+        [$bulan, $tahun] = $validated;
 
         $data = $this->buildLaporanData($bulan, $tahun);
 
@@ -87,8 +91,12 @@ class EtollController extends Controller
 
     public function exportExcel(Request $request)
     {
-        $bulan = (int) $request->query('bulan', now()->month);
-        $tahun = (int) $request->query('tahun', now()->year);
+        $validated = $this->validatePeriode($request);
+        if (!$validated) {
+            return redirect()->route('pemakaian-etoll.index')
+                ->with('error', 'Pilih bulan dan tahun terlebih dahulu untuk export.');
+        }
+        [$bulan, $tahun] = $validated;
 
         $data = $this->buildLaporanData($bulan, $tahun);
 
@@ -96,6 +104,28 @@ class EtollController extends Controller
             new EtollExport($data),
             'rekap-etoll-' . strtolower($data['bulanNama']) . '-' . $tahun . '.xlsx'
         );
+    }
+
+    /**
+     * Wajib pilih bulan & tahun (server-side), bukan sekadar andalkan
+     * atribut required di HTML. Return null kalau tidak valid/kosong.
+     *
+     * @return array{0: int, 1: int}|null
+     */
+    private function validatePeriode(Request $request): ?array
+    {
+        if (!$request->filled('bulan') || !$request->filled('tahun')) {
+            return null;
+        }
+
+        $bulan = (int) $request->query('bulan');
+        $tahun = (int) $request->query('tahun');
+
+        if ($bulan < 1 || $bulan > 12 || $tahun < 2000) {
+            return null;
+        }
+
+        return [$bulan, $tahun];
     }
 
     /**
