@@ -47,25 +47,27 @@
       <form id="exportForm" method="GET" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
         <div class="form-group" style="margin-bottom: 0; min-width: 160px;">
           <label for="export_bulan">Bulan</label>
-          <select id="export_bulan" name="bulan" class="form-control">
+          <select id="export_bulan" name="bulan" class="form-control" required>
+            <option value="" selected disabled>-- Pilih Bulan --</option>
             @foreach(['1'=>'Januari','2'=>'Februari','3'=>'Maret','4'=>'April','5'=>'Mei','6'=>'Juni','7'=>'Juli','8'=>'Agustus','9'=>'September','10'=>'Oktober','11'=>'November','12'=>'Desember'] as $val => $label)
-              <option value="{{ $val }}" {{ (int) $val === now()->month ? 'selected' : '' }}>{{ $label }}</option>
+              <option value="{{ $val }}">{{ $label }}</option>
             @endforeach
           </select>
         </div>
         <div class="form-group" style="margin-bottom: 0; min-width: 120px;">
           <label for="export_tahun">Tahun</label>
-          <select id="export_tahun" name="tahun" class="form-control">
+          <select id="export_tahun" name="tahun" class="form-control" required>
+            <option value="" selected disabled>-- Pilih Tahun --</option>
             @for($y = now()->year; $y >= now()->year - 3; $y--)
-              <option value="{{ $y }}" {{ $y === now()->year ? 'selected' : '' }}>{{ $y }}</option>
+              <option value="{{ $y }}">{{ $y }}</option>
             @endfor
           </select>
         </div>
         <div style="display: flex; gap: 8px;">
-          <button type="submit" formaction="{{ route('pemakaian-etoll.export-pdf') }}" formtarget="_blank" class="btn btn-primary btn-sm">
+          <button type="submit" formaction="{{ route('pemakaian-etoll.export-pdf') }}" formtarget="_blank" class="btn btn-pdf btn-sm">
             <i class="fa-solid fa-file-pdf"></i> Export PDF
           </button>
-          <button type="submit" formaction="{{ route('pemakaian-etoll.export-excel') }}" class="btn btn-primary btn-sm">
+          <button type="submit" formaction="{{ route('pemakaian-etoll.export-excel') }}" class="btn btn-excel btn-sm">
             <i class="fa-solid fa-file-excel"></i> Export Excel
           </button>
         </div>
@@ -274,6 +276,28 @@
   .btn-danger:hover {
     background-color: #b91c1c;
     border-color: #b91c1c;
+  }
+
+  .btn-pdf {
+    background-color: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+  }
+
+  .btn-pdf:hover {
+    background-color: #b91c1c;
+    border-color: #b91c1c;
+  }
+
+  .btn-excel {
+    background-color: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+  }
+
+  .btn-excel:hover {
+    background-color: #15803d;
+    border-color: #15803d;
   }
 </style>
 @endpush
