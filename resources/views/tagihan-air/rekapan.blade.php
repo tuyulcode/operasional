@@ -125,7 +125,7 @@
                 </div>
                 <div class="rv-row">
                   <span class="rv-label">Tarif / M3</span>
-                  <span class="rv-value">Rp {{ number_format($tg->tarif ?? 0, 0, ',', '.') }}</span>
+                  <span class="rv-value">Rp {{ number_format($tg->tarif ?? 0, 2, ',', '.') }}</span>
                 </div>
                 <div class="rv-row rv-subtotal">
                   <span class="rv-label">Jumlah (Rp)</span>
@@ -171,7 +171,7 @@
                     <td>{{ (int) round((float) $row['tagihan']->meter_ini) }}</td>
                     <td>{{ (int) round((float) $row['tagihan']->meter_lalu) }}</td>
                     <td>{{ (int) round((float) $row['tagihan']->pemakaian) }}</td>
-                    <td>Rp {{ number_format($row['tagihan']->tarif, 0, ',', '.') }}</td>
+                    <td>Rp {{ number_format($row['tagihan']->tarif, 2, ',', '.') }}</td>
                     <td><b>Rp {{ number_format($row['tagihan']->jumlah, 0, ',', '.') }}</b></td>
                   </tr>
                 @endforeach

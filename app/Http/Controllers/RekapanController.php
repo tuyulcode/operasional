@@ -7,7 +7,7 @@ use App\Models\Penandatangan;
 use App\Models\Ppn;
 use App\Models\TagihanAir;
 use App\Services\RekapanExcel;
-use App\Services\RekapanPdf;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -109,9 +109,9 @@ class RekapanController extends Controller
 
         $filename = 'rekapan_air_'.$report['bulan'].'.pdf';
 
-        return response(RekapanPdf::generate($report), 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
-        ]);
+        $pdf = Pdf::loadView('exports.rekapan-pdf', $report);
+        $pdf->setPaper('a4', 'portrait');
+
+        return $pdf->download($filename);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Area;
 use App\Models\TagihanAir;
 use App\Models\TitikMeter;
+use App\Support\NumberFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -55,18 +56,40 @@ class TagihanAirController extends Controller
         ));
     }
 
-    protected function prevMeter($titikMeterId, $periode)
+    protected function prevMeter($titikMeterId, $periode): ?float
     {
-        return (float) TagihanAir::where('titik_meter_id', $titikMeterId)
+        $meter = TagihanAir::where('titik_meter_id', $titikMeterId)
             ->where('periode', '<', $periode)
             ->orderByDesc('periode')
-            ->value('meter_ini') ?? 0;
+            ->value('meter_ini');
+
+        return $meter === null ? null : (float) $meter;
+    }
+
+    protected function parseInputs(Request $request): void
+    {
+        $request->merge([
+            'meter_ini' => NumberFormatter::parseId($request->input('meter_ini')) ?? 0,
+            'meter_faktor' => NumberFormatter::parseId($request->input('meter_faktor')) ?? 0,
+            'tarif' => NumberFormatter::parseId($request->input('tarif')) ?? 0,
+        ]);
+    }
+
+    protected function resolveMeterLalu($titikMeterId, $periode, $manual): ?float
+    {
+        $prev = $this->prevMeter($titikMeterId, $periode);
+
+        if ($prev !== null) {
+            return $prev;
+        }
+
+        return NumberFormatter::parseId($manual);
     }
 
     protected function validateData(Request $request, $id = null)
     {
         $periode = $request->input('periode');
-        $periodeDate = $periode ? date('Y-m-01', strtotime($periode . '-01')) : null;
+        $periodeDate = $periode ? date('Y-m-01', strtotime($periode.'-01')) : null;
 
         return $request->validate([
             'titik_meter_id' => [
@@ -80,20 +103,21 @@ class TagihanAirController extends Controller
             'meter_ini' => 'required|numeric|min:0',
             'meter_faktor' => 'required|numeric|min:0',
             'tarif' => 'required|numeric|min:0',
+            'meter_lalu' => 'nullable|numeric|min:0',
             'foto' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
     }
 
     protected function saveFoto(Request $request)
     {
-        if (!$request->hasFile('foto')) {
+        if (! $request->hasFile('foto')) {
             return null;
         }
 
-        $name = time() . '_' . uniqid() . '.' . $request->file('foto')->getClientOriginalExtension();
+        $name = time().'_'.uniqid().'.'.$request->file('foto')->getClientOriginalExtension();
         $request->file('foto')->move(public_path('uploads/tagihan-air'), $name);
 
-        return 'uploads/tagihan-air/' . $name;
+        return 'uploads/tagihan-air/'.$name;
     }
 
     protected function deleteFoto($path)
@@ -105,10 +129,18 @@ class TagihanAirController extends Controller
 
     public function store(Request $request)
     {
+        $this->parseInputs($request);
         $validated = $this->validateData($request);
 
-        $periodeDate = date('Y-m-01', strtotime($validated['periode'] . '-01'));
-        $meterLalu = $this->prevMeter($validated['titik_meter_id'], $periodeDate);
+        $periodeDate = date('Y-m-01', strtotime($validated['periode'].'-01'));
+        $meterLalu = $this->resolveMeterLalu($validated['titik_meter_id'], $periodeDate, $request->input('meter_lalu'));
+
+        if ($meterLalu === null) {
+            return back()->withInput()->withErrors([
+                'meter_lalu' => 'Belum ada histori periode sebelumnya di sistem. Isi Meter Lalu secara manual berdasarkan data awal (wajib).',
+            ]);
+        }
+
         $pemakaian = ($validated['meter_ini'] - $meterLalu) * $validated['meter_faktor'];
         $jumlah = $pemakaian * $validated['tarif'];
 
@@ -131,10 +163,16 @@ class TagihanAirController extends Controller
     public function update(Request $request, $id)
     {
         $tagihan = TagihanAir::findOrFail($id);
+        $this->parseInputs($request);
         $validated = $this->validateData($request, $id);
 
-        $periodeDate = date('Y-m-01', strtotime($validated['periode'] . '-01'));
-        $meterLalu = $this->prevMeter($validated['titik_meter_id'], $periodeDate);
+        $periodeDate = date('Y-m-01', strtotime($validated['periode'].'-01'));
+        $meterLalu = $this->resolveMeterLalu($validated['titik_meter_id'], $periodeDate, $request->input('meter_lalu'));
+
+        if ($meterLalu === null) {
+            $meterLalu = NumberFormatter::parseId($tagihan->meter_lalu) ?? 0;
+        }
+
         $pemakaian = ($validated['meter_ini'] - $meterLalu) * $validated['meter_faktor'];
         $jumlah = $pemakaian * $validated['tarif'];
 

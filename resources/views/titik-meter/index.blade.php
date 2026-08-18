@@ -75,7 +75,7 @@
                 </div>
               </td>
               <td>{{ $titikMeter->meter_faktor }}</td>
-              <td>Rp {{ number_format($titikMeter->tarif_harga, 0, ',', '.') }}</td>
+              <td>Rp {{ number_format($titikMeter->tarif_harga, 2, ',', '.') }}</td>
               <td>
                 <span class="badge-status {{ $titikMeter->status == 'aktif' ? 'badge-aktif' : 'badge-nonaktif' }}">
                   {{ ucfirst($titikMeter->status) }}
@@ -207,7 +207,7 @@
 
     const form = document.getElementById('titikMeterForm');
     form.addEventListener('submit', function() {
-      hargaInput.value = hargaInput.value.replace(/[^\d]/g, '');
+      hargaInput.value = String(parseIdValue(hargaInput.value));
     });
 
     @if($edit || $errors->any())
@@ -216,9 +216,22 @@
     @endif
   });
 
+  function parseIdValue(str) {
+    if (!str) return 0;
+    let s = String(str).trim();
+    if (!s || !/^-?\d[\d.,]*$/.test(s)) return 0;
+    if (s.includes(',')) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) {
+      s = s.replace(/\./g, '');
+    }
+    const v = parseFloat(s);
+    return isNaN(v) ? 0 : v;
+  }
+
   function formatRupiah(input) {
-    const digits = input.value.replace(/[^\d]/g, '');
-    input.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+    const v = parseIdValue(input.value);
+    input.value = v ? v.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '';
   }
 
   function openAddTitikMeter() {
@@ -241,7 +254,7 @@
     document.getElementById('meter_faktor').value = btn.dataset.meterFaktor;
     document.getElementById('status').value = btn.dataset.status;
     const hargaInput = document.getElementById('tarif_harga');
-    hargaInput.value = btn.dataset.tarifHarga ? Number(btn.dataset.tarifHarga).toLocaleString('id-ID') : '';
+    hargaInput.value = btn.dataset.tarifHarga ? Number(btn.dataset.tarifHarga).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '';
     document.getElementById('titikMeterModalTitle').textContent = 'Edit Titik Meter';
     document.getElementById('titikMeterModal').classList.add('show');
   }

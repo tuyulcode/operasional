@@ -4,10 +4,27 @@ namespace App\Http\Controllers;
 
 use App\Models\Area;
 use App\Models\TitikMeter;
+use App\Support\NumberFormatter;
 use Illuminate\Http\Request;
 
 class TitikMeterController extends Controller
 {
+    protected function validatedData(Request $request): array
+    {
+        $request->merge([
+            'meter_faktor' => NumberFormatter::parseId($request->input('meter_faktor')) ?? 0,
+            'tarif_harga' => NumberFormatter::parseId($request->input('tarif_harga')) ?? 0,
+        ]);
+
+        return $request->validate([
+            'area_id' => 'required|exists:area,id',
+            'nama' => 'required|string|max:100',
+            'meter_faktor' => 'required|numeric|min:0',
+            'tarif_harga' => 'required|numeric|min:0',
+            'status' => 'required|in:aktif,nonaktif',
+        ]);
+    }
+
     public function index(Request $request)
     {
         $titikMeters = TitikMeter::with('area')->latest()->get();
@@ -23,13 +40,7 @@ class TitikMeterController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'area_id' => 'required|exists:area,id',
-            'nama' => 'required|string|max:100',
-            'meter_faktor' => 'required|numeric|min:0',
-            'tarif_harga' => 'required|numeric|min:0',
-            'status' => 'required|in:aktif,nonaktif',
-        ]);
+        $validated = $this->validatedData($request);
 
         TitikMeter::create($validated);
 
@@ -41,13 +52,7 @@ class TitikMeterController extends Controller
     {
         $titikMeter = TitikMeter::findOrFail($id);
 
-        $validated = $request->validate([
-            'area_id' => 'required|exists:area,id',
-            'nama' => 'required|string|max:100',
-            'meter_faktor' => 'required|numeric|min:0',
-            'tarif_harga' => 'required|numeric|min:0',
-            'status' => 'required|in:aktif,nonaktif',
-        ]);
+        $validated = $this->validatedData($request);
 
         $titikMeter->update($validated);
 
