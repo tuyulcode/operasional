@@ -29,7 +29,6 @@ Route::middleware('auth')->group(function () {
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'index'])->name('index');
         Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
-        Route::put('/photo', [ProfileController::class, 'updatePhoto'])->name('photo.update');
     });
 
     Route::prefix('ppn')->name('ppn.')->group(function () {
@@ -63,6 +62,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [EtollController::class, 'store'])->name('store');
         Route::put('/{id}', [EtollController::class, 'update'])->name('update');
         Route::delete('/{id}', [EtollController::class, 'destroy'])->name('destroy');
+        Route::get('/export/pdf', [EtollController::class, 'exportPdf'])->name('export-pdf');
+        Route::get('/export/excel', [EtollController::class, 'exportExcel'])->name('export-excel');
     });
 
     Route::prefix('pemegang-kendaraan')->name('pemegang-kendaraan.')->group(function () {
