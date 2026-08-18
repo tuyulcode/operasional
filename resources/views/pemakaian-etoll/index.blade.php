@@ -172,7 +172,7 @@
           <div class="form-group">
             <label for="tanggal">Tanggal</label>
             <input type="date" id="tanggal" name="tanggal" class="form-control"
-                   value="{{ old('tanggal', isset($edit) ? \Carbon\Carbon::parse($edit->tanggal)->format('Y-m-d') : '') }}" required>
+                   value="{{ old('tanggal', isset($edit) ? \Carbon\Carbon::parse($edit->tanggal)->format('Y-m-d') : now()->format('Y-m-d')) }}" required>
           </div>
 
           <div class="form-group" style="margin-bottom: 0;">
@@ -344,12 +344,19 @@
     input.value = digits ? Number(digits).toLocaleString('id-ID') : '';
   }
 
+  function todayStr() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
   function openAddEtoll() {
     const form = document.getElementById('etollForm');
     form.reset();
     form.action = '{{ route('pemakaian-etoll.store') }}';
     document.getElementById('etollMethod').value = '';
     document.getElementById('etollModalTitle').textContent = 'Tambah Pemakaian E-Toll';
+    document.getElementById('tanggal').value = todayStr();
     document.getElementById('etollModal').classList.add('show');
     document.getElementById('pemegang_kendaraan_id').focus();
   }
