@@ -20,6 +20,17 @@ class EtollController extends Controller
 
     public function index(Request $request)
     {
+        $tab = $request->query('tab', 'input');
+
+        if ($tab === 'rekapan') {
+            $report = $this->buildReport($request);
+
+            return view('pemakaian-etoll.index', [
+                'tab' => 'rekapan',
+                'report' => $report,
+            ]);
+        }
+
         $pemakaianEtolls = PemakaianEtoll::with('pemegangKendaraan')->latest('tanggal')->latest('id')->get();
         $pemegangKendaraans = PemegangKendaraan::orderBy('nama')->get();
 
@@ -28,7 +39,12 @@ class EtollController extends Controller
             $edit = PemakaianEtoll::findOrFail($request->query('edit'));
         }
 
-        return view('pemakaian-etoll.index', compact('pemakaianEtolls', 'pemegangKendaraans', 'edit'));
+        return view('pemakaian-etoll.index', [
+            'tab' => 'input',
+            'pemakaianEtolls' => $pemakaianEtolls,
+            'pemegangKendaraans' => $pemegangKendaraans,
+            'edit' => $edit,
+        ]);
     }
 
     public function store(Request $request)
@@ -74,12 +90,12 @@ class EtollController extends Controller
 
     public function exportPdf(Request $request)
     {
-        $validated = $this->validatePeriode($request);
-        if (!$validated) {
-            return redirect()->route('pemakaian-etoll.index')
+        $periode = $this->parsePeriode($request);
+        if (!$periode) {
+            return redirect()->route('pemakaian-etoll.index', ['tab' => 'rekapan'])
                 ->with('error', 'Pilih bulan dan tahun terlebih dahulu untuk export.');
         }
-        [$bulan, $tahun] = $validated;
+        [$bulan, $tahun] = $periode;
 
         $data = $this->buildLaporanData($bulan, $tahun);
 
@@ -91,12 +107,12 @@ class EtollController extends Controller
 
     public function exportExcel(Request $request)
     {
-        $validated = $this->validatePeriode($request);
-        if (!$validated) {
-            return redirect()->route('pemakaian-etoll.index')
+        $periode = $this->parsePeriode($request);
+        if (!$periode) {
+            return redirect()->route('pemakaian-etoll.index', ['tab' => 'rekapan'])
                 ->with('error', 'Pilih bulan dan tahun terlebih dahulu untuk export.');
         }
-        [$bulan, $tahun] = $validated;
+        [$bulan, $tahun] = $periode;
 
         $data = $this->buildLaporanData($bulan, $tahun);
 
@@ -107,25 +123,53 @@ class EtollController extends Controller
     }
 
     /**
-     * Wajib pilih bulan & tahun (server-side), bukan sekadar andalkan
-     * atribut required di HTML. Return null kalau tidak valid/kosong.
+     * Parse query string 'bulan' (format YYYY-MM, dari <input type="month">).
+     * Wajib diisi & valid, tidak ada default otomatis.
      *
      * @return array{0: int, 1: int}|null
      */
-    private function validatePeriode(Request $request): ?array
+    private function parsePeriode(Request $request): ?array
     {
-        if (!$request->filled('bulan') || !$request->filled('tahun')) {
+        $bulan = $request->query('bulan');
+
+        if (!$bulan || !preg_match('/^\d{4}-\d{2}$/', $bulan)) {
             return null;
         }
 
-        $bulan = (int) $request->query('bulan');
-        $tahun = (int) $request->query('tahun');
+        [$tahun, $bulanNum] = array_map('intval', explode('-', $bulan));
 
-        if ($bulan < 1 || $bulan > 12 || $tahun < 2000) {
-            return null;
+        return [$bulanNum, $tahun];
+    }
+
+    /**
+     * Susun data buat tab Rekapan (ditampilkan di layar). Kalau bulan belum
+     * dipilih, kembalikan data kosong supaya view bisa nampilin placeholder
+     * "silakan pilih bulan dulu", bukan langsung nampilin laporan bulan berjalan.
+     */
+    private function buildReport(Request $request): array
+    {
+        $bulanRaw = $request->query('bulan');
+        $periode = $this->parsePeriode($request);
+
+        if (!$periode) {
+            return [
+                'bulanRaw' => $bulanRaw,
+                'rows' => [],
+                'totalMinggu' => array_fill(1, 5, 0),
+                'totalKeseluruhan' => 0,
+                'bulan' => null,
+                'tahun' => null,
+                'bulanNama' => null,
+                'periodeLabel' => null,
+            ];
         }
 
-        return [$bulan, $tahun];
+        [$bulan, $tahun] = $periode;
+        $data = $this->buildLaporanData($bulan, $tahun);
+        $data['bulanRaw'] = $bulanRaw;
+        $data['periodeLabel'] = $data['bulanNama'] . ' ' . $tahun;
+
+        return $data;
     }
 
     /**
