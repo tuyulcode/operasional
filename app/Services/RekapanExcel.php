@@ -5,6 +5,7 @@ namespace App\Services;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class RekapanExcel
@@ -28,7 +29,8 @@ class RekapanExcel
         if ($spreadsheet->getSheetCount() === 0) {
             $sheet = $spreadsheet->createSheet();
             $sheet->setTitle('Rekap');
-            $sheet->setCellValue('A1', 'Tidak ada data untuk periode ini.');
+            self::headerBlock($sheet, '', 'A');
+            $sheet->setCellValue('A6', 'Tidak ada data untuk periode ini.');
         }
 
         return $spreadsheet;
@@ -54,8 +56,37 @@ class RekapanExcel
         if (($area['jml_titik'] ?? $area['rows']->count()) === 1) {
             self::vertical($sheet, $area, $periodeLabel);
         } else {
-            self::horizontal($sheet, $area);
+            self::horizontal($sheet, $area, $periodeLabel);
         }
+    }
+
+    private static function headerBlock(Worksheet $sheet, string $periodeLabel, string $lastCol): int
+    {
+        $logo = public_path('images/logo.png');
+        if (is_file($logo)) {
+            $drawing = new Drawing;
+            $drawing->setName('logo');
+            $drawing->setPath($logo);
+            $drawing->setCoordinates('A1');
+            $drawing->setOffsetX(2);
+            $drawing->setOffsetY(2);
+            $drawing->setWidth(64);
+            $drawing->setWorksheet($sheet);
+            $sheet->getRowDimension(1)->setRowHeight(30);
+        }
+
+        $sheet->setCellValue('A2', 'TAGIHAN AIR BULANAN');
+        $sheet->setCellValue('A3', $periodeLabel);
+        $sheet->mergeCells('A2:'.$lastCol.'2');
+        $sheet->mergeCells('A3:'.$lastCol.'3');
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A3')->getFont()->setSize(11);
+        $sheet->getStyle('A2:A3')->getAlignment()->setHorizontal('center');
+        $sheet->getRowDimension(2)->setRowHeight(24);
+        $sheet->getRowDimension(3)->setRowHeight(18);
+        $sheet->getRowDimension(4)->setRowHeight(10);
+
+        return 5;
     }
 
     private static function vertical(Worksheet $sheet, array $area, string $periodeLabel): void
@@ -70,7 +101,7 @@ class RekapanExcel
         $sheet->getColumnDimension('B')->setWidth(3);
         $sheet->getColumnDimension('C')->setWidth(30);
 
-        $r = 1;
+        $r = self::headerBlock($sheet, $periodeLabel, 'C');
         self::titleRow($sheet, $r, 'BIAYA PEMAKAIAN AIR');
         self::kv($sheet, $r, 'Bulan', $periodeLabel);
         self::kv($sheet, $r, 'NAMA', $area['area']->nama);
@@ -89,28 +120,49 @@ class RekapanExcel
             self::kv($sheet, $r, 'Jumlah (Rp)', self::rp($area['total']), true);
         }
 
-        self::borders($sheet, 'A1:C'.($r - 1));
+        if ($tg && $tg->foto) {
+            self::titleRow($sheet, $r, 'FOTO METER');
+            $path = public_path($tg->foto);
+            if (is_file($path)) {
+                $drawing = new Drawing;
+                $drawing->setName('foto-meter');
+                $drawing->setPath($path);
+                $drawing->setCoordinates('A'.$r);
+                $drawing->setOffsetX(5);
+                $drawing->setOffsetY(5);
+                $drawing->setHeight(110);
+                $drawing->setWorksheet($sheet);
+                $sheet->getRowDimension($r)->setRowHeight(120);
+            } else {
+                $sheet->setCellValue('A'.$r, 'File foto tidak ditemukan');
+            }
+            $r++;
+        }
+
+        self::borders($sheet, 'A5:C'.($r - 1));
     }
 
-    private static function horizontal(Worksheet $sheet, array $area): void
+    private static function horizontal(Worksheet $sheet, array $area, string $periodeLabel): void
     {
-        foreach (['A' => 8, 'B' => 32, 'C' => 12, 'D' => 12, 'E' => 14, 'F' => 18, 'G' => 22] as $col => $w) {
+        foreach (['A' => 8, 'B' => 32, 'C' => 12, 'D' => 12, 'E' => 14, 'F' => 18, 'G' => 22, 'H' => 16] as $col => $w) {
             $sheet->getColumnDimension($col)->setWidth($w);
         }
 
-        self::hcell($sheet, 'A1', 'No. Urut', true);
-        self::hcell($sheet, 'B1', 'Nama Titik Meter', true);
-        $sheet->setCellValue('C1', 'COUNTER M3');
-        $sheet->mergeCells('C1:D1');
-        $sheet->getStyle('C1')->getFont()->setBold(true);
-        $sheet->getStyle('C1:D1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::HEADER_FILL);
-        self::hcell($sheet, 'E1', 'Pengambilan', true);
-        self::hcell($sheet, 'F1', 'Tarif (Rp/M3)', true);
-        self::hcell($sheet, 'G1', 'Jumlah (Rp)', true);
-        self::hcell($sheet, 'C2', 'Bulan Ini', true);
-        self::hcell($sheet, 'D2', 'Bulan Lalu', true);
+        $head = self::headerBlock($sheet, $periodeLabel, 'H');
+        self::hcell($sheet, 'A'.$head, 'No. Urut', true);
+        self::hcell($sheet, 'B'.$head, 'Nama Titik Meter', true);
+        $sheet->setCellValue('C'.$head, 'COUNTER M3');
+        $sheet->mergeCells('C'.$head.':D'.$head);
+        $sheet->getStyle('C'.$head)->getFont()->setBold(true);
+        $sheet->getStyle('C'.$head.':D'.$head)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::HEADER_FILL);
+        self::hcell($sheet, 'E'.$head, 'Pengambilan', true);
+        self::hcell($sheet, 'F'.$head, 'Tarif (Rp/M3)', true);
+        self::hcell($sheet, 'G'.$head, 'Jumlah (Rp)', true);
+        self::hcell($sheet, 'H'.$head, 'Foto', true);
+        self::hcell($sheet, 'C'.($head + 1), 'Bulan Ini', true);
+        self::hcell($sheet, 'D'.($head + 1), 'Bulan Lalu', true);
 
-        $r = 3;
+        $r = $head + 2;
         foreach ($area['rows'] as $i => $row) {
             if (! $row['tagihan']) {
                 continue;
@@ -123,6 +175,21 @@ class RekapanExcel
             $sheet->setCellValue('E'.$r, (int) round((float) $tg->pemakaian));
             $sheet->setCellValue('F'.$r, self::rp($tg->tarif));
             $sheet->setCellValue('G'.$r, self::rp($tg->jumlah));
+
+            $pathFoto = $tg->foto ? public_path($tg->foto) : null;
+            if ($pathFoto && is_file($pathFoto)) {
+                $drawing = new Drawing;
+                $drawing->setName('foto-meter');
+                $drawing->setPath($pathFoto);
+                $drawing->setCoordinates('H'.$r);
+                $drawing->setOffsetX(2);
+                $drawing->setOffsetY(2);
+                $drawing->setWidth(26);
+                $drawing->setWorksheet($sheet);
+                $sheet->getRowDimension($r)->setRowHeight(40);
+            } else {
+                $sheet->setCellValue('H'.$r, $tg->foto ? 'file hilang' : '-');
+            }
             $r++;
         }
 
@@ -150,7 +217,7 @@ class RekapanExcel
             $r++;
         }
 
-        self::borders($sheet, 'A1:G'.($r - 1));
+        self::borders($sheet, 'A'.$head.':H'.($r - 1));
     }
 
     private static function titleRow(Worksheet $sheet, int &$r, string $label): void
