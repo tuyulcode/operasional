@@ -330,7 +330,7 @@
 
     const form = document.getElementById('etollForm');
     form.addEventListener('submit', function() {
-      nominalInput.value = nominalInput.value.replace(/[^\d]/g, '');
+      nominalInput.value = String(parseIdValue(nominalInput.value));
     });
 
     @if($edit || $errors->any())
@@ -339,9 +339,22 @@
     @endif
   });
 
+  function parseIdValue(str) {
+    if (!str) return 0;
+    let s = String(str).trim();
+    if (!s || !/^-?\d[\d.,]*$/.test(s)) return 0;
+    if (s.includes(',')) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) {
+      s = s.replace(/\./g, '');
+    }
+    const v = parseFloat(s);
+    return isNaN(v) ? 0 : v;
+  }
+
   function formatRupiah(input) {
-    const digits = input.value.replace(/[^\d]/g, '');
-    input.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+    const v = parseIdValue(input.value);
+    input.value = v ? v.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '';
   }
 
   function todayStr() {
