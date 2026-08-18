@@ -33,12 +33,14 @@ class KendaraanController extends Controller
             'jenis_kendaraan_id' => 'required|exists:jenis_kendaraan,id',
             'plat_nomor'         => 'required|string|max:255|unique:kendaraan,plat_nomor',
             'nama_jenis'         => 'required|string|max:255',
+            'unit'               => 'nullable|in:Unit 1 & 2,Unit 9',
         ], [
             'jenis_kendaraan_id.required' => 'Merek kendaraan wajib dipilih.',
             'jenis_kendaraan_id.exists'   => 'Merek kendaraan tidak valid.',
             'plat_nomor.required'         => 'Plat nomor wajib diisi.',
             'plat_nomor.unique'           => 'Plat nomor sudah terdaftar.',
             'nama_jenis.required'         => 'Jenis kendaraan wajib dipilih.',
+            'unit.in'                     => 'Unit yang dipilih tidak valid.',
         ]);
 
         Kendaraan::create($validated);
@@ -58,12 +60,14 @@ class KendaraanController extends Controller
             'jenis_kendaraan_id' => 'required|exists:jenis_kendaraan,id',
             'plat_nomor'         => 'required|string|max:255|unique:kendaraan,plat_nomor,' . $kendaraan->id,
             'nama_jenis'         => 'required|string|max:255',
+            'unit'               => 'nullable|in:Unit 1 & 2,Unit 9',
         ], [
             'jenis_kendaraan_id.required' => 'Merek kendaraan wajib dipilih.',
             'jenis_kendaraan_id.exists'   => 'Merek kendaraan tidak valid.',
             'plat_nomor.required'         => 'Plat nomor wajib diisi.',
             'plat_nomor.unique'           => 'Plat nomor sudah terdaftar.',
             'nama_jenis.required'         => 'Jenis kendaraan wajib dipilih.',
+            'unit.in'                     => 'Unit yang dipilih tidak valid.',
         ]);
 
         $kendaraan->update($validated);
@@ -79,10 +83,10 @@ class KendaraanController extends Controller
     {
         $kendaraan = Kendaraan::findOrFail($id);
 
-        // Cegah hapus jika masih dipakai di tabel pemakaian_bbm / pemakaian_etoll
-        if ($kendaraan->pemakaianBbm()->exists() || $kendaraan->pemakaianEtoll()->exists()) {
+        // Cegah hapus jika masih dipakai di tabel pemakaian_bbm
+        if ($kendaraan->pemakaianBbm()->exists()) {
             return redirect()->route('kendaraan.index')
-                ->with('error', 'Kendaraan tidak dapat dihapus karena masih memiliki riwayat pemakaian BBM/E-Toll.');
+                ->with('error', 'Kendaraan tidak dapat dihapus karena masih memiliki riwayat pemakaian BBM.');
         }
 
         $kendaraan->delete();
