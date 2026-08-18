@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Area;
 use App\Models\TagihanAir;
+use App\Models\TagihanAirFoto;
 use App\Models\TitikMeter;
 use App\Support\NumberFormatter;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class TagihanAirController extends Controller
@@ -24,7 +26,7 @@ class TagihanAirController extends Controller
             ]);
         }
 
-        $query = TagihanAir::with('titikMeter.area')->latest('periode');
+        $query = TagihanAir::with(['titikMeter.area', 'fotos'])->latest('periode');
 
         if ($request->filled('area_id')) {
             $query->whereHas('titikMeter', fn ($q) => $q->where('area_id', $request->area_id));
@@ -48,7 +50,7 @@ class TagihanAirController extends Controller
 
         $edit = null;
         if ($request->has('edit')) {
-            $edit = TagihanAir::findOrFail($request->query('edit'));
+            $edit = TagihanAir::with('fotos')->findOrFail($request->query('edit'));
         }
 
         return view('tagihan-air.index', compact(
@@ -102,29 +104,62 @@ class TagihanAirController extends Controller
             'periode' => ['required', 'regex:/^\d{4}-\d{2}$/'],
             'meter_ini' => 'required|numeric|min:0',
             'meter_faktor' => 'required|numeric|min:0',
-            'tarif' => 'required|numeric|min:0',
+            'tarif' => 'required|numeric|gt:0',
             'meter_lalu' => 'nullable|numeric|min:0',
-            'foto' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'foto_meter' => [
+                'nullable',
+                'array',
+                'max:10',
+                function ($attribute, $value, $fail) use ($id) {
+                    if ($id === null) {
+                        return;
+                    }
+
+                    $existing = TagihanAir::withCount('fotos')->find($id);
+                    if ($existing && $existing->fotos_count + count($value) > 10) {
+                        $fail('Total foto maksimal 10 per transaksi (sudah ada '.$existing->fotos_count.' foto tersimpan).');
+                    }
+                },
+            ],
+            'foto_meter.*' => 'image|mimes:jpg,jpeg,png|max:5120',
         ]);
     }
 
-    protected function saveFoto(Request $request)
+    protected function saveFotos(Request $request, $tagihanId): void
     {
-        if (! $request->hasFile('foto')) {
-            return null;
+        if (! $request->hasFile('foto_meter')) {
+            return;
         }
 
-        $name = time().'_'.uniqid().'.'.$request->file('foto')->getClientOriginalExtension();
-        $request->file('foto')->move(public_path('uploads/tagihan-air'), $name);
+        foreach ($request->file('foto_meter') as $file) {
+            if (! $file || ! $file->isValid()) {
+                continue;
+            }
 
-        return 'uploads/tagihan-air/'.$name;
+            $path = $file->store('foto-meter', 'public');
+
+            TagihanAirFoto::create([
+                'tagihan_air_id' => $tagihanId,
+                'path_foto' => $path,
+            ]);
+        }
     }
 
-    protected function deleteFoto($path)
+    protected function deleteFotoFile(?string $path): void
     {
-        if ($path && file_exists(public_path($path))) {
-            unlink(public_path($path));
+        if (! $path) {
+            return;
         }
+
+        if (str_starts_with($path, 'uploads/')) {
+            if (file_exists(public_path($path))) {
+                unlink(public_path($path));
+            }
+
+            return;
+        }
+
+        Storage::disk('public')->delete($path);
     }
 
     public function store(Request $request)
@@ -144,7 +179,7 @@ class TagihanAirController extends Controller
         $pemakaian = ($validated['meter_ini'] - $meterLalu) * $validated['meter_faktor'];
         $jumlah = $pemakaian * $validated['tarif'];
 
-        TagihanAir::create([
+        $tagihan = TagihanAir::create([
             'titik_meter_id' => $validated['titik_meter_id'],
             'periode' => $periodeDate,
             'meter_lalu' => $meterLalu,
@@ -153,8 +188,9 @@ class TagihanAirController extends Controller
             'tarif' => $validated['tarif'],
             'pemakaian' => $pemakaian,
             'jumlah' => $jumlah,
-            'foto' => $this->saveFoto($request),
         ]);
+
+        $this->saveFotos($request, $tagihan->id);
 
         return redirect()->route('tagihan-air.index', request()->only(['area_id', 'bulan']))
             ->with('success', 'Tagihan air berhasil ditambahkan.');
@@ -187,22 +223,31 @@ class TagihanAirController extends Controller
             'jumlah' => $jumlah,
         ];
 
-        if ($request->hasFile('foto')) {
-            $this->deleteFoto($tagihan->foto);
-            $data['foto'] = $this->saveFoto($request);
-        }
-
         $tagihan->update($data);
+
+        $this->saveFotos($request, $tagihan->id);
 
         return redirect()->route('tagihan-air.index', request()->only(['area_id', 'bulan']))
             ->with('success', 'Tagihan air berhasil diperbarui.');
+    }
+
+    public function destroyFoto($id)
+    {
+        $foto = TagihanAirFoto::findOrFail($id);
+
+        $this->deleteFotoFile($foto->path_foto);
+        $foto->delete();
+
+        return back()->with('success', 'Foto meter berhasil dihapus.');
     }
 
     public function destroy($id)
     {
         $tagihan = TagihanAir::findOrFail($id);
 
-        $this->deleteFoto($tagihan->foto);
+        foreach ($tagihan->fotos as $foto) {
+            $this->deleteFotoFile($foto->path_foto);
+        }
         $tagihan->delete();
 
         return redirect()->route('tagihan-air.index', request()->only(['area_id', 'bulan']))

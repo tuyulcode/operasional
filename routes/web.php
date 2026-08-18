@@ -1,22 +1,22 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\PpnController;
-use App\Http\Controllers\AreaController;
-use App\Http\Controllers\TitikMeterController;
-use App\Http\Controllers\TagihanAirController;
-use App\Http\Controllers\RekapanController;
-use App\Http\Controllers\PenandatanganController;
-use App\Http\Controllers\HargaBbmController;
 use App\Http\Controllers\EtollController;
-use App\Http\Controllers\PemegangKendaraanController;
+use App\Http\Controllers\HargaBbmController;
 use App\Http\Controllers\JenisKendaraanController;
 use App\Http\Controllers\KendaraanController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\PemakaianBbmController;
+use App\Http\Controllers\PemegangKendaraanController;
+use App\Http\Controllers\PenandatanganController;
+use App\Http\Controllers\PpnController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RekapanController;
+use App\Http\Controllers\TagihanAirController;
+use App\Http\Controllers\TitikMeterController;
+use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Route;
 
 // Guest routes
 Route::middleware('guest')->group(function () {
@@ -26,10 +26,10 @@ Route::middleware('guest')->group(function () {
 
 // Authenticated routes
 Route::middleware('auth')->group(function () {
-    Route::get('/', fn() => redirect()->route('dashboard'));
+    Route::get('/', fn () => redirect()->route('dashboard'));
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    
+
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'index'])->name('index');
         Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
@@ -62,6 +62,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [TagihanAirController::class, 'store'])->name('store');
         Route::put('/{id}', [TagihanAirController::class, 'update'])->name('update');
         Route::delete('/{id}', [TagihanAirController::class, 'destroy'])->name('destroy');
+        Route::delete('/foto/{foto}', [TagihanAirController::class, 'destroyFoto'])->name('foto.destroy');
     });
 
     Route::prefix('rekapan')->name('rekapan.')->group(function () {

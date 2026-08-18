@@ -73,6 +73,7 @@
           <i class="fa-solid fa-file-excel"></i> Export Excel
         </a>
         <a href="{{ route('rekapan.pdf', ['bulan' => $bulan, 'area_id' => $areaId]) }}"
+           target="_blank" rel="noopener"
            class="btn btn-danger btn-sm">
           <i class="fa-solid fa-file-pdf"></i> Export PDF
         </a>
