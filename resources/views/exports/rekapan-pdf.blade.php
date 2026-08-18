@@ -33,6 +33,14 @@
     .foto-meter img { width: 70mm; height: auto; border: 1px solid #888; }
     .foto-empty { margin-top: 10px; color: #555; }
 
+    .foto-gallery { margin-top: 10px; }
+    .foto-gallery table { margin: 0 auto; border-collapse: collapse; }
+    .foto-gallery td { padding: 4px; text-align: center; }
+    .foto-gallery img { border: 1px solid #888; }
+    .foto-gallery.count-1 img { width: 70mm; }
+    .foto-gallery.count-2 img { width: 62mm; }
+    .foto-gallery.count-3 img { width: 55mm; }
+
     .grand-total { font-weight: bold; font-size: 11px; margin-top: 10px; }
 
     .sign { margin-top: 60px; }
@@ -76,7 +84,7 @@
         $ini = $tg ? (int) round((float) $tg->meter_ini) : 0;
         $lalu = $tg ? (int) round((float) $tg->meter_lalu) : 0;
         $faktor = $tg ? (float) $tg->meter_faktor : 0;
-        $fotoTg = $tg && $tg->foto ? public_path($tg->foto) : null;
+        $fotos = $tg ? $tg->fotos : collect();
       ?>
 
       <table class="vbox">
@@ -103,12 +111,31 @@
         @endif
       </table>
 
-      @if($fotoTg && is_file($fotoTg))
+      @if($tg && $fotos->count())
         <div class="foto-meter">
           <strong>FOTO METER :</strong><br>
-          <img src="{{ $fotoTg }}" alt="Foto meter">
+          <div class="foto-gallery count-{{ min($fotos->count(), 3) }}">
+            <table>
+              @foreach($fotos->chunk(3) as $chunk)
+                <tr>
+                  @foreach($chunk as $foto)
+                    <td>
+                      @if($foto->file_path && is_file($foto->file_path))
+                        <img src="{{ $foto->file_path }}" alt="Foto meter">
+                      @else
+                        <em style="color: #888;">file tidak ditemukan</em>
+                      @endif
+                    </td>
+                  @endforeach
+                  @for($j = $chunk->count(); $j < 3; $j++)
+                    <td></td>
+                  @endfor
+                </tr>
+              @endforeach
+            </table>
+          </div>
         </div>
-      @elseif($tg && $tg->foto)
+      @elseif($tg && $tg->fotos->isEmpty() && $tg->foto)
         <div class="foto-empty">Foto meter ada di database tetapi file tidak ditemukan.</div>
       @endif
 
@@ -172,23 +199,26 @@
         </tbody>
       </table>
 
-      <?php $adaFoto = $area['rows']->contains(function ($r) { return $r['tagihan'] && $r['tagihan']->foto; }); ?>
+      <?php $adaFoto = $area['rows']->contains(function ($r) { return $r['tagihan'] && $r['tagihan']->fotos->count() > 0; }); ?>
       @if($adaFoto)
         <p style="margin-top: 14px; font-weight: bold;">Foto Meter :</p>
         <table class="grid">
           <thead>
-            <tr><th>No</th><th>Nama Titik Meter</th><th style="width: 30%;">Foto</th></tr>
+            <tr><th>No</th><th>Nama Titik Meter</th><th style="width: 60%;">Foto</th></tr>
           </thead>
           <tbody>
             @foreach($area['rows'] as $i => $row)
               @continue(!$row['tagihan'])
-              <?php $fotoPath = $row['tagihan']->foto ? public_path($row['tagihan']->foto) : null; ?>
               <tr>
                 <td class="c">{{ $i + 1 }}</td>
                 <td>{{ $row['titik_meter']->nama }}</td>
                 <td class="foto">
-                  @if($fotoPath && is_file($fotoPath))
-                    <img src="{{ $fotoPath }}" alt="Foto meter">
+                  @if($row['tagihan']->fotos->count())
+                    @foreach($row['tagihan']->fotos as $foto)
+                      @if($foto->file_path && is_file($foto->file_path))
+                        <img src="{{ $foto->file_path }}" alt="Foto meter" style="width: 34mm; margin: 2px;">
+                      @endif
+                    @endforeach
                   @else
                     &mdash;
                   @endif

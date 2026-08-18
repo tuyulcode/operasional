@@ -13,20 +13,6 @@
     </ul>
   </div>
 
-  @if(session('success'))
-    <div class="alert-custom alert-success">
-      <i class="fa-solid fa-circle-check"></i>
-      <span>{{ session('success') }}</span>
-    </div>
-  @endif
-
-  @if(session('error'))
-    <div class="alert-custom alert-danger">
-      <i class="fa-solid fa-circle-exclamation"></i>
-      <span>{{ session('error') }}</span>
-    </div>
-  @endif
-
   @if($errors->any())
     <div class="alert-custom alert-danger">
       <i class="fa-solid fa-circle-exclamation"></i>

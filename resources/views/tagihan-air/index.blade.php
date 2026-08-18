@@ -15,20 +15,6 @@
     </ul>
   </div>
 
-  @if(session('success'))
-    <div class="alert-custom alert-success">
-      <i class="fa-solid fa-circle-check"></i>
-      <span>{{ session('success') }}</span>
-    </div>
-  @endif
-
-  @if(session('error'))
-    <div class="alert-custom alert-danger">
-      <i class="fa-solid fa-circle-exclamation"></i>
-      <span>{{ session('error') }}</span>
-    </div>
-  @endif
-
   @if($errors->any())
     <div class="alert-custom alert-danger">
       <i class="fa-solid fa-circle-exclamation"></i>
@@ -89,20 +75,21 @@
     </div>
   </div>
 
-  {{-- FORM INPUT --}}
-  <div class="card tagihan-form">
-    <div class="card-header">
-      <div class="card-header-title">
-        <h3>{{ $edit ? 'Edit Tagihan Air' : 'Form Tagihan Air' }}</h3>
-          <p>{{ $edit ? 'Perbarui data tagihan air' : 'Input meteran bulanan tagihan air' }}</p>
-        </div>
+  {{-- MODAL TAMBAH / EDIT TAGIHAN AIR --}}
+  <div class="modal-overlay" id="tagihanModal">
+    <div class="modal tagihan-modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="tagihanModalTitle">{{ $edit ? 'Edit Tagihan Air' : 'Tambah Tagihan Air' }}</h3>
+        <button type="button" class="modal-close" onclick="closeTagihanModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
       </div>
-      <div class="card-body">
-        <form id="tagihanForm" method="POST" enctype="multipart/form-data"
-              action="{{ $edit ? route('tagihan-air.update', $edit->id) : route('tagihan-air.store') }}">
-          @csrf
-          <input type="hidden" name="_method" id="tagihanMethod" value="{{ $edit ? 'PUT' : '' }}">
+      <form id="tagihanForm" method="POST" enctype="multipart/form-data"
+            action="{{ $edit ? route('tagihan-air.update', $edit->id) : route('tagihan-air.store') }}">
+        @csrf
+        <input type="hidden" name="_method" id="tagihanMethod" value="{{ $edit ? 'PUT' : '' }}">
 
+        <div class="modal-body">
           <div class="form-grid">
             <div class="form-group">
               <label for="area_id">Area</label>
@@ -168,14 +155,43 @@
             </div>
 
             <div class="form-group">
-              <label for="foto">Foto Meter (opsional)</label>
-              <input type="file" id="foto" name="foto" class="form-control" accept="image/*">
-              @if($edit && $edit->foto)
-                <small style="color: #999;">Foto saat ini:
-                  <a href="{{ asset($edit->foto) }}" target="_blank">{{ basename($edit->foto) }}</a>
-                  — pilih file baru untuk mengganti.
-                </small>
+              <label for="foto_meter">Foto Meter (opsional, maksimal 10 foto)</label>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <button type="button" id="btnAddFoto" class="btn btn-secondary btn-sm">
+                  <i class="fa-solid fa-plus"></i> Tambah Foto
+                </button>
+                <small id="photoCapNote" style="color: #999;"></small>
+              </div>
+              <input type="file" id="foto_picker" name="foto_meter[]"
+                     accept="image/jpeg,image/png" style="display: none;">
+              <small style="color: #999;">Pilih 1 foto per klik (jpg/jpeg/png, maks 5 MB per file).</small>
+              <div id="pendingFotoPreview" style="display: none; margin-top: 8px; flex-wrap: wrap; gap: 8px;"></div>
+
+              @if($edit && $edit->fotos->count())
+                <div id="oldFotoSection" style="margin-top: 8px;">
+                  <small style="color: #999;">Foto tersimpan (klik hapus untuk menghapus):</small>
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;">
+                    @foreach($edit->fotos as $f)
+                      <div style="position: relative; display: inline-block;">
+                        <img src="{{ $f->url }}" alt="Foto meter"
+                             style="width: 90px; height: 70px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;">
+                        <form action="{{ route('tagihan-air.foto.destroy', $f->id) }}" method="POST"
+                              style="position: absolute; top: 2px; right: 2px; margin: 0;"
+                              onsubmit="return confirm('Yakin ingin menghapus foto ini?');">
+                          @csrf
+                          @method('DELETE')
+                          <button type="submit" class="btn btn-icon btn-delete"
+                                  title="Hapus foto ini" style="padding: 2px 5px; font-size: 11px;">
+                            <i class="fa-solid fa-trash-can"></i>
+                          </button>
+                        </form>
+                      </div>
+                    @endforeach
+                  </div>
+                </div>
               @endif
+
+              <div id="fotoError" style="color: #dc3545; font-size: 12px; margin-top: 4px;"></div>
             </div>
 
             <div class="form-group">
@@ -192,27 +208,31 @@
               <small style="color: #999;">Pemakaian × Tarif — otomatis</small>
             </div>
           </div>
+        </div>
 
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">
-              <i class="fa-solid fa-floppy-disk"></i> {{ $edit ? 'Simpan Perubahan' : 'Simpan' }}
-            </button>
-            @if($edit)
-              <a href="{{ route('tagihan-air.index', request()->only(['area_id', 'bulan'])) }}" class="btn btn-secondary">
-                <i class="fa-solid fa-ban"></i> Batal Edit
-              </a>
-            @endif
-          </div>
-        </form>
-      </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeTagihanModal()">
+            <i class="fa-solid fa-ban"></i> Batal
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-floppy-disk"></i> {{ $edit ? 'Simpan Perubahan' : 'Simpan' }}
+          </button>
+        </div>
+      </form>
     </div>
+  </div>
 
-    {{-- TABEL --}}
+  {{-- TABEL --}}
     <div class="card">
       <div class="card-header">
         <div class="card-header-title">
           <h3>Data Tagihan Air</h3>
           <p>Daftar tagihan air yang tersimpan</p>
+        </div>
+        <div class="card-actions">
+          <button type="button" class="btn btn-primary btn-sm" onclick="openAddTagihan()">
+            <i class="fa-solid fa-plus"></i> Tambah Tagihan Air
+          </button>
         </div>
       </div>
       <div class="card-body" style="padding: 0;">
@@ -254,10 +274,15 @@
                 <td>{{ number_format($t->pemakaian, 2, ',', '.') }}</td>
                 <td>Rp {{ number_format($t->jumlah, 0, ',', '.') }}</td>
                 <td>
-                  @if($t->foto)
-                    <a href="{{ asset($t->foto) }}" target="_blank" title="Lihat foto">
-                      <i class="fa-solid fa-image" style="color: #4361ee;"></i>
-                    </a>
+                  @if($t->fotos->count())
+                    <div style="display: flex; flex-wrap: wrap; gap: 4px; max-width: 180px;">
+                      @foreach($t->fotos as $f)
+                        <a href="{{ $f->url }}" target="_blank" title="Lihat foto">
+                          <img src="{{ $f->url }}" alt="Foto"
+                               style="width: 40px; height: 32px; object-fit: cover; border: 1px solid #ddd; border-radius: 3px;">
+                        </a>
+                      @endforeach
+                    </div>
                   @else
                     -
                   @endif
@@ -301,9 +326,22 @@
 @endsection
 
 @if(($tab ?? 'input') === 'input')
+@push('styles')
+<style>
+  .tagihan-modal {
+    max-width: 720px;
+  }
+  .tagihan-modal .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+</style>
+@endpush
 @push('scripts')
 <script>
   const meterMap = @json($meterMap);
+  const oldFotoCount = {{ $edit ? $edit->fotos->count() : 0 }};
+  const MAX_FOTO = 10;
 
   const areaSelect = document.getElementById('area_id');
   const tmSelect = document.getElementById('titik_meter_id');
@@ -404,6 +442,100 @@
     recalcTotals();
   }
 
+  // ---- Modal ----
+  function openAddTagihan() {
+    const form = document.getElementById('tagihanForm');
+    form.reset();
+    form.action = '{{ route('tagihan-air.store') }}';
+    document.getElementById('tagihanMethod').value = '';
+    document.getElementById('tagihanModalTitle').textContent = 'Tambah Tagihan Air';
+    resetFotos();
+    filterTitikMeter();
+    updateMeterLaluState(false);
+    document.getElementById('tagihanModal').classList.add('show');
+    areaSelect.focus();
+  }
+
+  function closeTagihanModal() {
+    document.getElementById('tagihanModal').classList.remove('show');
+  }
+
+  // ---- Foto (tambah satu-per-satu, maksimal 10) ----
+  let pendingFotos = []; // { file, url }
+
+  function fotoSlotsLeft() {
+    return MAX_FOTO - oldFotoCount - pendingFotos.length;
+  }
+
+  function updateFotoCapState() {
+    const btn = document.getElementById('btnAddFoto');
+    const note = document.getElementById('photoCapNote');
+    const left = fotoSlotsLeft();
+    btn.disabled = left <= 0;
+    btn.style.opacity = left <= 0 ? '0.5' : '';
+    btn.style.cursor = left <= 0 ? 'not-allowed' : '';
+    note.textContent = left <= 0 ? 'Maksimal 10 foto' : '';
+  }
+
+  function setFotoError(msg) {
+    const el = document.getElementById('fotoError');
+    el.textContent = msg;
+    if (msg) {
+      setTimeout(function() {
+        if (el.textContent === msg) el.textContent = '';
+      }, 3000);
+    }
+  }
+
+  function renderPendingFotos() {
+    const preview = document.getElementById('pendingFotoPreview');
+    preview.innerHTML = '';
+    if (!pendingFotos.length) {
+      preview.style.display = 'none';
+      return;
+    }
+    pendingFotos.forEach(function(p, idx) {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'position: relative; display: inline-block;';
+      const img = document.createElement('img');
+      img.src = p.url;
+      img.style.cssText = 'width: 90px; height: 70px; object-fit: cover; border: 1px solid #0d6efd; border-radius: 4px;';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.innerHTML = '&times;';
+      btn.title = 'Buang foto ini dari pilihan';
+      btn.style.cssText = 'position: absolute; top: 2px; right: 2px; padding: 0 5px; font-size: 12px; line-height: 18px; cursor: pointer; border-radius: 3px;';
+      btn.addEventListener('click', function() {
+        URL.revokeObjectURL(p.url);
+        pendingFotos.splice(idx, 1);
+        renderPendingFotos();
+        updateFotoCapState();
+      });
+      wrap.appendChild(img);
+      wrap.appendChild(btn);
+      preview.appendChild(wrap);
+    });
+    preview.style.display = 'flex';
+  }
+
+  function resetFotos() {
+    pendingFotos.forEach(function(p) { URL.revokeObjectURL(p.url); });
+    pendingFotos = [];
+    renderPendingFotos();
+    document.getElementById('foto_picker').value = '';
+    setFotoError('');
+    const oldFoto = document.getElementById('oldFotoSection');
+    if (oldFoto) oldFoto.style.display = 'none';
+    updateFotoCapState();
+  }
+
+  function syncFotoInput() {
+    if (!pendingFotos.length) return;
+    const dt = new DataTransfer();
+    pendingFotos.forEach(function(p) { dt.items.add(p.file); });
+    document.getElementById('foto_picker').files = dt.files;
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     filterTitikMeter();
     updateMeterLaluState(false);
@@ -414,15 +546,51 @@
     meterIniInput.addEventListener('input', recalcTotals);
     meterLaluInput.addEventListener('input', recalcTotals);
     meterFaktorInput.addEventListener('input', recalcTotals);
-    tarifInput.addEventListener('input', function() {
+    tarifInput.addEventListener('input', recalcTotals);
+    tarifInput.addEventListener('blur', function() {
       formatRupiah(tarifInput);
-      recalcTotals();
+    });
+
+    const modal = document.getElementById('tagihanModal');
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) closeTagihanModal();
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeTagihanModal();
+    });
+
+    const btnAddFoto = document.getElementById('btnAddFoto');
+    const fotoPicker = document.getElementById('foto_picker');
+    btnAddFoto.addEventListener('click', function() {
+      if (btnAddFoto.disabled) return;
+      fotoPicker.click();
+    });
+    fotoPicker.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      fotoPicker.value = '';
+      if (!file) return;
+      const okType = /\.(jpe?g|png)$/i.test(file.name) || ['image/jpeg', 'image/png'].includes(file.type);
+      if (!okType) { setFotoError('Hanya file jpg / jpeg / png.'); return; }
+      if (file.size > 5 * 1024 * 1024) { setFotoError('Ukuran foto maksimal 5 MB.'); return; }
+      if (fotoSlotsLeft() <= 0) { setFotoError('Maksimal 10 foto per transaksi.'); return; }
+      pendingFotos.push({ file: file, url: URL.createObjectURL(file) });
+      renderPendingFotos();
+      updateFotoCapState();
     });
 
     const form = document.getElementById('tagihanForm');
     form.addEventListener('submit', function() {
       tarifInput.value = String(parseIdValue(tarifInput.value));
+      syncFotoInput();
     });
+
+    updateFotoCapState();
+
+    @if($edit || $errors->any())
+      document.getElementById('tagihanModal').classList.add('show');
+      const oldFotoSection = document.getElementById('oldFotoSection');
+      if (oldFotoSection) oldFotoSection.style.display = '';
+    @endif
   });
 </script>
 @endpush

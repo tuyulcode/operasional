@@ -47,6 +47,23 @@
 
 <!-- Custom JS -->
 <script src="{{ asset('js/app.js') }}"></script>
+
+<div id="toastContainer"></div>
+@if(session('success'))
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      showToast(@json(session('success')), 'success');
+    });
+  </script>
+@endif
+@if(session('error'))
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      showToast(@json(session('error')), 'error');
+    });
+  </script>
+@endif
+
 @stack('scripts')
 </body>
 </html>

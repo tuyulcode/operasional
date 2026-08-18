@@ -20,7 +20,7 @@ class TitikMeterController extends Controller
             'area_id' => 'required|exists:area,id',
             'nama' => 'required|string|max:100',
             'meter_faktor' => 'required|numeric|min:0',
-            'tarif_harga' => 'required|numeric|min:0',
+            'tarif_harga' => 'required|numeric|gt:0',
             'status' => 'required|in:aktif,nonaktif',
         ]);
     }

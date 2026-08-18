@@ -112,6 +112,6 @@ class RekapanController extends Controller
         $pdf = Pdf::loadView('exports.rekapan-pdf', $report);
         $pdf->setPaper('a4', 'portrait');
 
-        return $pdf->download($filename);
+        return $pdf->stream($filename);
     }
 }

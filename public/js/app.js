@@ -109,3 +109,66 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+/* ==========================================
+   TOAST NOTIFICATIONS
+========================================== */
+function showToast(message, type) {
+  type = type || 'success';
+
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-' + type;
+
+  const icon = document.createElement('div');
+  icon.className = 'toast-icon';
+  icon.innerHTML = type === 'error'
+    ? '<i class="fa-solid fa-circle-xmark"></i>'
+    : '<i class="fa-solid fa-circle-check"></i>';
+
+  const body = document.createElement('div');
+  body.className = 'toast-body';
+
+  const title = document.createElement('div');
+  title.className = 'toast-title';
+  title.textContent = type === 'error' ? 'Gagal' : 'Berhasil';
+
+  const msg = document.createElement('div');
+  msg.className = 'toast-message';
+  msg.textContent = message;
+
+  body.appendChild(title);
+  body.appendChild(msg);
+
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'toast-close';
+  close.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+  close.title = 'Tutup';
+
+  const progress = document.createElement('div');
+  progress.className = 'toast-progress';
+
+  const duration = 4000;
+  toast.appendChild(icon);
+  toast.appendChild(body);
+  toast.appendChild(close);
+  toast.appendChild(progress);
+  container.appendChild(toast);
+
+  const remove = function() {
+    if (toast.classList.contains('toast-removing')) return;
+    toast.classList.add('toast-removing');
+    setTimeout(function() { toast.remove(); }, 300);
+  };
+
+  close.addEventListener('click', remove);
+  progress.style.animationDuration = duration + 'ms';
+  setTimeout(remove, duration);
+}
