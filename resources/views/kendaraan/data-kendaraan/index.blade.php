@@ -57,6 +57,7 @@
               <th>Merek</th>
               <th>Plat Nomor</th>
               <th>Jenis</th>
+              <th>Unit</th>
               <th>Aksi</th>
             </tr>
           </thead>
@@ -73,12 +74,14 @@
                 </div>
               </td>
               <td>{{ $kendaraan->nama_jenis }}</td>
+              <td>{{ $kendaraan->unit ?? '-' }}</td>
               <td>
                 <button type="button" class="btn btn-icon btn-edit" title="Edit"
                         data-id="{{ $kendaraan->id }}"
                         data-jenis-kendaraan-id="{{ $kendaraan->jenis_kendaraan_id }}"
                         data-plat-nomor="{{ $kendaraan->plat_nomor }}"
                         data-nama-jenis="{{ $kendaraan->nama_jenis }}"
+                        data-unit="{{ $kendaraan->unit }}"
                         onclick="openEditKendaraan(this)">
                   <i class="fa-solid fa-pen"></i>
                 </button>
@@ -92,7 +95,7 @@
             </tr>
             @empty
             <tr>
-              <td colspan="5" style="text-align: center; padding: 30px; color: #999;">
+              <td colspan="6" style="text-align: center; padding: 30px; color: #999;">
                 <i class="fa-solid fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
                 Belum ada data kendaraan
               </td>
@@ -138,13 +141,22 @@
                    value="{{ old('plat_nomor', $edit->plat_nomor ?? '') }}" required>
           </div>
 
-          <div class="form-group" style="margin-bottom: 0;">
+          <div class="form-group">
             <label for="nama_jenis">Jenis Kendaraan</label>
             <select id="nama_jenis" name="nama_jenis" class="form-control" required>
               <option value="">-- Pilih Jenis --</option>
               <option value="Roda 2" {{ old('nama_jenis', $edit->nama_jenis ?? '') == 'Roda 2' ? 'selected' : '' }}>Roda 2</option>
               <option value="Roda 3" {{ old('nama_jenis', $edit->nama_jenis ?? '') == 'Roda 3' ? 'selected' : '' }}>Roda 3</option>
               <option value="Roda 4" {{ old('nama_jenis', $edit->nama_jenis ?? '') == 'Roda 4' ? 'selected' : '' }}>Roda 4</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="unit">Unit</label>
+            <select id="unit" name="unit" class="form-control">
+              <option value="">-- Pilih Unit --</option>
+              <option value="Unit 1 & 2" {{ old('unit', $edit->unit ?? '') == 'Unit 1 & 2' ? 'selected' : '' }}>Unit 1 & 2</option>
+              <option value="Unit 9" {{ old('unit', $edit->unit ?? '') == 'Unit 9' ? 'selected' : '' }}>Unit 9</option>
             </select>
           </div>
         </div>
@@ -292,6 +304,7 @@
     document.getElementById('jenis_kendaraan_id').value = btn.dataset.jenisKendaraanId;
     document.getElementById('plat_nomor').value = btn.dataset.platNomor;
     document.getElementById('nama_jenis').value = btn.dataset.namaJenis;
+    document.getElementById('unit').value = btn.dataset.unit;
     document.getElementById('kendaraanModalTitle').textContent = 'Edit Kendaraan';
     document.getElementById('kendaraanModal').classList.add('show');
   }
