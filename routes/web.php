@@ -16,6 +16,7 @@ use App\Http\Controllers\JenisKendaraanController;
 use App\Http\Controllers\KendaraanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\PemakaianBbmController;
 
 // Guest routes
 Route::middleware('guest')->group(function () {
@@ -113,6 +114,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [UserController::class, 'store'])->name('store');
         Route::put('/{id}', [UserController::class, 'update'])->name('update');
         Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('pemakaian-bbm')->name('pemakaian-bbm.')->group(function () {
+        Route::get('/', [PemakaianBbmController::class, 'index'])->name('index');
+        Route::post('/', [PemakaianBbmController::class, 'store'])->name('store');
+        Route::put('/{id}', [PemakaianBbmController::class, 'update'])->name('update');
+        Route::delete('/{id}', [PemakaianBbmController::class, 'destroy'])->name('destroy');
+
+        Route::get('/rekap', [PemakaianBbmController::class, 'rekap'])->name('rekap');
+        Route::get('/rekap/export/excel', [PemakaianBbmController::class, 'exportExcel'])->name('export-excel');
+        Route::get('/rekap/export/pdf', [PemakaianBbmController::class, 'exportPdf'])->name('export-pdf');
     });
 });
 

@@ -25,9 +25,9 @@ class DashboardController extends Controller
             ->whereYear('tanggal', $bulanIni->year)
             ->sum('jumlah');
 
-        $totalAirBulanIni = TagihanAir::whereMonth('periode', $bulanIni->month)
-            ->whereYear('periode', $bulanIni->year)
-            ->sum('jumlah');
+        $totalAirBulanIni = TagihanAir::whereMonth('bulan', $bulanIni->month)
+            ->whereYear('bulan', $bulanIni->year)
+            ->sum('jumlah_rp');
 
         $jumlahKendaraan = Kendaraan::count();
 
@@ -49,9 +49,9 @@ class DashboardController extends Controller
                 ->whereYear('tanggal', $bulan->year)
                 ->sum('jumlah');
 
-            $chartAir[] = (float) TagihanAir::whereMonth('periode', $bulan->month)
-                ->whereYear('periode', $bulan->year)
-                ->sum('jumlah');
+            $chartAir[] = (float) TagihanAir::whereMonth('bulan', $bulan->month)
+                ->whereYear('bulan', $bulan->year)
+                ->sum('jumlah_rp');
         }
 
         // Transaksi terakhir (latest 5)
