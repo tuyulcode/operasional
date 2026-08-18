@@ -15,6 +15,20 @@
     </ul>
   </div>
 
+  @if(session('success'))
+    <div class="alert-custom alert-success">
+      <i class="fa-solid fa-circle-check"></i>
+      <span>{{ session('success') }}</span>
+    </div>
+  @endif
+
+  @if(session('error'))
+    <div class="alert-custom alert-danger">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <span>{{ session('error') }}</span>
+    </div>
+  @endif
+
   @if($errors->any())
     <div class="alert-custom alert-danger">
       <i class="fa-solid fa-circle-exclamation"></i>
@@ -22,44 +36,18 @@
     </div>
   @endif
 
-  <div class="card" style="margin-bottom: 20px;">
-    <div class="card-header">
-      <div class="card-header-title">
-        <h3>Export Laporan</h3>
-        <p>Unduh rekap pemakaian e-toll mingguan per bulan</p>
-      </div>
-    </div>
-    <div class="card-body">
-      <form id="exportForm" method="GET" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
-        <div class="form-group" style="margin-bottom: 0; min-width: 160px;">
-          <label for="export_bulan">Bulan</label>
-          <select id="export_bulan" name="bulan" class="form-control" required>
-            <option value="" selected disabled>-- Pilih Bulan --</option>
-            @foreach(['1'=>'Januari','2'=>'Februari','3'=>'Maret','4'=>'April','5'=>'Mei','6'=>'Juni','7'=>'Juli','8'=>'Agustus','9'=>'September','10'=>'Oktober','11'=>'November','12'=>'Desember'] as $val => $label)
-              <option value="{{ $val }}">{{ $label }}</option>
-            @endforeach
-          </select>
-        </div>
-        <div class="form-group" style="margin-bottom: 0; min-width: 120px;">
-          <label for="export_tahun">Tahun</label>
-          <select id="export_tahun" name="tahun" class="form-control" required>
-            <option value="" selected disabled>-- Pilih Tahun --</option>
-            @for($y = now()->year; $y >= now()->year - 3; $y--)
-              <option value="{{ $y }}">{{ $y }}</option>
-            @endfor
-          </select>
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <button type="submit" formaction="{{ route('pemakaian-etoll.export-pdf') }}" formtarget="_blank" class="btn btn-pdf btn-sm">
-            <i class="fa-solid fa-file-pdf"></i> Export PDF
-          </button>
-          <button type="submit" formaction="{{ route('pemakaian-etoll.export-excel') }}" class="btn btn-excel btn-sm">
-            <i class="fa-solid fa-file-excel"></i> Export Excel
-          </button>
-        </div>
-      </form>
-    </div>
+  <div class="tabs">
+    <a href="{{ route('pemakaian-etoll.index', ['tab' => 'input']) }}"
+       class="tab-link {{ ($tab ?? 'input') === 'input' ? 'active' : '' }}">
+      <i class="fa-solid fa-table-list"></i> Input Data
+    </a>
+    <a href="{{ route('pemakaian-etoll.index', ['tab' => 'rekapan']) }}"
+       class="tab-link {{ ($tab ?? 'input') === 'rekapan' ? 'active' : '' }}">
+      <i class="fa-solid fa-file-invoice"></i> Rekapan
+    </a>
   </div>
+
+  @if(($tab ?? 'input') === 'input')
 
   <div class="card">
     <div class="card-header">
@@ -208,6 +196,12 @@
     </div>
   </div>
 
+  @else
+
+    @include('pemakaian-etoll.rekapan', ['report' => $report])
+
+  @endif
+
 @endsection
 
 @push('styles')
@@ -288,6 +282,7 @@
 </style>
 @endpush
 
+@if(($tab ?? 'input') === 'input')
 @push('scripts')
 <script>
   document.addEventListener('DOMContentLoaded', function() {
@@ -310,7 +305,7 @@
     });
 
     const nominalInput = document.getElementById('nominal');
-    nominalInput.addEventListener('blur', function() {
+    nominalInput.addEventListener('input', function() {
       formatRupiah(nominalInput);
     });
 
@@ -388,3 +383,4 @@
   }
 </script>
 @endpush
+@endif
