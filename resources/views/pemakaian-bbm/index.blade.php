@@ -137,6 +137,7 @@
               <label for="tanggal">Tanggal</label>
               <input type="date" id="tanggal" name="tanggal" class="form-control"
                      value="{{ old('tanggal', $edit->tanggal ?? '') }}" required>
+              <small class="form-hint form-hint-spacer">&nbsp;</small>
             </div>
 
             <div class="form-group">
@@ -149,6 +150,7 @@
                   </option>
                 @endforeach
               </select>
+              <small class="form-hint form-hint-spacer">&nbsp;</small>
             </div>
 
             <div class="form-group">
@@ -158,35 +160,37 @@
                 <option value="bensin" {{ old('jenis_bbm', $edit->hargaBbm->jenis ?? '') == 'bensin' ? 'selected' : '' }}>Bensin</option>
                 <option value="solar" {{ old('jenis_bbm', $edit->hargaBbm->jenis ?? '') == 'solar' ? 'selected' : '' }}>Solar</option>
               </select>
+              <small class="form-hint form-hint-spacer">&nbsp;</small>
             </div>
 
             <div class="form-group">
               <label for="liter_paiton">Liter Paiton</label>
               <input type="number" step="0.01" min="0" id="liter_paiton" name="liter_paiton" class="form-control"
                      value="{{ old('liter_paiton', $edit->liter_paiton ?? '') }}">
+              <small class="form-hint">Input 0, jika tidak ada data</small>
             </div>
 
             <div class="form-group">
               <label for="liter_luar_paiton">Liter Luar Paiton</label>
               <input type="number" step="0.01" min="0" id="liter_luar_paiton" name="liter_luar_paiton" class="form-control"
                      value="{{ old('liter_luar_paiton', $edit->liter_luar_paiton ?? '') }}">
+              <small class="form-hint">Input 0, jika tidak ada data</small>
             </div>
 
             <div class="form-group">
               <label for="service_oli">Service, Oli, dll (Rp)</label>
-              <input type="number" step="1" min="0" id="service_oli" name="service_oli" class="form-control"
+              <input type="text" inputmode="numeric" id="service_oli" name="service_oli" class="form-control"
                      value="{{ old('service_oli', $edit->service_oli ?? '') }}">
+              <small class="form-hint">Input 0, jika tidak ada data</small>
             </div>
 
             <div class="form-group">
               <label for="jasa">Jasa (Rp)</label>
-              <input type="number" step="1" min="0" id="jasa" name="jasa" class="form-control"
+              <input type="text" inputmode="numeric" id="jasa" name="jasa" class="form-control"
                      value="{{ old('jasa', $edit->jasa ?? '') }}">
+              <small class="form-hint">Input 0, jika tidak ada data</small>
             </div>
           </div>
-          <p style="color:#888; font-size:0.85rem; margin-top:8px;">
-            Rp Paiton, Rp Luar Paiton, dan Jumlah dihitung otomatis dari harga BBM aktif.
-          </p>
         </div>
 
         <div class="modal-footer">
@@ -238,6 +242,22 @@
   .modal-confirm-footer { justify-content: center; padding-top: 20px; }
   .btn-danger { background-color: #dc2626; border-color: #dc2626; color: #fff; }
   .btn-danger:hover { background-color: #b91c1c; border-color: #b91c1c; }
+  .form-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.75rem;
+    line-height: 1;
+    color: #9ca3af;
+  }
+  .form-hint-spacer {
+    color: transparent;
+  }
+  #pemakaianForm .form-grid {
+    row-gap: 14px;
+  }
+  #pemakaianForm .form-group {
+    margin-bottom: 0;
+  }
 </style>
 @endpush
 
@@ -254,10 +274,37 @@
       if (e.key === 'Escape') { closePemakaianModal(); closeDeletePemakaianModal(); }
     });
 
+    const serviceOliInput = document.getElementById('service_oli');
+    const jasaInput = document.getElementById('jasa');
+
+    serviceOliInput.addEventListener('input', function() { formatRupiah(serviceOliInput); });
+    jasaInput.addEventListener('input', function() { formatRupiah(jasaInput); });
+
+    const pemakaianForm = document.getElementById('pemakaianForm');
+    pemakaianForm.addEventListener('submit', function() {
+      serviceOliInput.value = serviceOliInput.value.replace(/[^\d]/g, '');
+      jasaInput.value = jasaInput.value.replace(/[^\d]/g, '');
+    });
+
     @if($edit || $errors->any())
       document.getElementById('pemakaianModal').classList.add('show');
+      formatRupiah(serviceOliInput);
+      formatRupiah(jasaInput);
     @endif
   });
+
+  function formatRupiah(input) {
+    const digits = input.value.replace(/[^\d]/g, '');
+    input.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+  }
+
+  function pfTodayDateString() {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
 
   function openAddPemakaian() {
     const form = document.getElementById('pemakaianForm');
@@ -265,6 +312,10 @@
     form.action = '{{ route('pemakaian-bbm.store') }}';
     document.getElementById('pemakaianMethod').value = '';
     document.getElementById('pemakaianModalTitle').textContent = 'Tambah Pemakaian BBM';
+
+    // Default tanggal ke hari ini, tapi tetap bisa diubah user
+    document.getElementById('tanggal').value = pfTodayDateString();
+
     document.getElementById('pemakaianModal').classList.add('show');
   }
 
@@ -280,6 +331,8 @@
     document.getElementById('liter_luar_paiton').value = btn.dataset.literLuarPaiton;
     document.getElementById('service_oli').value = btn.dataset.serviceOli;
     document.getElementById('jasa').value = btn.dataset.jasa;
+    formatRupiah(document.getElementById('service_oli'));
+    formatRupiah(document.getElementById('jasa'));
     document.getElementById('pemakaianModalTitle').textContent = 'Edit Pemakaian BBM';
     document.getElementById('pemakaianModal').classList.add('show');
   }
