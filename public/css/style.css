@@ -1602,6 +1602,65 @@ body.dark-mode .rekapan-total-row td {
 }
 
 /* ==========================================
+   Rekapan Vertikal (area 1 titik meter)
+========================================== */
+.rekapan-vertikal {
+  padding: 16px 24px;
+}
+
+.rekapan-vertikal .rv-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.rekapan-vertikal .rv-meta {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.rekapan-vertikal .rv-section {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 14px 0 6px;
+}
+
+.rekapan-vertikal .rv-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px dashed #e2e8f0;
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+
+.rekapan-vertikal .rv-label {
+  color: var(--text-muted);
+}
+
+.rekapan-vertikal .rv-value {
+  font-weight: 600;
+}
+
+.rekapan-vertikal .rv-subtotal .rv-value {
+  font-weight: 700;
+}
+
+body.dark-mode .rekapan-vertikal .rv-title,
+body.dark-mode .rekapan-vertikal .rv-section,
+body.dark-mode .rekapan-vertikal .rv-row {
+  color: #f1f5f9;
+}
+
+body.dark-mode .rekapan-vertikal .rv-row {
+  border-bottom-color: #334155;
+}
+
+/* ==========================================
    Tabs
 ========================================== */
 .tabs {

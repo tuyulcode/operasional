@@ -20,50 +20,87 @@
 
   @foreach($data as $area)
     <h4>{{ $area['area']->nama }}</h4>
-    <table>
-      <thead>
+
+    @if($area['jml_titik'] === 1)
+      @php($row1 = $area['rows']->first())
+      @php($tg = $row1['tagihan'] ?? null)
+      @php($ini = $tg ? (int) round((float) $tg->meter_ini) : 0)
+      @php($lalu = $tg ? (int) round((float) $tg->meter_lalu) : 0)
+      @php($faktor = $tg ? (float) $tg->meter_faktor : 0)
+      <table>
         <tr>
-          <th>No</th>
-          <th>Titik Meter</th>
-          <th class="right">Meter Lalu</th>
-          <th class="right">Meter Ini</th>
-          <th class="right">Pemakaian (m3)</th>
-          <th class="right">Tarif</th>
-          <th class="right">Jumlah</th>
+          <td colspan="2"><b>BIAYA PEMAKAIAN AIR</b></td>
         </tr>
-      </thead>
-      <tbody>
-        @foreach($area['rows'] as $i => $row)
-          @continue(!$row['tagihan'])
-          <tr>
-            <td>{{ $i + 1 }}</td>
-            <td>{{ $row['titik_meter']->nama }}</td>
-            <td class="right">{{ number_format($row['tagihan']->meter_lalu, 2, ',', '.') }}</td>
-            <td class="right">{{ number_format($row['tagihan']->meter_ini, 2, ',', '.') }}</td>
-            <td class="right">{{ number_format($row['tagihan']->pemakaian, 2, ',', '.') }}</td>
-            <td class="right">{{ number_format($row['tagihan']->tarif, 0, ',', '.') }}</td>
-            <td class="right">{{ number_format($row['tagihan']->jumlah, 0, ',', '.') }}</td>
-          </tr>
-        @endforeach
-        <tr>
-          <td colspan="5"><b>Subtotal {{ $area['area']->nama }}</b></td>
-          <td></td>
-          <td class="right"><b>{{ number_format($area['subtotal'], 0, ',', '.') }}</b></td>
-        </tr>
+        <tr><td>Bulan</td><td>:</td><td>{{ $periodeLabel }}</td></tr>
+        <tr><td>NAMA</td><td>:</td><td>{{ $area['area']->nama }}</td></tr>
+        <tr><td>ALAMAT</td><td>:</td><td>{{ $area['area']->alamat ?: '-' }}</td></tr>
+        <tr><td>LOKASI FLOW METER</td><td>:</td><td>{{ $row1['titik_meter']->nama }}</td></tr>
+        <tr><td colspan="3"><b>PERHITUNGAN PEMAKAIAN</b></td></tr>
+        <tr><td>Bulan ini</td><td>:</td><td>{{ $ini }}</td></tr>
+        <tr><td>Bulan lalu</td><td>:</td><td>{{ $lalu }}</td></tr>
+        <tr><td>Jumlah Pengambilan</td><td>:</td><td>{{ $ini - $lalu }}</td></tr>
+        <tr><td>Meter Faktor</td><td>:</td><td>{{ $tg ? number_format($faktor, 0, ',', '.') : '0' }}</td></tr>
+        <tr><td>Jumlah Pengambilan</td><td>:</td><td>{{ $tg ? (int) round((float) $tg->pemakaian) : 0 }}</td></tr>
+        <tr><td>Tarif / M3</td><td>:</td><td>Rp {{ number_format($tg->tarif ?? 0, 0, ',', '.') }}</td></tr>
+        <tr><td><b>Jumlah (Rp)</b></td><td>:</td><td><b>Rp {{ number_format($area['subtotal'], 0, ',', '.') }}</b></td></tr>
         @if($area['kena_ppn'])
-          <tr>
-            <td colspan="5"><b>PPN {{ number_format($area['persen_ppn'], 0, ',', '.') }}%</b></td>
-            <td></td>
-            <td class="right">{{ number_format($area['ppn'], 0, ',', '.') }}</td>
-          </tr>
-          <tr>
-            <td colspan="5"><b>Total {{ $area['area']->nama }}</b></td>
-            <td></td>
-            <td class="right"><b>{{ number_format($area['total'], 0, ',', '.') }}</b></td>
-          </tr>
+          <tr><td>PPN {{ number_format($area['persen_ppn'], 0, ',', '.') }}%</td><td>:</td><td>Rp {{ number_format($area['ppn'], 0, ',', '.') }}</td></tr>
+          <tr><td><b>Jumlah (Rp)</b></td><td>:</td><td><b>Rp {{ number_format($area['total'], 0, ',', '.') }}</b></td></tr>
         @endif
-      </tbody>
+      </table>
+    @else
+    <table>
+      <tr>
+        <th>No. Urut</th>
+        <th>Nama Titik Meter</th>
+        <th colspan="2">COUNTER M3</th>
+        <th>Pengambilan</th>
+        <th>Tarif (Rp/M3)</th>
+        <th>Jumlah (Rp)</th>
+      </tr>
+      <tr>
+        <th></th>
+        <th></th>
+        <th>Bulan Ini</th>
+        <th>Bulan Lalu</th>
+        <th></th>
+        <th></th>
+        <th></th>
+      </tr>
+      @foreach($area['rows'] as $i => $row)
+        @continue(!$row['tagihan'])
+        <tr>
+          <td>{{ $i + 1 }}</td>
+          <td>{{ $row['titik_meter']->nama }}</td>
+          <td>{{ (int) round((float) $row['tagihan']->meter_ini) }}</td>
+          <td>{{ (int) round((float) $row['tagihan']->meter_lalu) }}</td>
+          <td>{{ (int) round((float) $row['tagihan']->pemakaian) }}</td>
+          <td>Rp {{ number_format($row['tagihan']->tarif, 0, ',', '.') }}</td>
+          <td>Rp {{ number_format($row['tagihan']->jumlah, 0, ',', '.') }}</td>
+        </tr>
+      @endforeach
+      <tr>
+        <td colspan="4"><b>Subtotal {{ $area['area']->nama }}</b></td>
+        <td>{{ $area['total_pemakaian'] ? (int) round($area['total_pemakaian']) : '-' }}</td>
+        <td></td>
+        <td><b>Rp {{ number_format($area['subtotal'], 0, ',', '.') }}</b></td>
+      </tr>
+      @if($area['kena_ppn'])
+        <tr>
+          <td colspan="4"><b>PPN {{ number_format($area['persen_ppn'], 0, ',', '.') }}%</b></td>
+          <td></td>
+          <td></td>
+          <td>Rp {{ number_format($area['ppn'], 0, ',', '.') }}</td>
+        </tr>
+        <tr>
+          <td colspan="4"><b>Total {{ $area['area']->nama }}</b></td>
+          <td></td>
+          <td></td>
+          <td><b>Rp {{ number_format($area['total'], 0, ',', '.') }}</b></td>
+        </tr>
+      @endif
     </table>
+    @endif
   @endforeach
 
   <h4 class="grand">Grand Total Semua Area: {{ number_format($grandTotal, 0, ',', '.') }}</h4>

@@ -12,6 +12,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // SQLite (mode testing :memory:) tidak mendukung SHOW INDEX.
+        // Struktur index sudah benar hasil migrate:fresh, jadi dilewati.
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         $indexExists = collect(DB::select("SHOW INDEX FROM kendaraan WHERE Key_name = 'kendaraan_nama_jenis_unique'"))->isNotEmpty();
 
         if ($indexExists) {

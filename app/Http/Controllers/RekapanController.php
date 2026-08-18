@@ -6,9 +6,11 @@ use App\Models\Area;
 use App\Models\Penandatangan;
 use App\Models\Ppn;
 use App\Models\TagihanAir;
+use App\Services\RekapanExcel;
 use App\Services\RekapanPdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class RekapanController extends Controller
 {
@@ -49,6 +51,7 @@ class RekapanController extends Controller
             return [
                 'area' => $area,
                 'rows' => $rows,
+                'jml_titik' => $area->titikMeter->count(),
                 'subtotal' => $subtotal,
                 'total_pemakaian' => $rows->sum(fn ($r) => $r['tagihan']->pemakaian ?? 0),
                 'kena_ppn' => $kenaPpn,
@@ -79,33 +82,36 @@ class RekapanController extends Controller
     {
         $report = $this->buildReport($request);
 
-        if (!$report['bulan']) {
+        if (! $report['bulan']) {
             return redirect()->route('rekapan.index')
                 ->with('error', 'Pilih bulan dan tahun terlebih dahulu untuk export.');
         }
 
-        $filename = 'rekapan_air_' . $report['bulan'] . '.xls';
+        $filename = 'rekapan_air_'.$report['bulan'].'.xlsx';
 
-        return response()
-            ->view('rekapan.excel', $report)
-            ->header('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $writer = new Xlsx(RekapanExcel::generate($report));
+
+        return response()->streamDownload(
+            fn () => $writer->save('php://output'),
+            $filename,
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+        );
     }
 
     public function exportPdf(Request $request)
     {
         $report = $this->buildReport($request);
 
-        if (!$report['bulan']) {
+        if (! $report['bulan']) {
             return redirect()->route('rekapan.index')
                 ->with('error', 'Pilih bulan dan tahun terlebih dahulu untuk export.');
         }
 
-        $filename = 'rekapan_air_' . $report['bulan'] . '.pdf';
+        $filename = 'rekapan_air_'.$report['bulan'].'.pdf';
 
         return response(RekapanPdf::generate($report), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 }

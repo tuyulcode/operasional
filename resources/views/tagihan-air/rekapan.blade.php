@@ -90,16 +90,69 @@
             </div>
           </div>
           <div class="table-responsive">
+            @if($area['jml_titik'] === 1)
+              @php($row1 = $area['rows']->first())
+              @php($tg = $row1['tagihan'] ?? null)
+              @php($ini = $tg ? (int) round((float) $tg->meter_ini) : 0)
+              @php($lalu = $tg ? (int) round((float) $tg->meter_lalu) : 0)
+              @php($faktor = $tg ? (float) $tg->meter_faktor : 0)
+              <div class="rekapan-vertikal">
+                <div class="rv-title">BIAYA PEMAKAIAN AIR</div>
+                <div class="rv-meta">Bulan : {{ $periodeLabel }}</div>
+                <div class="rv-meta">NAMA: {{ $area['area']->nama }}</div>
+                <div class="rv-meta">ALAMAT: {{ $area['area']->alamat ?: '-' }}</div>
+                <div class="rv-meta">LOKASI FLOW METER: {{ $row1['titik_meter']->nama }}</div>
+                <div class="rv-section">PERHITUNGAN PEMAKAIAN</div>
+                <div class="rv-row">
+                  <span class="rv-label">Bulan ini</span>
+                  <span class="rv-value">{{ $ini }}</span>
+                </div>
+                <div class="rv-row">
+                  <span class="rv-label">Bulan lalu</span>
+                  <span class="rv-value">{{ $lalu }}</span>
+                </div>
+                <div class="rv-row">
+                  <span class="rv-label">Jumlah Pengambilan</span>
+                  <span class="rv-value">{{ $ini - $lalu }}</span>
+                </div>
+                <div class="rv-row">
+                  <span class="rv-label">Meter Faktor</span>
+                  <span class="rv-value">{{ $tg ? number_format($faktor, 0, ',', '.') : '0' }}</span>
+                </div>
+                <div class="rv-row">
+                  <span class="rv-label">Jumlah Pengambilan</span>
+                  <span class="rv-value">{{ $tg ? (int) round((float) $tg->pemakaian) : 0 }}</span>
+                </div>
+                <div class="rv-row">
+                  <span class="rv-label">Tarif / M3</span>
+                  <span class="rv-value">Rp {{ number_format($tg->tarif ?? 0, 0, ',', '.') }}</span>
+                </div>
+                <div class="rv-row rv-subtotal">
+                  <span class="rv-label">Jumlah (Rp)</span>
+                  <span class="rv-value">Rp {{ number_format($area['subtotal'], 0, ',', '.') }}</span>
+                </div>
+                @if($area['kena_ppn'])
+                  <div class="rv-row">
+                    <span class="rv-label">PPN {{ number_format($area['persen_ppn'], 0, ',', '.') }}%</span>
+                    <span class="rv-value">Rp {{ number_format($area['ppn'], 0, ',', '.') }}</span>
+                  </div>
+                  <div class="rv-row">
+                    <span class="rv-label">Jumlah (Rp)</span>
+                    <span class="rv-value">Rp {{ number_format($area['total'], 0, ',', '.') }}</span>
+                  </div>
+                @endif
+              </div>
+            @else
             <table class="app-sales-table">
               <thead>
                 <tr>
-                  <th>No</th>
-                  <th>Titik Meter</th>
-                  <th>Meter Lalu</th>
-                  <th>Meter Ini</th>
-                  <th>Pemakaian (m3)</th>
-                  <th>Tarif</th>
-                  <th>Jumlah</th>
+                  <th>No. Urut</th>
+                  <th>Nama Titik Meter</th>
+                  <th>Bulan Ini</th>
+                  <th>Bulan Lalu</th>
+                  <th>Pengambilan</th>
+                  <th>Tarif (Rp/M3)</th>
+                  <th>Jumlah (Rp)</th>
                 </tr>
               </thead>
               <tbody>
@@ -115,16 +168,16 @@
                         </div>
                       </div>
                     </td>
-                    <td>{{ number_format($row['tagihan']->meter_lalu, 2, ',', '.') }}</td>
-                    <td>{{ number_format($row['tagihan']->meter_ini, 2, ',', '.') }}</td>
-                    <td>{{ number_format($row['tagihan']->pemakaian, 2, ',', '.') }}</td>
+                    <td>{{ (int) round((float) $row['tagihan']->meter_ini) }}</td>
+                    <td>{{ (int) round((float) $row['tagihan']->meter_lalu) }}</td>
+                    <td>{{ (int) round((float) $row['tagihan']->pemakaian) }}</td>
                     <td>Rp {{ number_format($row['tagihan']->tarif, 0, ',', '.') }}</td>
                     <td><b>Rp {{ number_format($row['tagihan']->jumlah, 0, ',', '.') }}</b></td>
                   </tr>
                 @endforeach
                 <tr class="rekapan-subtotal-row">
                   <td colspan="4"><b>Subtotal {{ $area['area']->nama }}</b></td>
-                  <td>{{ $area['total_pemakaian'] ? number_format($area['total_pemakaian'], 2, ',', '.') . ' m3' : '-' }}</td>
+                  <td>{{ $area['total_pemakaian'] ? (int) round($area['total_pemakaian']) : '-' }}</td>
                   <td></td>
                   <td><b>Rp {{ number_format($area['subtotal'], 0, ',', '.') }}</b></td>
                 </tr>
@@ -144,6 +197,7 @@
                 @endif
               </tbody>
             </table>
+            @endif
           </div>
         </div>
       @endforeach
