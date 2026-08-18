@@ -8,9 +8,4 @@ class Ppn extends Model
 {
     protected $table = 'ppn';
     protected $fillable = ['persentase', 'status'];
-
-    public function tagihanAir()
-    {
-        return $this->hasMany(TagihanAir::class, 'ppn_id');
-    }
 }

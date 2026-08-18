@@ -24,7 +24,10 @@ class AreaController extends Controller
         $validated = $request->validate([
             'nama' => 'required|string|max:150',
             'alamat' => 'nullable|string|max:255',
+            'kena_ppn' => 'sometimes|boolean',
         ]);
+
+        $validated['kena_ppn'] = $request->boolean('kena_ppn');
 
         Area::create($validated);
 
@@ -39,7 +42,10 @@ class AreaController extends Controller
         $validated = $request->validate([
             'nama' => 'required|string|max:150',
             'alamat' => 'nullable|string|max:255',
+            'kena_ppn' => 'sometimes|boolean',
         ]);
+
+        $validated['kena_ppn'] = $request->boolean('kena_ppn');
 
         $area->update($validated);
 

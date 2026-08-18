@@ -44,8 +44,8 @@
       </a>
     </li>
 
-    <li class="menu-item">
-      <a href="#" class="menu-link">
+    <li class="menu-item {{ request()->routeIs('tagihan-air.*', 'rekapan.*') ? 'active' : '' }}">
+      <a href="{{ route('tagihan-air.index') }}" class="menu-link">
         <div class="link-left">
           <i class="fa-solid fa-droplet link-icon"></i>
           <span class="link-text">Tagihan Air</span>
@@ -103,6 +103,15 @@
         <div class="link-left">
           <i class="fa-solid fa-users-gear link-icon"></i>
           <span class="link-text">Users</span>
+        </div>
+      </a>
+    </li>
+
+    <li class="menu-item {{ request()->routeIs('penandatangan.*') ? 'active' : '' }}">
+      <a href="{{ route('penandatangan.index') }}" class="menu-link">
+        <div class="link-left">
+          <i class="fa-solid fa-pen-nib link-icon"></i>
+          <span class="link-text">Tanda Tangan</span>
         </div>
       </a>
     </li>

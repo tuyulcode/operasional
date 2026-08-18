@@ -56,6 +56,7 @@
               <th>No</th>
               <th>Nama</th>
               <th>Alamat</th>
+              <th>PPN</th>
               <th>Aksi</th>
             </tr>
           </thead>
@@ -72,10 +73,18 @@
               </td>
               <td>{{ $area->alamat ?: '-' }}</td>
               <td>
+                @if($area->kena_ppn)
+                  <span class="badge-status badge-aktif"><i class="fa-solid fa-percent"></i> PPN</span>
+                @else
+                  -
+                @endif
+              </td>
+              <td>
                 <button type="button" class="btn btn-icon btn-edit" title="Edit"
                         data-id="{{ $area->id }}"
                         data-nama="{{ $area->nama }}"
                         data-alamat="{{ $area->alamat }}"
+                        data-kena-ppn="{{ $area->kena_ppn ? '1' : '0' }}"
                         onclick="openEditArea(this)">
                   <i class="fa-solid fa-pen"></i>
                 </button>
@@ -91,7 +100,7 @@
             </tr>
             @empty
             <tr>
-              <td colspan="4" style="text-align: center; padding: 30px; color: #999;">
+              <td colspan="5" style="text-align: center; padding: 30px; color: #999;">
                 <i class="fa-solid fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
                 Belum ada data area
               </td>
@@ -129,6 +138,14 @@
             <label for="alamat">Alamat</label>
             <textarea id="alamat" name="alamat" class="form-control" rows="3"
                       placeholder="Masukkan alamat area (opsional)">{{ old('alamat', $edit->alamat ?? '') }}</textarea>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0; margin-top: 4px;">
+            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 0; cursor: pointer;">
+              <input type="checkbox" id="kena_ppn" name="kena_ppn" value="1"
+                     {{ old('kena_ppn', $edit->kena_ppn ?? false) ? 'checked' : '' }}>
+              Kena PPN?
+            </label>
           </div>
         </div>
 
@@ -181,6 +198,7 @@
     document.getElementById('areaMethod').value = 'PUT';
     document.getElementById('nama').value = btn.dataset.nama;
     document.getElementById('alamat').value = btn.dataset.alamat || '';
+    document.getElementById('kena_ppn').checked = btn.dataset.kenaPpn === '1';
     document.getElementById('areaModalTitle').textContent = 'Edit Area';
     document.getElementById('areaModal').classList.add('show');
   }
