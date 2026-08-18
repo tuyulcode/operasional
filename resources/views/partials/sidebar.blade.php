@@ -35,8 +35,8 @@
       </a>
     </li>
 
-    <li class="menu-item">
-      <a href="#" class="menu-link">
+    <li class="menu-item {{ request()->routeIs('pemakaian-bbm.*') ? 'active' : '' }}">
+      <a href="{{ route('pemakaian-bbm.index') }}" class="menu-link">
         <div class="link-left">
           <i class="fa-solid fa-gas-pump link-icon"></i>
           <span class="link-text">Pemakaian BBM</span>
