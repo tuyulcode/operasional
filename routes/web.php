@@ -83,6 +83,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [EtollController::class, 'store'])->name('store');
         Route::put('/{id}', [EtollController::class, 'update'])->name('update');
         Route::delete('/{id}', [EtollController::class, 'destroy'])->name('destroy');
+        Route::get('/export/pdf', [EtollController::class, 'exportPdf'])->name('export-pdf');
+        Route::get('/export/excel', [EtollController::class, 'exportExcel'])->name('export-excel');
     });
 
     Route::prefix('pemegang-kendaraan')->name('pemegang-kendaraan.')->group(function () {
