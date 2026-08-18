@@ -13,24 +13,26 @@
     table { width: 100%; border-collapse: collapse; }
 
     .kategori td {
-      background-color: #e9ecef;
+      background-color: #dbeafe;
+      color: #1f2937;
       font-weight: bold;
+      text-align: center;
       padding: 5px 6px;
-      border: 1px solid #6c757d;
+      border: 1px solid #000000;
     }
 
     thead th {
-      background-color: #343a40;
-      color: #ffffff;
+      background-color: #e9ecef;
+      color: #1f2937;
       padding: 5px 6px;
-      border: 1px solid #6c757d;
+      border: 1px solid #000000;
       text-align: center;
       font-size: 10.5px;
     }
 
     tbody td {
       padding: 4px 6px;
-      border: 1px solid #adb5bd;
+      border: 1px solid #000000;
       font-size: 10.5px;
     }
 
@@ -40,9 +42,10 @@
 
     tfoot td {
       padding: 5px 6px;
-      border: 1px solid #6c757d;
+      border: 1px solid #000000;
       font-weight: bold;
       background-color: #f1f3f5;
+      color: #1f2937;
     }
   </style>
 </head>
