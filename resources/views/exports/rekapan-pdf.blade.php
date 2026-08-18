@@ -95,7 +95,7 @@
         <tr><td>Jumlah Pengambilan</td><td class="r">{{ $ini - $lalu }}</td></tr>
         <tr><td>Meter Faktor</td><td class="r">{{ $tg ? number_format($faktor, 0, ',', '.') : '0' }}</td></tr>
         <tr><td>Jumlah Pengambilan</td><td class="r">{{ $tg ? (int) round((float) $tg->pemakaian) : 0 }}</td></tr>
-        <tr><td>Tarif / M3</td><td class="r">Rp {{ number_format($tg->tarif ?? 0, 0, ',', '.') }}</td></tr>
+        <tr><td>Tarif / M3</td><td class="r">Rp {{ number_format($tg->tarif ?? 0, 2, ',', '.') }}</td></tr>
         <tr><td class="bold">Jumlah (Rp)</td><td class="r bold">Rp {{ number_format($area['subtotal'], 0, ',', '.') }}</td></tr>
         @if($area['kena_ppn'])
           <tr><td>PPN {{ number_format($area['persen_ppn'], 0, ',', '.') }}%</td><td class="r">Rp {{ number_format($area['ppn'], 0, ',', '.') }}</td></tr>
@@ -145,7 +145,7 @@
               <td class="r">{{ (int) round((float) $row['tagihan']->meter_ini) }}</td>
               <td class="r">{{ (int) round((float) $row['tagihan']->meter_lalu) }}</td>
               <td class="r">{{ (int) round((float) $row['tagihan']->pemakaian) }}</td>
-              <td class="r">{{ number_format($row['tagihan']->tarif, 0, ',', '.') }}</td>
+              <td class="r">{{ number_format($row['tagihan']->tarif, 2, ',', '.') }}</td>
               <td class="r bold">{{ number_format($row['tagihan']->jumlah, 0, ',', '.') }}</td>
             </tr>
           @endforeach

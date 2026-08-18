@@ -113,7 +113,7 @@ class RekapanExcel
         self::kv($sheet, $r, 'Jumlah Pengambilan', $ini - $lalu);
         self::kv($sheet, $r, 'Meter Faktor', $tg ? number_format($faktor, 0, ',', '.') : '0');
         self::kv($sheet, $r, 'Jumlah Pengambilan', $tg ? (int) round((float) $tg->pemakaian) : 0);
-        self::kv($sheet, $r, 'Tarif / M3', self::rp($tg->tarif ?? 0));
+        self::kv($sheet, $r, 'Tarif / M3', self::rp2($tg->tarif ?? 0));
         self::kv($sheet, $r, 'Jumlah (Rp)', self::rp($area['subtotal']), true);
         if ($area['kena_ppn']) {
             self::kv($sheet, $r, 'PPN '.number_format($area['persen_ppn'], 0, ',', '.').'%', self::rp($area['ppn']));
@@ -173,7 +173,7 @@ class RekapanExcel
             $sheet->setCellValue('C'.$r, (int) round((float) $tg->meter_ini));
             $sheet->setCellValue('D'.$r, (int) round((float) $tg->meter_lalu));
             $sheet->setCellValue('E'.$r, (int) round((float) $tg->pemakaian));
-            $sheet->setCellValue('F'.$r, self::rp($tg->tarif));
+            $sheet->setCellValue('F'.$r, self::rp2($tg->tarif));
             $sheet->setCellValue('G'.$r, self::rp($tg->jumlah));
 
             $pathFoto = $tg->foto ? public_path($tg->foto) : null;
@@ -258,5 +258,10 @@ class RekapanExcel
     private static function rp(mixed $value): string
     {
         return 'Rp '.number_format((float) $value, 0, ',', '.');
+    }
+
+    private static function rp2(mixed $value): string
+    {
+        return 'Rp '.number_format((float) $value, 2, ',', '.');
     }
 }

@@ -141,9 +141,9 @@
             <div class="form-group">
               <label for="meter_lalu">Meter Lalu</label>
               <input type="number" id="meter_lalu" name="meter_lalu" class="form-control"
-                     step="0.01" min="0" readonly
+                     step="0.01" min="0"
                      value="{{ old('meter_lalu', $edit->meter_lalu ?? '') }}">
-              <small style="color: #999;">Otomatis dari transaksi periode sebelumnya</small>
+              <small id="meterLaluHint" style="color: #999;">Otomatis dari transaksi periode sebelumnya</small>
             </div>
 
             <div class="form-group">
@@ -164,7 +164,7 @@
               <label for="tarif">Tarif (Rp/m3)</label>
               <input type="text" id="tarif" name="tarif" class="form-control"
                      inputmode="numeric" placeholder="Contoh: 5.000"
-                     value="{{ old('tarif', $edit ? number_format($edit->tarif, 0, ',', '.') : '') }}" required>
+                     value="{{ old('tarif', $edit ? number_format($edit->tarif, 2, ',', '.') : '') }}" required>
             </div>
 
             <div class="form-group">
@@ -250,7 +250,7 @@
                 <td>{{ number_format($t->meter_lalu, 2, ',', '.') }}</td>
                 <td>{{ number_format($t->meter_ini, 2, ',', '.') }}</td>
                 <td>{{ $t->meter_faktor }}</td>
-                <td>Rp {{ number_format($t->tarif, 0, ',', '.') }}</td>
+                <td>Rp {{ number_format($t->tarif, 2, ',', '.') }}</td>
                 <td>{{ number_format($t->pemakaian, 2, ',', '.') }}</td>
                 <td>Rp {{ number_format($t->jumlah, 0, ',', '.') }}</td>
                 <td>
@@ -324,8 +324,21 @@
   }
 
   function formatRupiah(input) {
-    const digits = (input.value || '').replace(/[^\d]/g, '');
-    input.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+    const v = parseIdValue(input.value);
+    input.value = v ? v.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '';
+  }
+
+  function parseIdValue(str) {
+    if (!str) return 0;
+    let s = String(str).trim();
+    if (!s || !/^-?\d[\d.,]*$/.test(s)) return 0;
+    if (s.includes(',')) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) {
+      s = s.replace(/\./g, '');
+    }
+    const v = parseFloat(s);
+    return isNaN(v) ? 0 : v;
   }
 
   function filterTitikMeter() {
@@ -342,24 +355,41 @@
     }
   }
 
-  function fillMeterLalu() {
+  function updateMeterLaluState(overwrite) {
     const tm = tmSelect.value;
     const per = periodeInput.value;
-    if (!tm || !per) return;
+    const hint = document.getElementById('meterLaluHint');
+    if (!tm || !per) {
+      meterLaluInput.readOnly = true;
+      if (hint) hint.textContent = 'Pilih titik meter & periode terlebih dahulu.';
+      return;
+    }
     const hist = meterMap[tm] || {};
     let latest = null;
     for (const p in hist) {
       if (p < per && (!latest || p > latest)) latest = p;
     }
-    meterLaluInput.value = latest ? hist[latest] : 0;
+    if (latest) {
+      if (overwrite) meterLaluInput.value = hist[latest];
+      meterLaluInput.readOnly = true;
+      if (hint) hint.textContent = 'Otomatis dari transaksi periode sebelumnya.';
+    } else {
+      if (overwrite) meterLaluInput.value = '';
+      meterLaluInput.readOnly = false;
+      if (hint) hint.textContent = 'Belum ada histori periode sebelumnya di sistem. Isi Meter Lalu secara manual berdasarkan data awal (wajib).';
+    }
     recalcTotals();
   }
 
+  function fillMeterLalu() {
+    updateMeterLaluState(true);
+  }
+
   function recalcTotals() {
-    const ini = parseFloat(meterIniInput.value.replace(',', '.')) || 0;
-    const lalu = parseFloat(meterLaluInput.value.replace(',', '.')) || 0;
-    const faktor = parseFloat(meterFaktorInput.value.replace(',', '.')) || 0;
-    const tarif = parseFloat((tarifInput.value || '').replace(/[^\d]/g, '')) || 0;
+    const ini = parseIdValue(meterIniInput.value);
+    const lalu = parseIdValue(meterLaluInput.value);
+    const faktor = parseIdValue(meterFaktorInput.value);
+    const tarif = parseIdValue(tarifInput.value);
     const pemakaian = (ini - lalu) * faktor;
     pemakaianInput.value = formatNumber(pemakaian, 2);
     jumlahInput.value = 'Rp ' + formatNumber(pemakaian * tarif);
@@ -369,18 +399,20 @@
     const opt = tmSelect.selectedOptions[0];
     if (!opt) return;
     meterFaktorInput.value = opt.dataset.faktor;
-    tarifInput.value = opt.dataset.tarif ? Number(opt.dataset.tarif).toLocaleString('id-ID') : '';
+    tarifInput.value = opt.dataset.tarif ? Number(opt.dataset.tarif).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '';
     fillMeterLalu();
     recalcTotals();
   }
 
   document.addEventListener('DOMContentLoaded', function() {
     filterTitikMeter();
+    updateMeterLaluState(false);
 
     areaSelect.addEventListener('change', filterTitikMeter);
     tmSelect.addEventListener('change', autoFillMaster);
     periodeInput.addEventListener('change', fillMeterLalu);
     meterIniInput.addEventListener('input', recalcTotals);
+    meterLaluInput.addEventListener('input', recalcTotals);
     meterFaktorInput.addEventListener('input', recalcTotals);
     tarifInput.addEventListener('input', function() {
       formatRupiah(tarifInput);
@@ -389,7 +421,7 @@
 
     const form = document.getElementById('tagihanForm');
     form.addEventListener('submit', function() {
-      tarifInput.value = (tarifInput.value || '').replace(/[^\d]/g, '');
+      tarifInput.value = String(parseIdValue(tarifInput.value));
     });
   });
 </script>

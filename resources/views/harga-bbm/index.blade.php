@@ -131,7 +131,7 @@
     document.querySelectorAll('.harga-form').forEach(function(form) {
       form.addEventListener('submit', function() {
         form.querySelectorAll('.rupiah-input').forEach(function(input) {
-          input.value = input.value.replace(/[^\d]/g, '');
+          input.value = String(parseIdValue(input.value));
         });
       });
     });
@@ -141,9 +141,22 @@
     @endif
   });
 
+  function parseIdValue(str) {
+    if (!str) return 0;
+    let s = String(str).trim();
+    if (!s || !/^-?\d[\d.,]*$/.test(s)) return 0;
+    if (s.includes(',')) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) {
+      s = s.replace(/\./g, '');
+    }
+    const v = parseFloat(s);
+    return isNaN(v) ? 0 : v;
+  }
+
   function formatRupiah(input) {
-    const digits = input.value.replace(/[^\d]/g, '');
-    input.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+    const v = parseIdValue(input.value);
+    input.value = v ? v.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '';
   }
 
   function switchTab(tab) {
