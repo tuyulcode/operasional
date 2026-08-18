@@ -36,6 +36,43 @@
     </div>
   @endif
 
+  <div class="card" style="margin-bottom: 20px;">
+    <div class="card-header">
+      <div class="card-header-title">
+        <h3>Export Laporan</h3>
+        <p>Unduh rekap pemakaian e-toll mingguan per bulan</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <form id="exportForm" method="GET" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+        <div class="form-group" style="margin-bottom: 0; min-width: 160px;">
+          <label for="export_bulan">Bulan</label>
+          <select id="export_bulan" name="bulan" class="form-control">
+            @foreach(['1'=>'Januari','2'=>'Februari','3'=>'Maret','4'=>'April','5'=>'Mei','6'=>'Juni','7'=>'Juli','8'=>'Agustus','9'=>'September','10'=>'Oktober','11'=>'November','12'=>'Desember'] as $val => $label)
+              <option value="{{ $val }}" {{ (int) $val === now()->month ? 'selected' : '' }}>{{ $label }}</option>
+            @endforeach
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0; min-width: 120px;">
+          <label for="export_tahun">Tahun</label>
+          <select id="export_tahun" name="tahun" class="form-control">
+            @for($y = now()->year; $y >= now()->year - 3; $y--)
+              <option value="{{ $y }}" {{ $y === now()->year ? 'selected' : '' }}>{{ $y }}</option>
+            @endfor
+          </select>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="submit" formaction="{{ route('pemakaian-etoll.export-pdf') }}" formtarget="_blank" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-file-pdf"></i> Export PDF
+          </button>
+          <button type="submit" formaction="{{ route('pemakaian-etoll.export-excel') }}" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-file-excel"></i> Export Excel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-header">
       <div class="card-header-title">
