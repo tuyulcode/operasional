@@ -98,6 +98,7 @@
     {{-- Category: Pengaturan --}}
     <div class="menu-category">Pengaturan</div>
 
+    @if(Auth::user()->isAdmin())
     <li class="menu-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
       <a href="{{ route('users.index') }}" class="menu-link">
         <div class="link-left">
@@ -106,6 +107,7 @@
         </div>
       </a>
     </li>
+    @endif
 
     <li class="menu-item {{ request()->routeIs('penandatangan.*') ? 'active' : '' }}">
       <a href="{{ route('penandatangan.index') }}" class="menu-link">
