@@ -1,13 +1,19 @@
+@php
+  // Warna aksen per grup, urut: A. Roda Empat, B. Roda Tiga, C. Roda Dua
+  $groupColors = ['bdd7ee', 'd9d2e9', 'c6e0b4'];
+  $grandColor  = 'ffc000';
+@endphp
+
 <table style="border-collapse: collapse; width: 100%; font-size: 12px;" border="1" cellpadding="4" cellspacing="0">
   <thead>
     <tr style="background:#f2f2f2; font-weight:bold; text-align:center;">
-      <th rowspan="4">No.</th>
-      <th rowspan="4">No.<br>Kendaraan</th>
+      <th rowspan="3">No.</th>
+      <th rowspan="3">No.<br>Kendaraan</th>
       <th colspan="2">Pengisian Di Paiton</th>
       <th colspan="2">Pengisian Di Luar Paiton</th>
-      <th rowspan="4">Service, Oli, dll</th>
-      <th rowspan="4">Jasa</th>
-      <th rowspan="4">Jumlah</th>
+      <th rowspan="3">Service, Oli, dll</th>
+      <th rowspan="3">Jasa</th>
+      <th rowspan="3">Jumlah</th>
     </tr>
     <tr style="background:#f2f2f2; font-weight:bold; text-align:center;">
       <th colspan="2">PREMIUM/SOLAR</th>
@@ -23,13 +29,15 @@
   </thead>
   <tbody>
     @forelse($groups as $group)
-      <tr style="background:#dbe9ff; font-weight:bold;">
+      @php $groupColor = $groupColors[$loop->index % count($groupColors)]; @endphp
+
+      <tr style="background:#{{ $groupColor }}; font-weight:bold;">
         <td colspan="9" style="text-align:left;">{{ $group['label'] }}</td>
       </tr>
 
       @foreach($group['sections'] as $section)
         @if($section['label'])
-          <tr style="background:#eef4ff; font-weight:bold;">
+          <tr style="background:#{{ $groupColor }}; font-weight:bold;">
             <td colspan="9" style="text-align:center;">{{ $section['label'] }}</td>
           </tr>
         @endif
@@ -49,7 +57,7 @@
         @endforeach
       @endforeach
 
-      <tr style="font-weight:bold; text-align:center; background:#fff2cc;">
+      <tr style="font-weight:bold; text-align:center; background:#{{ $groupColor }};">
         <td colspan="2" style="text-align:left;">Jumlah {{ substr($group['label'], 0, 1) }}</td>
         <td>{{ number_format($group['total']['liter_paiton'], 2, ',', '.') }}</td>
         <td>{{ number_format($group['total']['rp_paiton'], 0, ',', '.') }}</td>
@@ -64,7 +72,7 @@
     @endforelse
 
     @if(!empty($groups))
-      <tr style="font-weight:bold; text-align:center; background:#ffd966;">
+      <tr style="font-weight:bold; text-align:center; background:#{{ $grandColor }};">
         <td colspan="2" style="text-align:left;">
           Jumlah {{ implode('+', array_map(fn($g) => substr($g['label'], 0, 1), $groups)) }}
         </td>
