@@ -20,7 +20,6 @@ class HargaBbmController extends Controller
         $validated = $request->validate([
             'jenis' => 'required|in:bensin,solar',
             'harga_paiton' => 'required|numeric|min:0',
-            'harga_luar_paiton' => 'required|numeric|min:0',
         ]);
 
         HargaBbm::updateOrCreate(
