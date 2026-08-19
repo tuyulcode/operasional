@@ -8,23 +8,86 @@
     flex-shrink: 0;
     display: block;
   }
+
+  .theme-switch {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .theme-switch-track {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 54px;
+    height: 28px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #4099ff 0%, #2ed8b6 100%);
+    box-shadow: 0 2px 8px rgba(64, 153, 255, 0.35);
+    transition: background 0.3s ease;
+  }
+
+  .theme-switch-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .theme-switch-icon {
+    position: absolute;
+    font-size: 0.7rem;
+    transition: opacity 0.2s ease;
+  }
+
+  .theme-switch-icon.icon-sun {
+    color: #f59e0b;
+    opacity: 1;
+  }
+
+  .theme-switch-icon.icon-moon {
+    color: #334155;
+    opacity: 0;
+  }
+
+  body.dark-mode .theme-switch-track {
+    background: linear-gradient(135deg, #334155 0%, #0f172a 100%);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.5);
+  }
+
+  body.dark-mode .theme-switch-thumb {
+    transform: translateX(26px);
+  }
+
+  body.dark-mode .theme-switch-icon.icon-sun {
+    opacity: 0;
+  }
+
+  body.dark-mode .theme-switch-icon.icon-moon {
+    opacity: 1;
+  }
 </style>
 
 <header class="top-navbar">
-  <div class="navbar-left">
-    <div class="search-box">
-      <i class="fa-solid fa-magnifying-glass" style="color: #999;"></i>
-      <input type="text" placeholder="Cari...">
-    </div>
-    <button class="navbar-action-btn" id="fullscreenBtn" title="Toggle Fullscreen">
-      <i class="fa-solid fa-expand"></i>
-    </button>
-  </div>
-
-  <div class="navbar-right">
-    {{-- Theme Toggle Button --}}
-    <button class="nav-icon-btn" id="themeToggleBtn" title="Toggle Light/Dark Theme">
-      <i class="fa-regular fa-moon" id="themeToggleIcon"></i>
+  <div class="navbar-right" style="margin-left: auto;">
+    {{-- Theme Toggle Switch --}}
+    <button class="theme-switch" id="themeToggleBtn" type="button" title="Toggle Light/Dark Theme">
+      <span class="theme-switch-track">
+        <span class="theme-switch-thumb">
+          <i class="fa-solid fa-sun theme-switch-icon icon-sun"></i>
+          <i class="fa-solid fa-moon theme-switch-icon icon-moon"></i>
+        </span>
+      </span>
     </button>
 
     {{-- User Profile Dropdown --}}
@@ -44,7 +107,6 @@
 
       <div class="dropdown-menu" id="profileMenu">
         <a href="{{ route('profile.index') }}" class="dropdown-item"><i class="fa-solid fa-user"></i> Profil Saya</a>
-        <a href="#" class="dropdown-item"><i class="fa-solid fa-gear"></i> Pengaturan</a>
         <div class="dropdown-divider"></div>
         <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
           @csrf
