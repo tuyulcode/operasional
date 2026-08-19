@@ -25,7 +25,7 @@ class AreaController extends Controller
             'nama' => 'required|string|max:150',
             'alamat' => 'nullable|string|max:255',
             'kena_ppn' => 'sometimes|boolean',
-            'format_rekap' => 'sometimes|in:standar,list',
+            'format_rekap' => 'sometimes|in:standar,list,multikolom',
         ]);
 
         $validated['kena_ppn'] = $request->boolean('kena_ppn');
@@ -44,7 +44,7 @@ class AreaController extends Controller
             'nama' => 'required|string|max:150',
             'alamat' => 'nullable|string|max:255',
             'kena_ppn' => 'sometimes|boolean',
-            'format_rekap' => 'sometimes|in:standar,list',
+            'format_rekap' => 'sometimes|in:standar,list,multikolom',
         ]);
 
         $validated['kena_ppn'] = $request->boolean('kena_ppn');
