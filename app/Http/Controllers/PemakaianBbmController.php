@@ -18,7 +18,7 @@ class PemakaianBbmController extends Controller
     }
 
     /**
-     * List transaksi pemakaian BBM (input harian)
+     * Halaman input transaksi harian.
      */
     public function index(Request $request)
     {
@@ -72,23 +72,27 @@ class PemakaianBbmController extends Controller
     }
 
     /**
-     * Halaman rekap periode (preview di layar)
+     * Halaman rekap periode + export.
      */
-    public function rekap(Request $request)
+    public function rekapan(Request $request)
     {
-        if (!$request->filled('tanggal_awal') || !$request->filled('tanggal_akhir')) {
-            return view('rekapan.pemakaian-bbm.rekap', [
-                'groups' => [], 'grandTotal' => null, 'periodeLabel' => null,
-                'tanggal_awal' => null, 'tanggal_akhir' => null,
-            ]);
+        $tanggalAwal  = $request->query('tanggal_awal');
+        $tanggalAkhir = $request->query('tanggal_akhir');
+        $groups       = [];
+        $grandTotal   = null;
+        $periodeLabel = null;
+
+        if ($tanggalAwal && $tanggalAkhir) {
+            $validated    = $this->validatePeriode($request);
+            $data         = $this->rekapService->build($validated['tanggal_awal'], $validated['tanggal_akhir']);
+            $groups       = $data['groups'];
+            $grandTotal   = $data['grandTotal'];
+            $periodeLabel = $data['periodeLabel'];
         }
 
-        $validated = $this->validatePeriode($request);
-        $data = $this->rekapService->build($validated['tanggal_awal'], $validated['tanggal_akhir']);
-        $data['tanggal_awal'] = $validated['tanggal_awal'];
-        $data['tanggal_akhir'] = $validated['tanggal_akhir'];
-
-        return view('rekapan.pemakaian-bbm.rekap', $data);
+        return view('pemakaian-bbm.rekapan', compact(
+            'tanggalAwal', 'tanggalAkhir', 'groups', 'grandTotal', 'periodeLabel'
+        ));
     }
 
     public function exportExcel(Request $request)

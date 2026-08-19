@@ -15,12 +15,37 @@
     </ul>
   </div>
 
+  @if(session('success'))
+    <div class="alert-custom alert-success">
+      <i class="fa-solid fa-circle-check"></i>
+      <span>{{ session('success') }}</span>
+    </div>
+  @endif
+
+  @if(session('error'))
+    <div class="alert-custom alert-danger">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <span>{{ session('error') }}</span>
+    </div>
+  @endif
+
   @if($errors->any())
     <div class="alert-custom alert-danger">
       <i class="fa-solid fa-circle-exclamation"></i>
       <span>{{ $errors->first() }}</span>
     </div>
   @endif
+
+  <div class="tabs">
+    <a href="{{ route('pemakaian-bbm.index') }}"
+       class="tab-link {{ request()->routeIs('pemakaian-bbm.index') ? 'active' : '' }}">
+      <i class="fa-solid fa-table-list"></i> Input Data
+    </a>
+    <a href="{{ route('pemakaian-bbm.rekapan') }}"
+       class="tab-link {{ request()->routeIs('pemakaian-bbm.rekapan') ? 'active' : '' }}">
+      <i class="fa-solid fa-file-invoice"></i> Rekapan
+    </a>
+  </div>
 
   <div class="card">
     <div class="card-header">
@@ -29,9 +54,6 @@
         <p>Input transaksi pemakaian BBM harian per kendaraan</p>
       </div>
       <div class="card-actions">
-        <a href="{{ route('pemakaian-bbm.rekap') }}" class="btn btn-secondary btn-sm">
-          <i class="fa-solid fa-file-lines"></i> Lihat Rekap / Export
-        </a>
         <button type="button" class="btn btn-primary btn-sm" onclick="openAddPemakaian()">
           <i class="fa-solid fa-plus"></i> Tambah Data
         </button>
