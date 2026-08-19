@@ -133,6 +133,19 @@
               Kena PPN?
             </label>
           </div>
+
+          <div class="form-group" style="margin-bottom: 0; margin-top: 8px;">
+            <label for="format_rekap">Format Rekap</label>
+            <select id="format_rekap" name="format_rekap" class="form-control">
+              <option value="standar" {{ old('format_rekap', $edit->format_rekap ?? 'standar') == 'standar' ? 'selected' : '' }}>
+                Standar (satu pelanggan per tabel)
+              </option>
+              <option value="list" {{ old('format_rekap', $edit->format_rekap ?? 'standar') == 'list' ? 'selected' : '' }}>
+                List (banyak titik meter per tabel)
+              </option>
+            </select>
+            <small style="color: #999;">Format tabel di rekap PDF / Excel.</small>
+          </div>
         </div>
 
         <div class="modal-footer">
