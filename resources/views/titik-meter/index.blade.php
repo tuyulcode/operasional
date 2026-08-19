@@ -72,6 +72,7 @@
                         data-id="{{ $titikMeter->id }}"
                         data-area-id="{{ $titikMeter->area_id }}"
                         data-nama="{{ $titikMeter->nama }}"
+                        data-lokasi-flow-meter="{{ $titikMeter->lokasi_flow_meter }}"
                         data-meter-faktor="{{ $titikMeter->meter_faktor }}"
                         data-tarif-harga="{{ $titikMeter->tarif_harga }}"
                         data-status="{{ $titikMeter->status }}"
@@ -134,6 +135,14 @@
             <input type="text" id="nama" name="nama" class="form-control"
                    placeholder="Contoh: Barak 1, Barak 2, Wisma"
                    value="{{ old('nama', $edit->nama ?? '') }}" required>
+          </div>
+
+          <div class="form-group">
+            <label for="lokasi_flow_meter">Lokasi Flow Meter</label>
+            <input type="text" id="lokasi_flow_meter" name="lokasi_flow_meter" class="form-control"
+                   placeholder="Contoh: AREA PLTU (opsional)"
+                   value="{{ old('lokasi_flow_meter', $edit->lokasi_flow_meter ?? '') }}">
+            <small style="color: #999;">Lokasi fisik tempat flow meter terpasang</small>
           </div>
 
           <div class="form-group">
@@ -237,6 +246,7 @@
     document.getElementById('titikMeterMethod').value = 'PUT';
     document.getElementById('area_id').value = btn.dataset.areaId;
     document.getElementById('nama').value = btn.dataset.nama;
+    document.getElementById('lokasi_flow_meter').value = btn.dataset.lokasiFlowMeter || '';
     document.getElementById('meter_faktor').value = btn.dataset.meterFaktor;
     document.getElementById('status').value = btn.dataset.status;
     const hargaInput = document.getElementById('tarif_harga');

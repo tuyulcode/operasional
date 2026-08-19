@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Area extends Model
 {
     protected $table = 'area';
-    protected $fillable = ['nama', 'alamat', 'kena_ppn'];
+
+    protected $fillable = ['nama', 'alamat', 'kena_ppn', 'format_rekap'];
 
     protected $casts = [
         'kena_ppn' => 'boolean',

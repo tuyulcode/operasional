@@ -19,6 +19,7 @@ class TitikMeterController extends Controller
         return $request->validate([
             'area_id' => 'required|exists:area,id',
             'nama' => 'required|string|max:100',
+            'lokasi_flow_meter' => 'nullable|string|max:255',
             'meter_faktor' => 'required|numeric|min:0',
             'tarif_harga' => 'required|numeric|gt:0',
             'status' => 'required|in:aktif,nonaktif',

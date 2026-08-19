@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class TitikMeter extends Model
 {
     protected $table = 'titik_meter';
-    protected $fillable = ['area_id', 'nama', 'meter_faktor', 'tarif_harga', 'status'];
+
+    protected $fillable = ['area_id', 'nama', 'lokasi_flow_meter', 'meter_faktor', 'tarif_harga', 'status'];
 
     public function area()
     {
