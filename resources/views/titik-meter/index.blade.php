@@ -41,7 +41,7 @@
             <tr>
               <th>No</th>
               <th>Area</th>
-              <th>Nama</th>
+              <th>Nama Meter</th>
               <th>Meter Faktor</th>
               <th>Tarif Harga</th>
               <th>Status</th>
