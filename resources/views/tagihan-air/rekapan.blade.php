@@ -220,12 +220,10 @@
           @endforeach
         </div>
         <div class="rekapan-ttd-tanggal">
-          @php
-            $ttdRow = $report['penandatangan']->first();
-            $tempat = $ttdRow->tempat ?? '';
-            $tanggalRaw = $ttdRow->tanggal_cetak ?? now()->format('Y-m-d');
-            $tanggal = \Carbon\Carbon::parse($tanggalRaw)->locale('id')->translatedFormat('d F Y');
-          @endphp
+          @php($ttdRow = $report['penandatangan']->first())
+          @php($tempat = $ttdRow->tempat ?? '')
+          @php($tanggalRaw = $ttdRow->tanggal_cetak ?? now()->format('Y-m-d'))
+          @php($tanggal = \Carbon\Carbon::parse($tanggalRaw)->locale('id')->translatedFormat('d F Y'))
           {{ ($tempat ? $tempat . ', ' : '') . $tanggal }}
         </div>
       </div>
