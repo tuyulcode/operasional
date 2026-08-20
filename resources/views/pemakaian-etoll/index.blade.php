@@ -43,7 +43,7 @@
 
   @if($tab === 'rekapan')
 
-    @include('pemakaian-etoll._tab-rekapan')
+    @include('pemakaian-etoll.rekapan')
 
   @else
 
@@ -306,6 +306,7 @@
 </style>
 @endpush
 
+@if($tab === 'input')
 @push('scripts')
 <script>
   document.addEventListener('DOMContentLoaded', function() {
@@ -400,3 +401,4 @@
   }
 </script>
 @endpush
+@endif
