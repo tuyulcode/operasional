@@ -40,7 +40,7 @@
           <thead>
             <tr>
               <th>No</th>
-              <th>Area</th>
+              <th>Nama Pengguna</th>
               <th>Nama Meter</th>
               <th>Meter Faktor</th>
               <th>Tarif Harga</th>
@@ -119,9 +119,9 @@
 
         <div class="modal-body">
           <div class="form-group">
-            <label for="area_id">Area</label>
+            <label for="area_id">Nama Pengguna</label>
             <select id="area_id" name="area_id" class="form-control" required>
-              <option value="">-- Pilih Area --</option>
+              <option value="">-- Pilih Nama Pengguna --</option>
               @foreach($areas as $area)
                 <option value="{{ $area->id }}" {{ old('area_id', $edit->area_id ?? '') == $area->id ? 'selected' : '' }}>
                   {{ $area->nama }}
@@ -196,6 +196,7 @@
     });
 
     const hargaInput = document.getElementById('tarif_harga');
+    bindLiveFormat(hargaInput);
     hargaInput.addEventListener('blur', function() {
       formatRupiah(hargaInput);
     });
@@ -227,6 +228,37 @@
   function formatRupiah(input) {
     const v = parseIdValue(input.value);
     input.value = v ? v.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '';
+  }
+
+  function formatIdLive(str) {
+    let s = String(str == null ? '' : str);
+    let neg = s.startsWith('-') ? '-' : '';
+    s = s.replace(/[^\d,]/g, '');
+    const ci = s.indexOf(',');
+    let intPart = ci === -1 ? s : s.slice(0, ci);
+    let decPart = ci === -1 ? '' : s.slice(ci + 1).slice(0, 2);
+    if (!decPart) decPart = '';
+    intPart = intPart.replace(/^0+(?=\d)/, '');
+    const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return neg + grouped + (ci !== -1 ? ',' + decPart : '');
+  }
+
+  function bindLiveFormat(input) {
+    input.addEventListener('input', function() {
+      const start = input.selectionStart || 0;
+      const oldVal = input.value;
+      const newVal = formatIdLive(oldVal);
+      if (newVal === oldVal) return;
+      const sigBefore = oldVal.slice(0, start).replace(/[^\d,]/g, '').length;
+      input.value = newVal;
+      let pos = 0;
+      let seen = 0;
+      while (pos < newVal.length && seen < sigBefore) {
+        if (/[\d,]/.test(newVal[pos])) seen++;
+        pos++;
+      }
+      input.setSelectionRange(pos, pos);
+    });
   }
 
   function openAddTitikMeter() {

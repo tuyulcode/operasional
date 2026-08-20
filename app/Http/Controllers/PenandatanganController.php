@@ -20,6 +20,7 @@ class PenandatanganController extends Controller
             'nama' => 'required|array|min:2',
             'nama.*' => 'nullable|string|max:150',
             'tempat' => 'nullable|string|max:100',
+            'tanggal_cetak' => 'nullable|date',
         ]);
 
         $rows = Penandatangan::orderBy('id')->get();
@@ -28,6 +29,7 @@ class PenandatanganController extends Controller
             $row->update([
                 'nama' => $validated['nama'][$row->id] ?? null,
                 'tempat' => $validated['tempat'] ?? null,
+                'tanggal_cetak' => $validated['tanggal_cetak'] ?? null,
             ]);
         }
 
