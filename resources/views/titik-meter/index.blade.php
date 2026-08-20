@@ -131,7 +131,7 @@
           </div>
 
           <div class="form-group">
-            <label for="nama">Nama</label>
+            <label for="nama">Nama Meter</label>
             <input type="text" id="nama" name="nama" class="form-control"
                    placeholder="Contoh: Barak 1, Barak 2, Wisma"
                    value="{{ old('nama', $edit->nama ?? '') }}" required>
