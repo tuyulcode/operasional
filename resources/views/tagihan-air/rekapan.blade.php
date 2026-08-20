@@ -24,9 +24,9 @@
                  value="{{ $bulan }}" required>
         </div>
         <div class="form-group">
-          <label for="area_id">Area</label>
+          <label for="area_id">Nama Pengguna</label>
           <select id="area_id" name="area_id" class="form-control">
-            <option value="">-- Semua Area --</option>
+            <option value="">-- Semua Nama Pengguna --</option>
             @foreach($report['areas'] as $area)
               <option value="{{ $area->id }}" {{ $areaId == $area->id ? 'selected' : '' }}>
                 {{ $area->nama }}
@@ -61,9 +61,9 @@
         <h3>Rekapan {{ $periodeLabel }}</h3>
         <p>
           @if($areaId)
-            Area: {{ $data->firstWhere('area.id', $areaId)['area']->nama ?? '-' }}
+            Nama Pengguna: {{ $data->firstWhere('area.id', $areaId)['area']->nama ?? '-' }}
           @else
-            Semua Area
+            Semua Nama Pengguna
           @endif
         </p>
       </div>
@@ -204,7 +204,7 @@
       @endforeach
 
       <div class="rekapan-grand-total">
-        <span>Grand Total Semua Area</span>
+        <span>Grand Total Semua Nama Pengguna</span>
         <span><b>Rp {{ number_format($grandTotal, 0, ',', '.') }}</b></span>
       </div>
 
@@ -220,8 +220,13 @@
           @endforeach
         </div>
         <div class="rekapan-ttd-tanggal">
-          @php($tempat = $report['penandatangan']->first()->tempat ?? '')
-          {{ ($tempat ? $tempat . ', ' : '') . now()->locale('id')->translatedFormat('d F Y') }}
+          @php
+            $ttdRow = $report['penandatangan']->first();
+            $tempat = $ttdRow->tempat ?? '';
+            $tanggalRaw = $ttdRow->tanggal_cetak ?? now()->format('Y-m-d');
+            $tanggal = \Carbon\Carbon::parse($tanggalRaw)->locale('id')->translatedFormat('d F Y');
+          @endphp
+          {{ ($tempat ? $tempat . ', ' : '') . $tanggal }}
         </div>
       </div>
     </div>

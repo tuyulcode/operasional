@@ -20,24 +20,14 @@ class TagihanAirController extends Controller
         if ($tab === 'rekapan') {
             $report = (new RekapanController)->buildReport($request);
 
-            return view('tagihan-air.index', [
-                'tab' => 'rekapan',
-                'report' => $report,
-            ]);
+            return view('tagihan-air.index', compact('tab', 'report'));
         }
 
-        $query = TagihanAir::with(['titikMeter.area', 'fotos'])->latest('periode');
+        if ($tab === 'data') {
+            $tagihanAirs = TagihanAir::with(['titikMeter.area', 'fotos'])->latest('periode')->get();
 
-        if ($request->filled('area_id')) {
-            $query->whereHas('titikMeter', fn ($q) => $q->where('area_id', $request->area_id));
+            return view('tagihan-air.index', compact('tab', 'tagihanAirs'));
         }
-
-        if ($request->filled('bulan') && preg_match('/^\d{4}-\d{2}$/', $request->bulan)) {
-            [$year, $month] = array_map('intval', explode('-', $request->bulan));
-            $query->whereYear('periode', $year)->whereMonth('periode', $month);
-        }
-
-        $tagihanAirs = $query->get();
 
         $areas = Area::latest()->get();
         $titikMeters = TitikMeter::latest()->get();
@@ -53,9 +43,7 @@ class TagihanAirController extends Controller
             $edit = TagihanAir::with('fotos')->findOrFail($request->query('edit'));
         }
 
-        return view('tagihan-air.index', compact(
-            'tagihanAirs', 'areas', 'titikMeters', 'meterMap', 'edit', 'tab'
-        ));
+        return view('tagihan-air.index', compact('tab', 'areas', 'titikMeters', 'meterMap', 'edit'));
     }
 
     protected function prevMeter($titikMeterId, $periode): ?float
@@ -192,7 +180,7 @@ class TagihanAirController extends Controller
 
         $this->saveFotos($request, $tagihan->id);
 
-        return redirect()->route('tagihan-air.index', request()->only(['area_id', 'bulan']))
+        return redirect()->route('tagihan-air.index', request()->only(['tab']))
             ->with('success', 'Tagihan air berhasil ditambahkan.');
     }
 
@@ -227,7 +215,7 @@ class TagihanAirController extends Controller
 
         $this->saveFotos($request, $tagihan->id);
 
-        return redirect()->route('tagihan-air.index', request()->only(['area_id', 'bulan']))
+        return redirect()->route('tagihan-air.index', request()->only(['tab']))
             ->with('success', 'Tagihan air berhasil diperbarui.');
     }
 
@@ -250,7 +238,7 @@ class TagihanAirController extends Controller
         }
         $tagihan->delete();
 
-        return redirect()->route('tagihan-air.index', request()->only(['area_id', 'bulan']))
+        return redirect()->route('tagihan-air.index', request()->only(['tab']))
             ->with('success', 'Tagihan air berhasil dihapus.');
     }
 }

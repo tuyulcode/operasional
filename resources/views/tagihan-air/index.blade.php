@@ -27,6 +27,10 @@
        class="tab-link {{ ($tab ?? 'input') === 'input' ? 'active' : '' }}">
       <i class="fa-solid fa-table-list"></i> Input Data
     </a>
+    <a href="{{ route('tagihan-air.index', ['tab' => 'data']) }}"
+       class="tab-link {{ ($tab ?? 'input') === 'data' ? 'active' : '' }}">
+      <i class="fa-solid fa-database"></i> Data Tagihan Air
+    </a>
     <a href="{{ route('tagihan-air.index', ['tab' => 'rekapan']) }}"
        class="tab-link {{ ($tab ?? 'input') === 'rekapan' ? 'active' : '' }}">
       <i class="fa-solid fa-file-invoice"></i> Rekapan
@@ -34,46 +38,6 @@
   </div>
 
   @if(($tab ?? 'input') === 'input')
-
-  {{-- FILTER --}}
-  <div class="card">
-    <div class="card-header">
-      <div class="card-header-title">
-        <h3>Filter</h3>
-        <p>Saring daftar tagihan berdasarkan area dan periode</p>
-      </div>
-    </div>
-    <div class="card-body">
-      <form method="GET" action="{{ route('tagihan-air.index') }}">
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="filter_area_id">Area</label>
-            <select id="filter_area_id" name="area_id" class="form-control">
-              <option value="">-- Semua Area --</option>
-              @foreach($areas as $area)
-                <option value="{{ $area->id }}" {{ request('area_id') == $area->id ? 'selected' : '' }}>
-                  {{ $area->nama }}
-                </option>
-              @endforeach
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="filter_bulan">Bulan / Tahun</label>
-            <input type="month" id="filter_bulan" name="bulan" class="form-control"
-                   value="{{ request('bulan') }}">
-          </div>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">
-            <i class="fa-solid fa-filter"></i> Terapkan Filter
-          </button>
-          <a href="{{ route('tagihan-air.index') }}" class="btn btn-secondary">
-            <i class="fa-solid fa-rotate-left"></i> Reset
-          </a>
-        </div>
-      </form>
-    </div>
-  </div>
 
   {{-- FORM INPUT --}}
   <div class="card tagihan-form">
@@ -91,9 +55,9 @@
 
           <div class="form-grid">
             <div class="form-group">
-              <label for="area_id">Area</label>
+              <label for="area_id">Nama Pengguna</label>
               <select id="area_id" name="area_id" class="form-control" required>
-                <option value="">-- Pilih Area --</option>
+                <option value="">-- Pilih Nama Pengguna --</option>
                 @foreach($areas as $area)
                   <option value="{{ $area->id }}" {{ old('area_id', $edit->area_id ?? '') == $area->id ? 'selected' : '' }}>
                     {{ $area->nama }}
@@ -213,7 +177,7 @@
             <i class="fa-solid fa-floppy-disk"></i> {{ $edit ? 'Simpan Perubahan' : 'Simpan' }}
           </button>
           @if($edit)
-            <a href="{{ route('tagihan-air.index', request()->only(['area_id', 'bulan'])) }}"
+            <a href="{{ route('tagihan-air.index', ['tab' => 'input']) }}"
                class="btn btn-secondary" id="btnBatalEdit">
               <i class="fa-solid fa-ban"></i> Batal Edit
             </a>
@@ -222,6 +186,8 @@
       </form>
     </div>
   </div>
+
+  @elseif(($tab ?? 'input') === 'data')
 
   {{-- TABEL --}}
     <div class="card">
@@ -233,12 +199,15 @@
       </div>
       <div class="card-body" style="padding: 0;">
         <div class="table-responsive">
+          <input type="text" id="quickSearch" class="form-control"
+                 placeholder="Cari area, titik meter, atau periode..."
+                 style="max-width: 340px; margin: 12px 12px 8px;">
           <table class="app-sales-table">
             <thead>
               <tr>
                 <th>No</th>
                 <th>Periode</th>
-                <th>Area</th>
+                <th>Nama Pengguna</th>
                 <th>Titik Meter</th>
                 <th>Meter Bulan Lalu</th>
                 <th>Meter Bulan Ini</th>
@@ -250,7 +219,7 @@
                 <th>Aksi</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="tbData">
               @forelse($tagihanAirs as $i => $t)
               <tr>
                 <td>{{ $i + 1 }}</td>
@@ -284,16 +253,15 @@
                   @endif
                 </td>
                 <td>
-                  <a href="{{ route('tagihan-air.index', array_merge(request()->query(), ['edit' => $t->id])) }}"
+                  <a href="{{ route('tagihan-air.index', ['tab' => 'input', 'edit' => $t->id]) }}"
                      class="btn btn-icon btn-edit" title="Edit">
                     <i class="fa-solid fa-pen"></i>
                   </a>
-                  <form action="{{ route('tagihan-air.destroy', ['id' => $t->id, 'area_id' => request('area_id'), 'bulan' => request('bulan')]) }}"
-                        method="POST" style="display: inline;"
-                        onsubmit="return confirm('Yakin ingin menghapus tagihan air ini?');">
+                  <form action="{{ route('tagihan-air.destroy', ['id' => $t->id, 'tab' => 'data']) }}"
+                        method="POST" class="delete-tagihan-form" style="display: inline;">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-icon btn-delete" title="Hapus">
+                    <button type="button" class="btn btn-icon btn-delete btnConfirmDelete" title="Hapus">
                       <i class="fa-solid fa-trash-can"></i>
                     </button>
                   </form>
@@ -307,8 +275,39 @@
                 </td>
               </tr>
               @endforelse
+              <tr id="noSearchRow" style="display: none;">
+                <td colspan="12" style="text-align: center; padding: 30px; color: #999;">
+                  <i class="fa-solid fa-magnifying-glass" style="font-size: 1.6rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
+                  Tidak ada data yang cocok
+                </td>
+              </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    {{-- MODAL KONFIRMASI HAPUS --}}
+    <div class="modal-overlay" id="hapusModal">
+      <div class="modal" style="max-width: 420px;">
+        <div class="modal-header">
+          <h3 class="modal-title"><i class="fa-solid fa-triangle-exclamation" style="color: var(--danger-color); margin-right: 8px;"></i> Konfirmasi Hapus</h3>
+          <button type="button" class="modal-close" onclick="tutupHapusModal()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p style="margin: 0; color: #475569; line-height: 1.6;">
+            Yakin ingin menghapus data tagihan air ini? Tindakan ini tidak dapat dibatalkan.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="tutupHapusModal()">
+            Batal
+          </button>
+          <button type="button" class="btn btn-danger" id="btnYaHapus">
+            <i class="fa-solid fa-trash-can"></i> Ya, Hapus
+          </button>
         </div>
       </div>
     </div>
@@ -349,6 +348,37 @@
   function formatRupiah(input) {
     const v = parseIdValue(input.value);
     input.value = v ? v.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '';
+  }
+
+  function formatIdLive(str) {
+    let s = String(str == null ? '' : str);
+    let neg = s.startsWith('-') ? '-' : '';
+    s = s.replace(/[^\d,]/g, '');
+    const ci = s.indexOf(',');
+    let intPart = ci === -1 ? s : s.slice(0, ci);
+    let decPart = ci === -1 ? '' : s.slice(ci + 1).slice(0, 2);
+    if (!decPart) decPart = '';
+    intPart = intPart.replace(/^0+(?=\d)/, '');
+    const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return neg + grouped + (ci !== -1 ? ',' + decPart : '');
+  }
+
+  function bindLiveFormat(input) {
+    input.addEventListener('input', function() {
+      const start = input.selectionStart || 0;
+      const oldVal = input.value;
+      const newVal = formatIdLive(oldVal);
+      if (newVal === oldVal) return;
+      const sigBefore = oldVal.slice(0, start).replace(/[^\d,]/g, '').length;
+      input.value = newVal;
+      let pos = 0;
+      let seen = 0;
+      while (pos < newVal.length && seen < sigBefore) {
+        if (/[\d,]/.test(newVal[pos])) seen++;
+        pos++;
+      }
+      input.setSelectionRange(pos, pos);
+    });
   }
 
   function parseIdValue(str) {
@@ -556,6 +586,8 @@
   document.addEventListener('DOMContentLoaded', function() {
     filterTitikMeter();
     updateMeterLaluState(false);
+    bindLiveFormat(tarifInput);
+    formatRupiah(tarifInput);
 
     areaSelect.addEventListener('change', filterTitikMeter);
     tmSelect.addEventListener('change', autoFillMaster);
@@ -602,6 +634,71 @@
     });
 
     updateFotoCapState();
+  });
+</script>
+@endpush
+@endif
+
+@if(($tab ?? 'input') === 'data')
+@push('scripts')
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const quickSearch = document.getElementById('quickSearch');
+    if (quickSearch) {
+      const tbody = document.getElementById('tbData');
+      const noSearchRow = document.getElementById('noSearchRow');
+      let searchTimer = null;
+
+      quickSearch.addEventListener('input', function() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function() {
+          const kw = quickSearch.value.trim().toLowerCase();
+          let visibleCount = 0;
+          const rows = tbody ? tbody.querySelectorAll('tr') : [];
+          rows.forEach(function(tr) {
+            if (tr.id === 'noSearchRow') return;
+            if (tr.hasAttribute('colspan')) { tr.style.display = kw ? 'none' : ''; return; }
+            const match = kw === '' || tr.textContent.toLowerCase().includes(kw);
+            tr.style.display = match ? '' : 'none';
+            if (match) visibleCount++;
+          });
+          if (noSearchRow) {
+            noSearchRow.style.display = (kw !== '' && visibleCount === 0) ? '' : 'none';
+          }
+        }, 250);
+      });
+    }
+
+    // ---- Modal konfirmasi hapus ----
+    const hapusModal = document.getElementById('hapusModal');
+    const btnYaHapus = document.getElementById('btnYaHapus');
+    let hapusForm = null;
+
+    window.tutupHapusModal = function() {
+      hapusForm = null;
+      hapusModal.classList.remove('show');
+    };
+
+    hapusModal.addEventListener('click', function(e) {
+      if (e.target === hapusModal) tutupHapusModal();
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && hapusModal.classList.contains('show')) {
+        tutupHapusModal();
+      }
+    });
+
+    document.querySelectorAll('.btnConfirmDelete').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        hapusForm = btn.closest('form.delete-tagihan-form');
+        hapusModal.classList.add('show');
+      });
+    });
+
+    btnYaHapus.addEventListener('click', function() {
+      if (hapusForm) hapusForm.submit();
+    });
   });
 </script>
 @endpush
