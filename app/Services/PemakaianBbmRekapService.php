@@ -46,16 +46,18 @@ class PemakaianBbmRekapService
 
                 foreach ($unitItems as $kendaraan) {
                     $sum = [
-                        'liter_paiton'      => (float) $kendaraan->pemakaianBbm->sum('liter_paiton'),
-                        'rp_paiton'         => (float) $kendaraan->pemakaianBbm->sum('rp_paiton'),
-                        'liter_luar_paiton' => (float) $kendaraan->pemakaianBbm->sum('liter_luar_paiton'),
-                        'rp_luar_paiton'    => (float) $kendaraan->pemakaianBbm->sum('rp_luar_paiton'),
-                        'service_oli'       => (float) $kendaraan->pemakaianBbm->sum('service_oli'),
-                        'jasa'              => (float) $kendaraan->pemakaianBbm->sum('jasa'),
-                        'jumlah'            => (float) $kendaraan->pemakaianBbm->sum('jumlah'),
+                        'liter'       => (float) $kendaraan->pemakaianBbm->sum('liter'),
+                        'rp'          => (float) $kendaraan->pemakaianBbm->sum('rp'),
+                        'service_oli' => (float) $kendaraan->pemakaianBbm->sum('service_oli'),
+                        'jasa'        => (float) $kendaraan->pemakaianBbm->sum('jasa'),
+                        'jumlah'      => (float) $kendaraan->pemakaianBbm->sum('jumlah'),
                     ];
 
-                    $rows[] = ['no' => $no++, 'plat_nomor' => $kendaraan->plat_nomor] + $sum;
+                    // Kasih keterangan (Luar Paiton) kalau ada transaksi di periode ini yang lokasinya luar Paiton
+                    $adaLuarPaiton = $kendaraan->pemakaianBbm->contains('lokasi_pembelian', 'luar_paiton');
+                    $platNomor = $kendaraan->plat_nomor . ($adaLuarPaiton ? ' (Luar Paiton)' : '');
+
+                    $rows[] = ['no' => $no++, 'plat_nomor' => $platNomor] + $sum;
 
                     foreach ($sum as $key => $val) {
                         $groupTotal[$key] += $val;
@@ -84,8 +86,7 @@ class PemakaianBbmRekapService
     private function emptyTotal(): array
     {
         return [
-            'liter_paiton' => 0, 'rp_paiton' => 0,
-            'liter_luar_paiton' => 0, 'rp_luar_paiton' => 0,
+            'liter' => 0, 'rp' => 0,
             'service_oli' => 0, 'jasa' => 0, 'jumlah' => 0,
         ];
     }
