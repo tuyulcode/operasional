@@ -100,7 +100,7 @@ class EtollController extends Controller
         $data = $this->buildLaporanData($bulan, $tahun);
 
         $pdf = Pdf::loadView('exports.etoll-pdf', $data);
-        $pdf->setPaper('a4', 'portrait');
+        $pdf->setPaper('a4', 'landscape');
 
         return $pdf->stream('rekap-etoll-' . strtolower($data['bulanNama']) . '-' . $tahun . '.pdf');
     }
@@ -154,8 +154,9 @@ class EtollController extends Controller
         if (!$periode) {
             return [
                 'bulanRaw' => $bulanRaw,
+                'pemegangs' => collect(),
                 'rows' => [],
-                'totalMinggu' => array_fill(1, 5, 0),
+                'totalPerPemegang' => [],
                 'totalKeseluruhan' => 0,
                 'bulan' => null,
                 'tahun' => null,
@@ -173,32 +174,8 @@ class EtollController extends Controller
     }
 
     /**
-     * Tentukan Minggu ke berapa (1-5) untuk sebuah tanggal, berdasarkan minggu kalender
-     * asli (Senin s/d Minggu) — bukan sekadar potong rata tiap 7 hari dari tanggal 1.
-     * Kalau dalam sebulan butuh lebih dari 5 kelompok minggu (bisa terjadi kalau
-     * tanggal 1 jatuh di akhir minggu, misal Sabtu/Minggu), sisa hari di minggu ke-6
-     * digabung ke Minggu-5.
-     */
-    private function mingguKe(\Carbon\Carbon $tanggal): int
-    {
-        $awalBulan = $tanggal->copy()->startOfMonth();
-        $isoWeekday = $awalBulan->dayOfWeekIso; // 1 = Senin, ..., 7 = Minggu
-        $panjangMingguPertama = $isoWeekday === 7 ? 1 : 8 - $isoWeekday;
-
-        if ($tanggal->day <= $panjangMingguPertama) {
-            return 1;
-        }
-
-        $sisaHari = $tanggal->day - $panjangMingguPertama;
-        $minggu = 1 + (int) ceil($sisaHari / 7);
-
-        return min($minggu, 5);
-    }
-
-    /**
-     * Susun data laporan mingguan (Minggu-1 s/d Minggu-5) per pemegang kendaraan
-     * untuk bulan & tahun tertentu. Pembagian minggu mengikuti kalender asli
-     * (Senin-Minggu), lihat mingguKe().
+     * Susun data laporan pivot per tanggal: baris = tanggal (1 s/d akhir bulan),
+     * kolom = nama pemegang kendaraan. Filter tetap per bulan & tahun.
      */
     private function buildLaporanData(int $bulan, int $tahun): array
     {
@@ -206,39 +183,44 @@ class EtollController extends Controller
 
         $transaksi = PemakaianEtoll::whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
-            ->get()
-            ->groupBy('pemegang_kendaraan_id');
+            ->get();
+
+        $jumlahHari = \Carbon\Carbon::create($tahun, $bulan, 1)->daysInMonth;
+
+        // nilai[tanggal][pemegang_id] = total nominal di tanggal itu
+        $nilai = [];
+        for ($tgl = 1; $tgl <= $jumlahHari; $tgl++) {
+            $nilai[$tgl] = array_fill_keys($pemegangs->pluck('id')->all(), 0);
+        }
+
+        foreach ($transaksi as $item) {
+            $tgl = $item->tanggal->day;
+            $nilai[$tgl][$item->pemegang_kendaraan_id] = ($nilai[$tgl][$item->pemegang_kendaraan_id] ?? 0) + (float) $item->nominal;
+        }
 
         $rows = [];
-        $totalMinggu = array_fill(1, 5, 0);
+        $totalPerPemegang = array_fill_keys($pemegangs->pluck('id')->all(), 0);
         $totalKeseluruhan = 0;
 
-        foreach ($pemegangs as $p) {
-            $mingguan = array_fill(1, 5, 0);
-            $items = $transaksi->get($p->id, collect());
-
-            foreach ($items as $item) {
-                $minggu = $this->mingguKe($item->tanggal);
-                $mingguan[$minggu] += (float) $item->nominal;
-            }
-
-            $jumlahBaris = array_sum($mingguan);
+        for ($tgl = 1; $tgl <= $jumlahHari; $tgl++) {
+            $rowTotal = array_sum($nilai[$tgl]);
 
             $rows[] = [
-                'nama' => $p->nama,
-                'minggu' => $mingguan,
-                'jumlah' => $jumlahBaris,
+                'tanggal' => $tgl,
+                'nilai' => $nilai[$tgl],
+                'total' => $rowTotal,
             ];
 
-            foreach ($mingguan as $m => $val) {
-                $totalMinggu[$m] += $val;
+            foreach ($nilai[$tgl] as $pemegangId => $val) {
+                $totalPerPemegang[$pemegangId] += $val;
             }
-            $totalKeseluruhan += $jumlahBaris;
+            $totalKeseluruhan += $rowTotal;
         }
 
         return [
+            'pemegangs' => $pemegangs,
             'rows' => $rows,
-            'totalMinggu' => $totalMinggu,
+            'totalPerPemegang' => $totalPerPemegang,
             'totalKeseluruhan' => $totalKeseluruhan,
             'bulan' => $bulan,
             'tahun' => $tahun,

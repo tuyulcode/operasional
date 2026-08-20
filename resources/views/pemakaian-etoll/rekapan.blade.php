@@ -1,7 +1,9 @@
 @php
   $bulanRaw = $report['bulanRaw'];
   $periodeLabel = $report['periodeLabel'];
+  $pemegangs = $report['pemegangs'];
   $rows = $report['rows'];
+  $totalPerPemegang = $report['totalPerPemegang'];
   $totalKeseluruhan = $report['totalKeseluruhan'];
 @endphp
 
@@ -26,12 +28,12 @@
       </button>
       @if($report['bulan'])
         <a href="{{ route('pemakaian-etoll.export-excel', ['bulan' => $bulanRaw]) }}"
-           class="btn btn-excel btn-sm">
+           class="btn btn-excel">
           <i class="fa-solid fa-file-excel"></i> Export Excel
         </a>
         <a href="{{ route('pemakaian-etoll.export-pdf', ['bulan' => $bulanRaw]) }}"
            target="_blank"
-           class="btn btn-pdf btn-sm">
+           class="btn btn-pdf">
           <i class="fa-solid fa-file-pdf"></i> Export PDF
         </a>
       @endif
@@ -55,46 +57,37 @@
       <h4 style="text-align: center; margin-bottom: 4px;">Rekap E-Toll</h4>
       <p style="text-align: center; margin-bottom: 16px;">Periode Bulan {{ $periodeLabel }}</p>
 
-      <div class="table-responsive">
-        <table style="border-collapse: collapse; width: 100%; font-size: 12px;" border="1" cellpadding="4" cellspacing="0">
+      <div class="table-responsive" style="overflow-x: auto;">
+        <table style="border-collapse: collapse; width: max-content; min-width: 100%; font-size: 12px;" border="1" cellpadding="4" cellspacing="0">
           <thead>
             <tr>
-              <td colspan="8" style="background-color: #dbeafe; color: #1f2937; font-weight: bold; text-align: center;">
+              <td colspan="{{ $pemegangs->count() + 2 }}" style="background-color: #dbeafe; color: #1f2937; font-weight: bold; text-align: center;">
                 A. Roda Empat
               </td>
             </tr>
             <tr style="background-color: #e9ecef; color: #1f2937; font-weight: bold; text-align: center;">
-              <th>No.</th>
-              <th>Nama</th>
-              <th>Minggu-1</th>
-              <th>Minggu-2</th>
-              <th>Minggu-3</th>
-              <th>Minggu-4</th>
-              <th>Minggu-5</th>
-              <th>Jumlah (Rp)</th>
+              <th style="white-space: nowrap;">Tanggal</th>
+              @foreach($pemegangs as $p)
+                <th style="white-space: nowrap;">{{ $p->nama }}</th>
+              @endforeach
+              <th style="white-space: nowrap;">Jumlah</th>
             </tr>
           </thead>
           <tbody>
-            @foreach($rows as $i => $row)
+            @foreach($rows as $row)
             <tr>
-              <td style="text-align: center;">{{ $i + 1 }}</td>
-              <td>{{ $row['nama'] }}</td>
-              @foreach($row['minggu'] as $val)
-                <td style="text-align: right;">{{ $val > 0 ? number_format($val, 0, ',', '.') : '-' }}</td>
+              <td style="text-align: center;">{{ $row['tanggal'] }}</td>
+              @foreach($pemegangs as $p)
+                <td style="text-align: right;">{{ ($row['nilai'][$p->id] ?? 0) > 0 ? number_format($row['nilai'][$p->id], 0, ',', '.') : '-' }}</td>
               @endforeach
-              <td style="text-align: right; font-weight: bold;">{{ $row['jumlah'] > 0 ? number_format($row['jumlah'], 0, ',', '.') : '-' }}</td>
+              <td style="text-align: right; font-weight: bold;">{{ $row['total'] > 0 ? number_format($row['total'], 0, ',', '.') : '-' }}</td>
             </tr>
             @endforeach
           </tbody>
           <tfoot>
             <tr style="background-color: #f1f3f5; color: #1f2937; font-weight: bold;">
-              <td colspan="2">Jumlah</td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td style="text-align: right;">{{ $totalKeseluruhan > 0 ? number_format($totalKeseluruhan, 0, ',', '.') : '-' }}</td>
+              <td colspan="{{ $pemegangs->count() + 1 }}" style="text-align: center;">Total</td>
+              <td style="text-align: right;">{{ number_format($totalKeseluruhan, 0, ',', '.') }}</td>
             </tr>
           </tfoot>
         </table>
