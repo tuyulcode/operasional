@@ -40,7 +40,7 @@
         <img src="{{ public_path('images/logo-pln2.png') }}" alt="Logo PLN">
       </td>
       <td class="title-cell">
-        <h3>PEMAKAIAN BBM KENDARAAN DINAS &amp; JASA</h3>
+        <h3>PEMAKAIAN BBM KENDARAAN DINAS</h3>
         <p class="periode">Periode {{ $periodeLabel }}</p>
       </td>
       <td class="logo-cell"></td>

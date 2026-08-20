@@ -68,9 +68,9 @@
               <th>Tanggal</th>
               <th>Kendaraan</th>
               <th>Jenis BBM</th>
-              <th>Liter Paiton</th>
-              <th>Liter Luar Paiton</th>
-              <th>Service/Oli</th>
+              <th>Lokasi</th>
+              <th>Liter</th>
+              <th>Sparepart Consumable</th>
               <th>Jasa</th>
               <th>Jumlah</th>
               <th>Aksi</th>
@@ -83,8 +83,8 @@
               <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d/m/Y') }}</td>
               <td>{{ $item->kendaraan->plat_nomor ?? '-' }}</td>
               <td>{{ ucfirst($item->hargaBbm->jenis ?? '-') }}</td>
-              <td>{{ $item->liter_paiton ? number_format($item->liter_paiton, 2, ',', '.') : '-' }}</td>
-              <td>{{ $item->liter_luar_paiton ? number_format($item->liter_luar_paiton, 2, ',', '.') : '-' }}</td>
+              <td>{{ $item->lokasi_pembelian === 'luar_paiton' ? 'Luar Paiton' : 'Paiton' }}</td>
+              <td>{{ $item->liter ? number_format($item->liter, 2, ',', '.') : '-' }}</td>
               <td>{{ $item->service_oli ? number_format($item->service_oli, 0, ',', '.') : '-' }}</td>
               <td>{{ $item->jasa ? number_format($item->jasa, 0, ',', '.') : '-' }}</td>
               <td>{{ number_format($item->jumlah, 0, ',', '.') }}</td>
@@ -94,8 +94,8 @@
                         data-tanggal="{{ \Carbon\Carbon::parse($item->tanggal)->format('Y-m-d') }}"
                         data-kendaraan-id="{{ $item->kendaraan_id }}"
                         data-jenis-bbm="{{ $item->hargaBbm->jenis ?? '' }}"
-                        data-liter-paiton="{{ $item->liter_paiton }}"
-                        data-liter-luar-paiton="{{ $item->liter_luar_paiton }}"
+                        data-lokasi-pembelian="{{ $item->lokasi_pembelian }}"
+                        data-liter="{{ $item->liter }}"
                         data-service-oli="{{ $item->service_oli }}"
                         data-jasa="{{ $item->jasa }}"
                         onclick="openEditPemakaian(this)">
@@ -168,20 +168,23 @@
                 <option value="bensin" {{ old('jenis_bbm', $edit->hargaBbm->jenis ?? '') == 'bensin' ? 'selected' : '' }}>Bensin</option>
                 <option value="solar" {{ old('jenis_bbm', $edit->hargaBbm->jenis ?? '') == 'solar' ? 'selected' : '' }}>Solar</option>
               </select>
+              <small class="form-hint" id="hargaPerLiterHint">Pilih jenis BBM untuk lihat harga/liter</small>
+            </div>
+
+            <div class="form-group">
+              <label for="lokasi_pembelian">Lokasi Pembelian</label>
+              <select id="lokasi_pembelian" name="lokasi_pembelian" class="form-control" required>
+                <option value="">-- Pilih Lokasi --</option>
+                <option value="paiton" {{ old('lokasi_pembelian', $edit->lokasi_pembelian ?? '') == 'paiton' ? 'selected' : '' }}>Paiton</option>
+                <option value="luar_paiton" {{ old('lokasi_pembelian', $edit->lokasi_pembelian ?? '') == 'luar_paiton' ? 'selected' : '' }}>Luar Paiton</option>
+              </select>
               <small class="form-hint form-hint-spacer">&nbsp;</small>
             </div>
 
             <div class="form-group">
-              <label for="liter_paiton">Liter Paiton</label>
-              <input type="number" step="0.01" min="0" id="liter_paiton" name="liter_paiton" class="form-control"
-                     value="{{ old('liter_paiton', $edit->liter_paiton ?? '') }}">
-              <small class="form-hint">Input 0, jika tidak ada data</small>
-            </div>
-
-            <div class="form-group">
-              <label for="liter_luar_paiton">Liter Luar Paiton</label>
-              <input type="number" step="0.01" min="0" id="liter_luar_paiton" name="liter_luar_paiton" class="form-control"
-                     value="{{ old('liter_luar_paiton', $edit->liter_luar_paiton ?? '') }}">
+              <label for="liter">Liter</label>
+              <input type="number" step="0.01" min="0" id="liter" name="liter" class="form-control"
+                     value="{{ old('liter', $edit->liter ?? '') }}">
               <small class="form-hint">Input 0, jika tidak ada data</small>
             </div>
 
@@ -271,6 +274,9 @@
 
 @push('scripts')
 <script>
+  // Map jenis BBM -> harga per liter, dipakai buat nampilin harga read-only di bawah dropdown Jenis BBM
+  const hargaBbmMap = @json($hargaBbmMap);
+
   document.addEventListener('DOMContentLoaded', function() {
     const overlay = document.getElementById('pemakaianModal');
     const deleteOverlay = document.getElementById('deletePemakaianModal');
@@ -288,6 +294,10 @@
     serviceOliInput.addEventListener('input', function() { formatRupiah(serviceOliInput); });
     jasaInput.addEventListener('input', function() { formatRupiah(jasaInput); });
 
+    document.getElementById('jenis_bbm').addEventListener('change', function() {
+      updateHargaPerLiterHint(this.value);
+    });
+
     const pemakaianForm = document.getElementById('pemakaianForm');
     pemakaianForm.addEventListener('submit', function() {
       serviceOliInput.value = serviceOliInput.value.replace(/[^\d]/g, '');
@@ -298,8 +308,19 @@
       document.getElementById('pemakaianModal').classList.add('show');
       formatRupiah(serviceOliInput);
       formatRupiah(jasaInput);
+      updateHargaPerLiterHint(document.getElementById('jenis_bbm').value);
     @endif
   });
+
+  function updateHargaPerLiterHint(jenis) {
+    const hint = document.getElementById('hargaPerLiterHint');
+    if (jenis && hargaBbmMap[jenis]) {
+      const harga = Number(hargaBbmMap[jenis]).toLocaleString('id-ID');
+      hint.textContent = `Harga per liter: Rp ${harga}`;
+    } else {
+      hint.textContent = 'Pilih jenis BBM untuk lihat harga/liter';
+    }
+  }
 
   function formatRupiah(input) {
     const digits = input.value.replace(/[^\d]/g, '');
@@ -321,8 +342,8 @@
     document.getElementById('pemakaianMethod').value = '';
     document.getElementById('pemakaianModalTitle').textContent = 'Tambah Pemakaian BBM';
 
-    // Default tanggal ke hari ini, tapi tetap bisa diubah user
     document.getElementById('tanggal').value = pfTodayDateString();
+    updateHargaPerLiterHint('');
 
     document.getElementById('pemakaianModal').classList.add('show');
   }
@@ -335,12 +356,13 @@
     document.getElementById('tanggal').value = btn.dataset.tanggal;
     document.getElementById('kendaraan_id').value = btn.dataset.kendaraanId;
     document.getElementById('jenis_bbm').value = btn.dataset.jenisBbm;
-    document.getElementById('liter_paiton').value = btn.dataset.literPaiton;
-    document.getElementById('liter_luar_paiton').value = btn.dataset.literLuarPaiton;
+    document.getElementById('lokasi_pembelian').value = btn.dataset.lokasiPembelian;
+    document.getElementById('liter').value = btn.dataset.liter;
     document.getElementById('service_oli').value = btn.dataset.serviceOli;
     document.getElementById('jasa').value = btn.dataset.jasa;
     formatRupiah(document.getElementById('service_oli'));
     formatRupiah(document.getElementById('jasa'));
+    updateHargaPerLiterHint(btn.dataset.jenisBbm);
     document.getElementById('pemakaianModalTitle').textContent = 'Edit Pemakaian BBM';
     document.getElementById('pemakaianModal').classList.add('show');
   }

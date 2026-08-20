@@ -28,12 +28,15 @@ class PemakaianBbmController extends Controller
 
         $kendaraans = Kendaraan::orderBy('plat_nomor')->get();
 
+        // Map jenis BBM -> harga per liter, dipakai JS buat nampilin harga otomatis (read-only)
+        $hargaBbmMap = HargaBbm::pluck('harga_paiton', 'jenis');
+
         $edit = null;
         if ($request->has('edit')) {
             $edit = PemakaianBbm::with('hargaBbm')->find($request->query('edit'));
         }
 
-        return view('pemakaian-bbm.index', compact('pemakaianBbms', 'kendaraans', 'edit'));
+        return view('pemakaian-bbm.index', compact('pemakaianBbms', 'kendaraans', 'edit', 'hargaBbmMap'));
     }
 
     public function store(Request $request)
@@ -124,43 +127,41 @@ class PemakaianBbmController extends Controller
     private function validatePemakaian(Request $request): array
     {
         return $request->validate([
-            'tanggal'           => 'required|date',
-            'kendaraan_id'      => 'required|exists:kendaraan,id',
-            'jenis_bbm'         => 'required|in:bensin,solar',
-            'liter_paiton'      => 'nullable|numeric|min:0',
-            'liter_luar_paiton' => 'nullable|numeric|min:0',
-            'service_oli'       => 'nullable|numeric|min:0',
-            'jasa'              => 'nullable|numeric|min:0',
+            'tanggal'          => 'required|date',
+            'kendaraan_id'     => 'required|exists:kendaraan,id',
+            'jenis_bbm'        => 'required|in:bensin,solar',
+            'lokasi_pembelian' => 'required|in:paiton,luar_paiton',
+            'liter'            => 'nullable|numeric|min:0',
+            'service_oli'      => 'nullable|numeric|min:0',
+            'jasa'             => 'nullable|numeric|min:0',
         ], [
-            'kendaraan_id.required' => 'Kendaraan wajib dipilih.',
-            'kendaraan_id.exists'   => 'Kendaraan tidak valid.',
-            'jenis_bbm.required'    => 'Jenis BBM wajib dipilih.',
+            'kendaraan_id.required'     => 'Kendaraan wajib dipilih.',
+            'kendaraan_id.exists'       => 'Kendaraan tidak valid.',
+            'jenis_bbm.required'        => 'Jenis BBM wajib dipilih.',
+            'lokasi_pembelian.required' => 'Lokasi pembelian wajib dipilih.',
         ]);
     }
 
     private function buildPayload(array $validated, HargaBbm $hargaBbm): array
     {
-        $literPaiton     = (float) ($validated['liter_paiton'] ?? 0);
-        $literLuarPaiton = (float) ($validated['liter_luar_paiton'] ?? 0);
-        $serviceOli      = (float) ($validated['service_oli'] ?? 0);
-        $jasa            = (float) ($validated['jasa'] ?? 0);
+        $liter      = (float) ($validated['liter'] ?? 0);
+        $serviceOli = (float) ($validated['service_oli'] ?? 0);
+        $jasa       = (float) ($validated['jasa'] ?? 0);
 
-        $rpPaiton     = $literPaiton * $hargaBbm->harga_paiton;
-        $rpLuarPaiton = $literLuarPaiton * $hargaBbm->harga_luar_paiton;
-        $jumlah       = $rpPaiton + $rpLuarPaiton + $serviceOli + $jasa;
+        $rp     = $liter * $hargaBbm->harga_paiton;
+        $jumlah = $rp + $serviceOli + $jasa;
 
         return [
-            'kendaraan_id'      => $validated['kendaraan_id'],
-            'harga_bbm_id'      => $hargaBbm->id,
-            'tanggal'           => $validated['tanggal'],
-            'liter_paiton'      => $literPaiton,
-            'rp_paiton'         => $rpPaiton,
-            'liter_luar_paiton' => $literLuarPaiton,
-            'rp_luar_paiton'    => $rpLuarPaiton,
-            'service_oli'       => $serviceOli,
-            'jasa'              => $jasa,
-            'jumlah'            => $jumlah,
-            'dicatat_oleh'      => auth()->id(),
+            'kendaraan_id'     => $validated['kendaraan_id'],
+            'harga_bbm_id'     => $hargaBbm->id,
+            'tanggal'          => $validated['tanggal'],
+            'lokasi_pembelian' => $validated['lokasi_pembelian'],
+            'liter'            => $liter,
+            'rp'               => $rp,
+            'service_oli'      => $serviceOli,
+            'jasa'             => $jasa,
+            'jumlah'           => $jumlah,
+            'dicatat_oleh'     => auth()->id(),
         ];
     }
 
