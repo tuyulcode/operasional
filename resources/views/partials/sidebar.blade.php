@@ -89,7 +89,7 @@
         <i class="fa-solid fa-chevron-right chevron-icon"></i>
       </a>
       <ul class="submenu">
-        <li><a href="{{ route('area.index') }}" class="submenu-link {{ request()->routeIs('area.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Area</a></li>
+        <li><a href="{{ route('area.index') }}" class="submenu-link {{ request()->routeIs('area.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Nama Pengguna</a></li>
         <li><a href="{{ route('titik-meter.index') }}" class="submenu-link {{ request()->routeIs('titik-meter.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Titik Meter</a></li>
         <li><a href="{{ route('ppn.index') }}" class="submenu-link {{ request()->routeIs('ppn.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> PPN</a></li>
       </ul>

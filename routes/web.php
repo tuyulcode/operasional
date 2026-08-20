@@ -124,9 +124,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/{id}', [PemakaianBbmController::class, 'update'])->name('update');
         Route::delete('/{id}', [PemakaianBbmController::class, 'destroy'])->name('destroy');
 
-        Route::get('/rekap', [PemakaianBbmController::class, 'rekap'])->name('rekap');
-        Route::get('/rekap/export/excel', [PemakaianBbmController::class, 'exportExcel'])->name('export-excel');
-        Route::get('/rekap/export/pdf', [PemakaianBbmController::class, 'exportPdf'])->name('export-pdf');
+        Route::get('/rekapan', [PemakaianBbmController::class, 'rekapan'])->name('rekapan');
+        Route::get('/export/excel', [PemakaianBbmController::class, 'exportExcel'])->name('export-excel');
+        Route::get('/export/pdf', [PemakaianBbmController::class, 'exportPdf'])->name('export-pdf');
     });
 });
 
