@@ -75,21 +75,20 @@
     </div>
   </div>
 
-  {{-- MODAL TAMBAH / EDIT TAGIHAN AIR --}}
-  <div class="modal-overlay" id="tagihanModal">
-    <div class="modal tagihan-modal">
-      <div class="modal-header">
-        <h3 class="modal-title" id="tagihanModalTitle">{{ $edit ? 'Edit Tagihan Air' : 'Tambah Tagihan Air' }}</h3>
-        <button type="button" class="modal-close" onclick="closeTagihanModal()">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+  {{-- FORM INPUT --}}
+  <div class="card tagihan-form">
+    <div class="card-header">
+      <div class="card-header-title">
+        <h3>{{ $edit ? 'Edit Tagihan Air' : 'Form Tagihan Air' }}</h3>
+        <p>{{ $edit ? 'Perbarui data tagihan air' : 'Input meteran bulanan tagihan air' }}</p>
       </div>
+    </div>
+    <div class="card-body">
       <form id="tagihanForm" method="POST" enctype="multipart/form-data"
             action="{{ $edit ? route('tagihan-air.update', $edit->id) : route('tagihan-air.store') }}">
         @csrf
         <input type="hidden" name="_method" id="tagihanMethod" value="{{ $edit ? 'PUT' : '' }}">
 
-        <div class="modal-body">
           <div class="form-grid">
             <div class="form-group">
               <label for="area_id">Area</label>
@@ -126,7 +125,7 @@
             </div>
 
             <div class="form-group">
-              <label for="meter_lalu">Meter Lalu</label>
+              <label for="meter_lalu">Meter Bulan Lalu</label>
               <input type="number" id="meter_lalu" name="meter_lalu" class="form-control"
                      step="0.01" min="0"
                      value="{{ old('meter_lalu', $edit->meter_lalu ?? '') }}">
@@ -134,7 +133,7 @@
             </div>
 
             <div class="form-group">
-              <label for="meter_ini">Meter Ini</label>
+              <label for="meter_ini">Meter Bulan Ini</label>
               <input type="number" id="meter_ini" name="meter_ini" class="form-control"
                      step="0.01" min="0" placeholder="Contoh: 120"
                      value="{{ old('meter_ini', $edit->meter_ini ?? '') }}" required>
@@ -148,7 +147,7 @@
             </div>
 
             <div class="form-group">
-              <label for="tarif">Tarif (Rp/m3)</label>
+              <label for="tarif">Tarif (Rp/m³)</label>
               <input type="text" id="tarif" name="tarif" class="form-control"
                      inputmode="numeric" placeholder="Contoh: 5.000"
                      value="{{ old('tarif', $edit ? number_format($edit->tarif, 2, ',', '.') : '') }}" required>
@@ -164,7 +163,7 @@
               </div>
               <input type="file" id="foto_picker" name="foto_meter[]"
                      accept="image/jpeg,image/png" style="display: none;">
-              <small style="color: #999;">Pilih 1 foto per klik (jpg/jpeg/png, maks 5 MB per file).</small>
+              <small style="color: #999;">Pilih foto (jpg/jpeg/png, maks 5 MB per file).</small>
               <div id="pendingFotoPreview" style="display: none; margin-top: 8px; flex-wrap: wrap; gap: 8px;"></div>
 
               @if($edit && $edit->fotos->count())
@@ -195,28 +194,30 @@
             </div>
 
             <div class="form-group">
-              <label for="pemakaian">Pemakaian Terkoreksi (m3)</label>
+              <label for="pemakaian">Pemakaian Terkoreksi (m³)</label>
               <input type="text" id="pemakaian" class="form-control" readonly
                      value="{{ $edit ? number_format($edit->pemakaian, 2, ',', '.') : '' }}">
-              <small style="color: #999;">(Meter Ini − Meter Lalu) × Meter Faktor — otomatis</small>
+              <small style="color: #999;">(Meter Bulan Ini - Meter Bulan Lalu) x Meter Faktor</small>
             </div>
 
             <div class="form-group" style="margin-bottom: 0;">
               <label for="jumlah">Jumlah (Rp)</label>
               <input type="text" id="jumlah" class="form-control" readonly
                      value="{{ $edit ? 'Rp ' . number_format($edit->jumlah, 0, ',', '.') : '' }}">
-              <small style="color: #999;">Pemakaian × Tarif — otomatis</small>
+              <small style="color: #999;">Pemakaian x Tarif</small>
             </div>
           </div>
-        </div>
 
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="closeTagihanModal()">
-            <i class="fa-solid fa-ban"></i> Batal
-          </button>
+        <div class="form-actions">
           <button type="submit" class="btn btn-primary">
             <i class="fa-solid fa-floppy-disk"></i> {{ $edit ? 'Simpan Perubahan' : 'Simpan' }}
           </button>
+          @if($edit)
+            <a href="{{ route('tagihan-air.index', request()->only(['area_id', 'bulan'])) }}"
+               class="btn btn-secondary" id="btnBatalEdit">
+              <i class="fa-solid fa-ban"></i> Batal Edit
+            </a>
+          @endif
         </div>
       </form>
     </div>
@@ -229,11 +230,6 @@
           <h3>Data Tagihan Air</h3>
           <p>Daftar tagihan air yang tersimpan</p>
         </div>
-        <div class="card-actions">
-          <button type="button" class="btn btn-primary btn-sm" onclick="openAddTagihan()">
-            <i class="fa-solid fa-plus"></i> Tambah Tagihan Air
-          </button>
-        </div>
       </div>
       <div class="card-body" style="padding: 0;">
         <div class="table-responsive">
@@ -244,8 +240,8 @@
                 <th>Periode</th>
                 <th>Area</th>
                 <th>Titik Meter</th>
-                <th>Meter Lalu</th>
-                <th>Meter Ini</th>
+                <th>Meter Bulan Lalu</th>
+                <th>Meter Bulan Ini</th>
                 <th>Faktor</th>
                 <th>Tarif</th>
                 <th>Pemakaian</th>
@@ -326,17 +322,6 @@
 @endsection
 
 @if(($tab ?? 'input') === 'input')
-@push('styles')
-<style>
-  .tagihan-modal {
-    max-width: 720px;
-  }
-  .tagihan-modal .modal-body {
-    max-height: 70vh;
-    overflow-y: auto;
-  }
-</style>
-@endpush
 @push('scripts')
 <script>
   const meterMap = @json($meterMap);
@@ -414,7 +399,7 @@
     } else {
       if (overwrite) meterLaluInput.value = '';
       meterLaluInput.readOnly = false;
-      if (hint) hint.textContent = 'Belum ada histori periode sebelumnya di sistem. Isi Meter Lalu secara manual berdasarkan data awal (wajib).';
+      if (hint) hint.textContent = 'Belum ada histori periode sebelumnya di sistem. Isi Meter Bulan Lalu secara manual berdasarkan data awal (wajib).';
     }
     recalcTotals();
   }
@@ -440,24 +425,6 @@
     tarifInput.value = opt.dataset.tarif ? Number(opt.dataset.tarif).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '';
     fillMeterLalu();
     recalcTotals();
-  }
-
-  // ---- Modal ----
-  function openAddTagihan() {
-    const form = document.getElementById('tagihanForm');
-    form.reset();
-    form.action = '{{ route('tagihan-air.store') }}';
-    document.getElementById('tagihanMethod').value = '';
-    document.getElementById('tagihanModalTitle').textContent = 'Tambah Tagihan Air';
-    resetFotos();
-    filterTitikMeter();
-    updateMeterLaluState(false);
-    document.getElementById('tagihanModal').classList.add('show');
-    areaSelect.focus();
-  }
-
-  function closeTagihanModal() {
-    document.getElementById('tagihanModal').classList.remove('show');
   }
 
   // ---- Foto (tambah satu-per-satu, maksimal 10) ----
@@ -518,22 +485,72 @@
     preview.style.display = 'flex';
   }
 
-  function resetFotos() {
-    pendingFotos.forEach(function(p) { URL.revokeObjectURL(p.url); });
-    pendingFotos = [];
-    renderPendingFotos();
-    document.getElementById('foto_picker').value = '';
-    setFotoError('');
-    const oldFoto = document.getElementById('oldFotoSection');
-    if (oldFoto) oldFoto.style.display = 'none';
-    updateFotoCapState();
-  }
-
   function syncFotoInput() {
     if (!pendingFotos.length) return;
     const dt = new DataTransfer();
     pendingFotos.forEach(function(p) { dt.items.add(p.file); });
     document.getElementById('foto_picker').files = dt.files;
+  }
+
+  // ---- Kompres foto baru via Canvas sebelum masuk pendingFotos ----
+  const MAX_DIM = 1920;
+  const MAX_FOTO_SIZE = 5 * 1024 * 1024;
+  const COMPRESS_START_QUALITY = 0.75;
+  const COMPRESS_MIN_QUALITY = 0.4;
+
+  function compressFoto(file) {
+    return new Promise(function(resolve, reject) {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = function() {
+        URL.revokeObjectURL(url);
+        try {
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          const scale = Math.min(1, MAX_DIM / Math.max(w, h));
+          w = Math.max(1, Math.round(w * scale));
+          h = Math.max(1, Math.round(h * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          const isPng = /\.png$/i.test(file.name) || file.type === 'image/png';
+          const mime = isPng ? 'image/png' : 'image/jpeg';
+          const attempt = function(quality) {
+            canvas.toBlob(function(blob) {
+              if (!blob) {
+                if (file.size > MAX_FOTO_SIZE) { reject('Ukuran foto maksimal 5 MB.'); return; }
+                resolve({ file: file, url: URL.createObjectURL(file) });
+                return;
+              }
+              if (blob.size > MAX_FOTO_SIZE && quality > COMPRESS_MIN_QUALITY) {
+                attempt(quality - 0.15);
+                return;
+              }
+              if (blob.size > MAX_FOTO_SIZE) {
+                reject('Ukuran foto melebihi 5 MB setelah dikompres.');
+                return;
+              }
+              const newFile = new File([blob], file.name, { type: mime, lastModified: file.lastModified });
+              resolve({ file: newFile, url: URL.createObjectURL(newFile) });
+            }, mime, quality);
+          };
+          attempt(COMPRESS_START_QUALITY);
+        } catch (err) {
+          if (file.size > MAX_FOTO_SIZE) { reject('Ukuran foto maksimal 5 MB.'); return; }
+          resolve({ file: file, url: URL.createObjectURL(file) });
+        }
+      };
+      img.onerror = function() {
+        URL.revokeObjectURL(url);
+        if (file.size > MAX_FOTO_SIZE) { reject('Ukuran foto maksimal 5 MB.'); return; }
+        resolve({ file: file, url: URL.createObjectURL(file) });
+      };
+      img.src = url;
+    });
   }
 
   document.addEventListener('DOMContentLoaded', function() {
@@ -551,14 +568,6 @@
       formatRupiah(tarifInput);
     });
 
-    const modal = document.getElementById('tagihanModal');
-    modal.addEventListener('click', function(e) {
-      if (e.target === modal) closeTagihanModal();
-    });
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') closeTagihanModal();
-    });
-
     const btnAddFoto = document.getElementById('btnAddFoto');
     const fotoPicker = document.getElementById('foto_picker');
     btnAddFoto.addEventListener('click', function() {
@@ -571,11 +580,19 @@
       if (!file) return;
       const okType = /\.(jpe?g|png)$/i.test(file.name) || ['image/jpeg', 'image/png'].includes(file.type);
       if (!okType) { setFotoError('Hanya file jpg / jpeg / png.'); return; }
-      if (file.size > 5 * 1024 * 1024) { setFotoError('Ukuran foto maksimal 5 MB.'); return; }
       if (fotoSlotsLeft() <= 0) { setFotoError('Maksimal 10 foto per transaksi.'); return; }
-      pendingFotos.push({ file: file, url: URL.createObjectURL(file) });
-      renderPendingFotos();
-      updateFotoCapState();
+      compressFoto(file).then(function(result) {
+        if (fotoSlotsLeft() <= 0) {
+          URL.revokeObjectURL(result.url);
+          setFotoError('Maksimal 10 foto per transaksi.');
+          return;
+        }
+        pendingFotos.push({ file: result.file, url: result.url });
+        renderPendingFotos();
+        updateFotoCapState();
+      }).catch(function(errMsg) {
+        setFotoError(errMsg);
+      });
     });
 
     const form = document.getElementById('tagihanForm');
@@ -585,12 +602,6 @@
     });
 
     updateFotoCapState();
-
-    @if($edit || $errors->any())
-      document.getElementById('tagihanModal').classList.add('show');
-      const oldFotoSection = document.getElementById('oldFotoSection');
-      if (oldFotoSection) oldFotoSection.style.display = '';
-    @endif
   });
 </script>
 @endpush

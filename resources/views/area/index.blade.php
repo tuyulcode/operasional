@@ -40,7 +40,7 @@
           <thead>
             <tr>
               <th>No</th>
-              <th>Nama</th>
+              <th>Nama Pengguna</th>
               <th>Alamat</th>
               <th>PPN</th>
               <th>Aksi</th>
@@ -115,7 +115,7 @@
 
         <div class="modal-body">
           <div class="form-group">
-            <label for="nama">Nama</label>
+            <label for="nama">Nama Pengguna</label>
             <input type="text" id="nama" name="nama" class="form-control"
                    placeholder="Contoh: Barak 1, Barak 2, Wisma"
                    value="{{ old('nama', $edit->nama ?? '') }}" required>
