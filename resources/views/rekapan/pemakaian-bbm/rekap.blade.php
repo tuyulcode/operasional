@@ -49,7 +49,7 @@
   @if(!empty($tanggal_awal))
   <div class="card">
     <div class="card-body">
-      <h4 style="text-align:center;">PEMAKAIAN BBM KENDARAAN DINAS &amp; JASA</h4>
+      <h4 style="text-align:center;">PEMAKAIAN BBM KENDARAAN DINAS</h4>
       <p style="text-align:center; margin-bottom:16px;">Periode {{ $periodeLabel }}</p>
       <div class="table-responsive">
         @include('rekapan.pemakaian-bbm._rekap-table')

@@ -5,18 +5,27 @@
 @endphp
 
 <table style="border-collapse: collapse; width: 100%; font-size: 12px;" border="1" cellpadding="4" cellspacing="0">
+  <colgroup>
+    <col style="width:5%">
+    <col style="width:22%">
+    <col style="width:9%">
+    <col style="width:11%">
+    <col style="width:28%">
+    <col style="width:10%">
+    <col style="width:15%">
+  </colgroup>
   <thead>
     <tr style="background:#f2f2f2; font-weight:bold; text-align:center;">
-      <th>No.</th>
-      <th>No.<br>Kendaraan</th>
-      <th>Liter</th>
-      <th>Rp.</th>
-      <th>Sparepart Consumable</th>
-      <th>Jasa</th>
-      <th>Jumlah</th>
+      <th style="padding:10px 4px;">No.</th>
+      <th style="padding:10px 4px;">Nomor Kendaraan</th>
+      <th style="padding:10px 4px;">Liter</th>
+      <th style="padding:10px 4px;">Rp.</th>
+      <th style="padding:10px 4px;">Sparepart Consumable</th>
+      <th style="padding:10px 4px;">Jasa</th>
+      <th style="padding:10px 4px;">Jumlah</th>
     </tr>
     <tr style="background:#f2f2f2; font-weight:bold; text-align:center;">
-      <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7 = 4+5+6</th>
+      <th style="padding:6px 4px;">1</th><th style="padding:6px 4px;">2</th><th style="padding:6px 4px;">3</th><th style="padding:6px 4px;">4</th><th style="padding:6px 4px;">5</th><th style="padding:6px 4px;">6</th><th style="padding:6px 4px;">7 = 4+5+6</th>
     </tr>
   </thead>
   <tbody>
