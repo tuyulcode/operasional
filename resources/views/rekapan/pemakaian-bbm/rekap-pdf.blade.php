@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <style>
+    @page { size: portrait; margin: 20px; }
     body { font-family: sans-serif; }
 
     .header-table {

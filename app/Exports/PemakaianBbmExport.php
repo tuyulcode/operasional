@@ -51,7 +51,9 @@ class PemakaianBbmExport implements FromArray, WithEvents, WithTitle
 
     private function render(Worksheet $sheet): void
     {
-        $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE);
+        $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT);
+        $sheet->getPageSetup()->setFitToWidth(1);
+        $sheet->getPageSetup()->setFitToHeight(0);
         $sheet->setCellValue('A1', '');
 
         $this->setColumnWidths($sheet);
@@ -102,8 +104,8 @@ class PemakaianBbmExport implements FromArray, WithEvents, WithTitle
     private function setColumnWidths(Worksheet $sheet): void
     {
         $widths = [
-            'A' => 5, 'B' => 18, 'C' => 12, 'D' => 14,
-            'E' => 16, 'F' => 12, 'G' => 16,
+            'A' => 5, 'B' => 24, 'C' => 12, 'D' => 14,
+            'E' => 20, 'F' => 12, 'G' => 16,
         ];
 
         foreach ($widths as $col => $width) {
@@ -132,7 +134,7 @@ class PemakaianBbmExport implements FromArray, WithEvents, WithTitle
     private function writeTitleBlock(Worksheet $sheet, int $row): int
     {
         $sheet->mergeCells("B{$row}:G{$row}");
-        $sheet->setCellValue("B{$row}", 'PEMAKAIAN BBM KENDARAAN DINAS & JASA');
+        $sheet->setCellValue("B{$row}", 'PEMAKAIAN BBM KENDARAAN DINAS');
         $sheet->getStyle("B{$row}")->applyFromArray([
             'font'      => ['bold' => true, 'size' => 13],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -172,12 +174,12 @@ class PemakaianBbmExport implements FromArray, WithEvents, WithTitle
         $sheet->mergeCells("A{$r1}:A{$r1}");
         $sheet->setCellValue("A{$r1}", 'No.');
 
-        $sheet->setCellValue("B{$r1}", "No.\nKendaraan");
+        $sheet->setCellValue("B{$r1}", "Nomor Kendaraan");
         $sheet->getStyle("B{$r1}")->getAlignment()->setWrapText(true);
 
         $sheet->setCellValue("C{$r1}", 'Liter');
         $sheet->setCellValue("D{$r1}", 'Rp.');
-        $sheet->setCellValue("E{$r1}", 'Service, Oli, dll');
+        $sheet->setCellValue("E{$r1}", 'Sparepart Consumable');
         $sheet->setCellValue("F{$r1}", 'Jasa');
         $sheet->setCellValue("G{$r1}", 'Jumlah');
 
@@ -196,6 +198,8 @@ class PemakaianBbmExport implements FromArray, WithEvents, WithTitle
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $accentColor]],
         ]);
         $this->applyBorder($sheet, $range);
+        $sheet->getRowDimension($r1)->setRowHeight(24);
+        $sheet->getRowDimension($r2)->setRowHeight(18);
 
         return $r2 + 1;
     }

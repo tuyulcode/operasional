@@ -70,7 +70,7 @@
               <th>Jenis BBM</th>
               <th>Lokasi</th>
               <th>Liter</th>
-              <th>Sparepart Consumable</th>
+              <th style="text-align:center;">Sparepart Consumable</th>
               <th>Jasa</th>
               <th>Jumlah</th>
               <th>Aksi</th>
@@ -85,7 +85,7 @@
               <td>{{ ucfirst($item->hargaBbm->jenis ?? '-') }}</td>
               <td>{{ $item->lokasi_pembelian === 'luar_paiton' ? 'Luar Paiton' : 'Paiton' }}</td>
               <td>{{ $item->liter ? number_format($item->liter, 2, ',', '.') : '-' }}</td>
-              <td>{{ $item->service_oli ? number_format($item->service_oli, 0, ',', '.') : '-' }}</td>
+              <td style="text-align:center;">{{ $item->service_oli ? number_format($item->service_oli, 0, ',', '.') : '-' }}</td>
               <td>{{ $item->jasa ? number_format($item->jasa, 0, ',', '.') : '-' }}</td>
               <td>{{ number_format($item->jumlah, 0, ',', '.') }}</td>
               <td>
@@ -168,7 +168,14 @@
                 <option value="bensin" {{ old('jenis_bbm', $edit->hargaBbm->jenis ?? '') == 'bensin' ? 'selected' : '' }}>Bensin</option>
                 <option value="solar" {{ old('jenis_bbm', $edit->hargaBbm->jenis ?? '') == 'solar' ? 'selected' : '' }}>Solar</option>
               </select>
-              <small class="form-hint" id="hargaPerLiterHint">Pilih jenis BBM untuk lihat harga/liter</small>
+              <small class="form-hint form-hint-spacer">&nbsp;</small>
+            </div>
+
+            <div class="form-group">
+              <label for="harga_per_liter_display">Harga per Liter</label>
+              <input type="text" id="harga_per_liter_display" class="form-control" readonly
+                     placeholder="Pilih jenis BBM dulu" style="background:#f3f4f6; cursor:not-allowed;">
+              <small class="form-hint form-hint-spacer">&nbsp;</small>
             </div>
 
             <div class="form-group">
@@ -189,7 +196,7 @@
             </div>
 
             <div class="form-group">
-              <label for="service_oli">Service, Oli, dll (Rp)</label>
+              <label for="service_oli">Sparepart Consumable (Rp)</label>
               <input type="text" inputmode="numeric" id="service_oli" name="service_oli" class="form-control"
                      value="{{ old('service_oli', $edit->service_oli ?? '') }}">
               <small class="form-hint">Input 0, jika tidak ada data</small>
@@ -241,6 +248,7 @@
 
 @push('styles')
 <style>
+  #pemakaianModal .modal { max-width: 640px; }
   .modal-confirm { max-width: 380px; }
   .modal-confirm-body { text-align: center; padding: 32px 24px 8px; }
   .modal-confirm-icon {
@@ -274,7 +282,7 @@
 
 @push('scripts')
 <script>
-  // Map jenis BBM -> harga per liter, dipakai buat nampilin harga read-only di bawah dropdown Jenis BBM
+  // Map jenis BBM -> harga per liter, dipakai buat nampilin harga read-only di box sebelah Jenis BBM
   const hargaBbmMap = @json($hargaBbmMap);
 
   document.addEventListener('DOMContentLoaded', function() {
@@ -295,7 +303,7 @@
     jasaInput.addEventListener('input', function() { formatRupiah(jasaInput); });
 
     document.getElementById('jenis_bbm').addEventListener('change', function() {
-      updateHargaPerLiterHint(this.value);
+      updateHargaPerLiterDisplay(this.value);
     });
 
     const pemakaianForm = document.getElementById('pemakaianForm');
@@ -308,17 +316,17 @@
       document.getElementById('pemakaianModal').classList.add('show');
       formatRupiah(serviceOliInput);
       formatRupiah(jasaInput);
-      updateHargaPerLiterHint(document.getElementById('jenis_bbm').value);
+      updateHargaPerLiterDisplay(document.getElementById('jenis_bbm').value);
     @endif
   });
 
-  function updateHargaPerLiterHint(jenis) {
-    const hint = document.getElementById('hargaPerLiterHint');
+  function updateHargaPerLiterDisplay(jenis) {
+    const display = document.getElementById('harga_per_liter_display');
     if (jenis && hargaBbmMap[jenis]) {
       const harga = Number(hargaBbmMap[jenis]).toLocaleString('id-ID');
-      hint.textContent = `Harga per liter: Rp ${harga}`;
+      display.value = `Rp ${harga}`;
     } else {
-      hint.textContent = 'Pilih jenis BBM untuk lihat harga/liter';
+      display.value = '';
     }
   }
 
@@ -343,7 +351,12 @@
     document.getElementById('pemakaianModalTitle').textContent = 'Tambah Pemakaian BBM';
 
     document.getElementById('tanggal').value = pfTodayDateString();
-    updateHargaPerLiterHint('');
+    updateHargaPerLiterDisplay('');
+
+    document.getElementById('service_oli').value = '0';
+    document.getElementById('jasa').value = '0';
+    formatRupiah(document.getElementById('service_oli'));
+    formatRupiah(document.getElementById('jasa'));
 
     document.getElementById('pemakaianModal').classList.add('show');
   }
@@ -362,7 +375,7 @@
     document.getElementById('jasa').value = btn.dataset.jasa;
     formatRupiah(document.getElementById('service_oli'));
     formatRupiah(document.getElementById('jasa'));
-    updateHargaPerLiterHint(btn.dataset.jenisBbm);
+    updateHargaPerLiterDisplay(btn.dataset.jenisBbm);
     document.getElementById('pemakaianModalTitle').textContent = 'Edit Pemakaian BBM';
     document.getElementById('pemakaianModal').classList.add('show');
   }
