@@ -45,6 +45,10 @@
        class="tab-link {{ request()->routeIs('pemakaian-bbm.rekapan') ? 'active' : '' }}">
       <i class="fa-solid fa-file-invoice"></i> Rekapan
     </a>
+    <a href="{{ route('pemakaian-bbm.pertanggungjawaban') }}"
+       class="tab-link {{ request()->routeIs('pemakaian-bbm.pertanggungjawaban') ? 'active' : '' }}">
+      <i class="fa-solid fa-file-signature"></i> Pertanggungjawaban
+    </a>
   </div>
 
   <div class="card">

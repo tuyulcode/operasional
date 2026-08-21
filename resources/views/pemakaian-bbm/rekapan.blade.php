@@ -24,6 +24,10 @@
        class="tab-link {{ request()->routeIs('pemakaian-bbm.rekapan') ? 'active' : '' }}">
       <i class="fa-solid fa-file-invoice"></i> Rekapan
     </a>
+    <a href="{{ route('pemakaian-bbm.pertanggungjawaban') }}"
+       class="tab-link {{ request()->routeIs('pemakaian-bbm.pertanggungjawaban') ? 'active' : '' }}">
+      <i class="fa-solid fa-file-signature"></i> Pertanggungjawaban
+    </a>
   </div>
 
   <div class="card">
@@ -60,7 +64,7 @@
   @if(!empty($tanggalAwal))
   <div class="card">
     <div class="card-body">
-      <h4 style="text-align:center;">PEMAKAIAN BBM KENDARAAN DINAS &amp; JASA</h4>
+      <h4 style="text-align:center;">PEMAKAIAN BBM KENDARAAN DINAS</h4>
       <p style="text-align:center; margin-bottom:16px;">Periode {{ $periodeLabel }}</p>
       <div class="table-responsive">
         @include('rekapan.pemakaian-bbm._rekap-table')

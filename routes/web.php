@@ -127,6 +127,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/rekapan', [PemakaianBbmController::class, 'rekapan'])->name('rekapan');
         Route::get('/export/excel', [PemakaianBbmController::class, 'exportExcel'])->name('export-excel');
         Route::get('/export/pdf', [PemakaianBbmController::class, 'exportPdf'])->name('export-pdf');
+
+        Route::get('/pertanggungjawaban', [PemakaianBbmController::class, 'pertanggungjawaban'])->name('pertanggungjawaban');
+        Route::get('/export/pertanggungjawaban/excel', [PemakaianBbmController::class, 'exportPertanggungjawabanExcel'])->name('export-pertanggungjawaban-excel');
+        Route::get('/export/pertanggungjawaban/pdf', [PemakaianBbmController::class, 'exportPertanggungjawabanPdf'])->name('export-pertanggungjawaban-pdf');
     });
 });
 
