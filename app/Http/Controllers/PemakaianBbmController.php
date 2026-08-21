@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Exports\PemakaianBbmExport;
+use App\Exports\PertanggungjawabanExport;
 use App\Models\HargaBbm;
 use App\Models\Kendaraan;
 use App\Models\PemakaianBbm;
+use App\Models\Penandatangan;
 use App\Services\PemakaianBbmRekapService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -120,6 +122,52 @@ class PemakaianBbmController extends Controller
         return $pdf->download($filename);
     }
 
+    /**
+     * Halaman laporan Pertanggungjawaban: gabungan beberapa minggu dalam 1 bulan,
+     * dengan tabel sederhana (No, Nomor Kendaraan, Liter, Rp) + keterangan + tanda tangan.
+     */
+    public function pertanggungjawaban(Request $request)
+    {
+        $bulanLabel    = $request->query('bulan_label');
+        $minggus       = $request->query('minggu', []);
+        $weeks         = [];
+        $keterangan    = null;
+        $penandatangan = Penandatangan::where('jabatan', Penandatangan::ASMAN)->first();
+
+        if ($bulanLabel && !empty($minggus)) {
+            $validated  = $this->validatePertanggungjawaban($request);
+            $bulanLabel = $validated['bulan_label'];
+            $minggus    = $validated['minggu'];
+
+            $weeks      = $this->buildWeeks($minggus);
+            $keterangan = $this->buildKeterangan($minggus);
+        }
+
+        return view('pemakaian-bbm.pertanggungjawaban', compact(
+            'bulanLabel', 'minggus', 'weeks', 'keterangan', 'penandatangan'
+        ));
+    }
+
+    public function exportPertanggungjawabanExcel(Request $request)
+    {
+        $data = $this->buildPertanggungjawabanData($request);
+
+        $filename = 'pertanggungjawaban-bbm_' . \Illuminate\Support\Str::slug($data['bulanLabel']) . '.xlsx';
+
+        return Excel::download(new PertanggungjawabanExport($data), $filename);
+    }
+
+    public function exportPertanggungjawabanPdf(Request $request)
+    {
+        $data = $this->buildPertanggungjawabanData($request);
+
+        $filename = 'pertanggungjawaban-bbm_' . \Illuminate\Support\Str::slug($data['bulanLabel']) . '.pdf';
+
+        $pdf = Pdf::loadView('rekapan.pemakaian-bbm.pertanggungjawaban-pdf', $data)->setPaper('a4', 'portrait');
+
+        return $pdf->download($filename);
+    }
+
     /* =======================================================
      * Helper privat
      * ======================================================= */
@@ -171,5 +219,83 @@ class PemakaianBbmController extends Controller
             'tanggal_awal'  => 'required|date',
             'tanggal_akhir' => 'required|date|after_or_equal:tanggal_awal',
         ]);
+    }
+
+    private function validatePertanggungjawaban(Request $request): array
+    {
+        return $request->validate([
+            'bulan_label'             => 'required|string|max:50',
+            'minggu'                  => 'required|array|min:1',
+            'minggu.*.tanggal_awal'   => 'required|date',
+            'minggu.*.tanggal_akhir'  => 'required|date|after_or_equal:minggu.*.tanggal_awal',
+        ]);
+    }
+
+    /**
+     * Bangun data tiap minggu (grouped table) memakai rekap service yang sudah ada.
+     */
+    private function buildWeeks(array $minggus): array
+    {
+        $weeks = [];
+
+        foreach ($minggus as $i => $minggu) {
+            $data = $this->rekapService->build($minggu['tanggal_awal'], $minggu['tanggal_akhir']);
+
+            $weeks[] = [
+                'no'           => $i + 1,
+                'periodeLabel' => $data['periodeLabel'],
+                'groups'       => $data['groups'],
+                'grandTotal'   => $data['grandTotal'],
+            ];
+        }
+
+        return $weeks;
+    }
+
+    /**
+     * Hitung total keterangan (Paiton / Luar Paiton / Service-Oli / Jasa) untuk
+     * seluruh rentang minggu yang dipilih, dipakai di bagian "Keterangan" laporan.
+     */
+    private function buildKeterangan(array $minggus): array
+    {
+        $rows = PemakaianBbm::query()
+            ->where(function ($query) use ($minggus) {
+                foreach ($minggus as $minggu) {
+                    $query->orWhereBetween('tanggal', [$minggu['tanggal_awal'], $minggu['tanggal_akhir']]);
+                }
+            })
+            ->get();
+
+        $paiton     = (float) $rows->where('lokasi_pembelian', 'paiton')->sum('rp');
+        $luarPaiton = (float) $rows->where('lokasi_pembelian', 'luar_paiton')->sum('rp');
+        $serviceOli = (float) $rows->sum('service_oli');
+        $jasa       = (float) $rows->sum('jasa');
+
+        return [
+            'paiton'      => $paiton,
+            'luar_paiton' => $luarPaiton,
+            'service_oli' => $serviceOli,
+            'jasa'        => $jasa,
+            'jumlah'      => $paiton + $luarPaiton + $serviceOli + $jasa,
+        ];
+    }
+
+    /**
+     * Kumpulkan semua data yang dibutuhkan export Excel/PDF Pertanggungjawaban.
+     */
+    private function buildPertanggungjawabanData(Request $request): array
+    {
+        $validated = $this->validatePertanggungjawaban($request);
+
+        $weeks         = $this->buildWeeks($validated['minggu']);
+        $keterangan    = $this->buildKeterangan($validated['minggu']);
+        $penandatangan = Penandatangan::where('jabatan', Penandatangan::ASMAN)->first();
+
+        return [
+            'bulanLabel'    => $validated['bulan_label'],
+            'weeks'         => $weeks,
+            'keterangan'    => $keterangan,
+            'penandatangan' => $penandatangan,
+        ];
     }
 }
