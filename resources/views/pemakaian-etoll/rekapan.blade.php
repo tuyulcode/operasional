@@ -19,10 +19,14 @@
     <form method="GET" action="{{ route('pemakaian-etoll.index') }}" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
       <input type="hidden" name="tab" value="rekapan">
       <div class="form-group" style="margin-bottom: 0; min-width: 180px;">
-        <label for="bulan">Bulan / Tahun <span style="color: #e11d48;">*</span></label>
-        <input type="month" id="bulan" name="bulan" class="form-control"
-               value="{{ $bulanRaw }}" required>
+        <label>Bulan / Tahun <span style="color: #e11d48;">*</span></label>
+        <input type="hidden" id="bulan" name="bulan" value="{{ $bulanRaw }}">
       </div>
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          new MonthYearPicker({ hiddenId: 'bulan' });
+        });
+      </script>
       <button type="submit" class="btn btn-primary">
         <i class="fa-solid fa-filter"></i> Lihat Rekapan
       </button>

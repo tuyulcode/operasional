@@ -1892,3 +1892,193 @@ body.dark-mode .toast-close {
 body.dark-mode .toast-close:hover {
   color: #e2e8f0;
 }
+
+/* ==========================================
+   MONTH-YEAR PICKER
+   ========================================== */
+
+.myp-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.myp-input {
+  width: 100%;
+  padding: 11px 40px 11px 14px;
+  background-color: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: var(--text-main);
+  outline: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+.myp-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(64, 153, 255, 0.15);
+}
+
+.myp-input::placeholder {
+  color: #a0aec0;
+}
+
+.myp-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+  font-size: 0.9rem;
+}
+
+.myp-popup {
+  display: none;
+  position: absolute;
+  z-index: 9999;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 280px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 0;
+  user-select: none;
+}
+
+.myp-popup.myp-open {
+  display: block;
+}
+
+.myp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0f4f8;
+}
+
+.myp-header-btn {
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-main);
+  font-size: 0.75rem;
+  transition: all 0.2s;
+}
+
+.myp-header-btn:hover {
+  background: #f0f4f8;
+  border-color: #cbd5e1;
+}
+
+.myp-header-label {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--text-main);
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.myp-header-label:hover {
+  background: #f0f4f8;
+}
+
+.myp-months {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.myp-month-btn {
+  padding: 8px 4px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.myp-month-btn:hover {
+  background: #f0f4f8;
+  border-color: #e2e8f0;
+}
+
+.myp-month-btn.myp-selected {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+  font-weight: 600;
+}
+
+.myp-month-btn.myp-today {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.myp-month-btn.myp-today.myp-selected {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+.myp-years {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.myp-year-btn {
+  padding: 8px 4px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.myp-year-btn:hover {
+  background: #f0f4f8;
+  border-color: #e2e8f0;
+}
+
+.myp-year-btn.myp-selected {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+  font-weight: 600;
+}
+
+.myp-year-btn.myp-today {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.myp-year-btn.myp-today.myp-selected {
+  background: var(--primary-color);
+  color: #fff;
+}

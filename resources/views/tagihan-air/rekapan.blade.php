@@ -19,10 +19,14 @@
       <input type="hidden" name="tab" value="rekapan">
       <div class="form-grid">
         <div class="form-group">
-          <label for="bulan">Bulan / Tahun <span style="color: #e11d48;">*</span></label>
-          <input type="month" id="bulan" name="bulan" class="form-control"
-                 value="{{ $bulan }}" required>
+          <label>Bulan / Tahun <span style="color: #e11d48;">*</span></label>
+          <input type="hidden" id="bulan" name="bulan" value="{{ $bulan }}">
         </div>
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            new MonthYearPicker({ hiddenId: 'bulan' });
+          });
+        </script>
         <div class="form-group">
           <label for="area_id">Nama Pengguna</label>
           <select id="area_id" name="area_id" class="form-control">

@@ -83,9 +83,9 @@
             </div>
 
             <div class="form-group">
-              <label for="periode">Periode</label>
-              <input type="month" id="periode" name="periode" class="form-control"
-                     value="{{ old('periode', $edit ? $edit->periode->format('Y-m') : '') }}" required>
+              <label>Periode <span style="color: #e11d48;">*</span></label>
+              <input type="hidden" id="periode" name="periode"
+                     value="{{ old('periode', $edit ? $edit->periode->format('Y-m') : '') }}">
             </div>
 
             <div class="form-group">
@@ -585,6 +585,14 @@
 
   document.addEventListener('DOMContentLoaded', function() {
     filterTitikMeter();
+
+    var pickerPeriode = new MonthYearPicker({
+      hiddenId: 'periode',
+      onChange: function(val) {
+        periodeInput.dispatchEvent(new Event('change'));
+      }
+    });
+
     updateMeterLaluState(false);
     bindLiveFormat(tarifInput);
     formatRupiah(tarifInput);
