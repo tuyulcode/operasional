@@ -172,3 +172,277 @@ function showToast(message, type) {
   progress.style.animationDuration = duration + 'ms';
   setTimeout(remove, duration);
 }
+
+/* ==========================================
+   MONTH-YEAR PICKER COMPONENT
+   ========================================== */
+
+var MONTH_NAMES = [
+  'Januari','Februari','Maret','April','Mei','Juni',
+  'Juli','Agustus','September','Oktober','November','Desember'
+];
+
+function MonthYearPicker(opts) {
+  this.hiddenInput = document.getElementById(opts.hiddenId);
+  this.onChange = opts.onChange || function() {};
+  this.currentYear = new Date().getFullYear();
+  this.currentMonth = new Date().getMonth();
+  this.selectedYear = null;
+  this.selectedMonth = null;
+  this.isOpen = false;
+  this.view = 'month';
+  this.yearPageStart = 0;
+
+  var val = this.hiddenInput.value;
+  if (val && /^\d{4}-\d{2}$/.test(val)) {
+    this.selectedYear = parseInt(val.substring(0, 4), 10);
+    this.selectedMonth = parseInt(val.substring(5, 7), 10) - 1;
+    this.currentYear = this.selectedYear;
+    this.currentMonth = this.selectedMonth;
+  }
+
+  this._build();
+  this._bindEvents();
+  this._updateDisplay();
+}
+
+MonthYearPicker.prototype._build = function() {
+  var wrap = document.createElement('div');
+  wrap.className = 'myp-wrap';
+
+  var inp = document.createElement('input');
+  inp.type = 'text';
+  inp.className = 'myp-input';
+  inp.readOnly = true;
+  inp.placeholder = 'Pilih Bulan / Tahun';
+  inp.setAttribute('autocomplete', 'off');
+
+  var icon = document.createElement('span');
+  icon.className = 'myp-icon';
+  icon.innerHTML = '<i class="fa-solid fa-calendar-days"></i>';
+
+  var popup = document.createElement('div');
+  popup.className = 'myp-popup';
+
+  var header = document.createElement('div');
+  header.className = 'myp-header';
+
+  var btnPrev = document.createElement('button');
+  btnPrev.type = 'button';
+  btnPrev.className = 'myp-header-btn';
+  btnPrev.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+
+  var label = document.createElement('span');
+  label.className = 'myp-header-label';
+
+  var btnNext = document.createElement('button');
+  btnNext.type = 'button';
+  btnNext.className = 'myp-header-btn';
+  btnNext.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+
+  header.appendChild(btnPrev);
+  header.appendChild(label);
+  header.appendChild(btnNext);
+
+  var months = document.createElement('div');
+  months.className = 'myp-months';
+
+  var years = document.createElement('div');
+  years.className = 'myp-years';
+  years.style.display = 'none';
+
+  popup.appendChild(header);
+  popup.appendChild(months);
+  popup.appendChild(years);
+
+  wrap.appendChild(inp);
+  wrap.appendChild(icon);
+  wrap.appendChild(popup);
+
+  this.hiddenInput.parentNode.insertBefore(wrap, this.hiddenInput);
+
+  this.el = { wrap: wrap, inp: inp, popup: popup, label: label, months: months, years: years, btnPrev: btnPrev, btnNext: btnNext };
+};
+
+MonthYearPicker.prototype._bindEvents = function() {
+  var self = this;
+
+  this.el.inp.addEventListener('click', function(e) {
+    e.stopPropagation();
+    self.toggle();
+  });
+
+  this.el.btnPrev.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (self.view === 'month') {
+      self.currentYear--;
+      self._renderMonths();
+    } else {
+      self.yearPageStart -= 12;
+      self._renderYears();
+    }
+  });
+
+  this.el.btnNext.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (self.view === 'month') {
+      self.currentYear++;
+      self._renderMonths();
+    } else {
+      self.yearPageStart += 12;
+      self._renderYears();
+    }
+  });
+
+  this.el.label.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (self.view === 'month') {
+      self._showYearPicker();
+    }
+  });
+
+  document.addEventListener('click', function() {
+    self.close();
+  });
+
+  this.el.popup.addEventListener('click', function(e) {
+    e.stopPropagation();
+  });
+};
+
+MonthYearPicker.prototype.toggle = function() {
+  if (this.isOpen) { this.close(); } else { this.open(); }
+};
+
+MonthYearPicker.prototype.open = function() {
+  this.el.popup.classList.add('myp-open');
+  this.isOpen = true;
+  this.view = 'month';
+  this._renderMonths();
+};
+
+MonthYearPicker.prototype.close = function() {
+  this.el.popup.classList.remove('myp-open');
+  this.isOpen = false;
+  this.view = 'month';
+};
+
+MonthYearPicker.prototype._showYearPicker = function() {
+  this.view = 'year';
+  this.yearPageStart = this.currentYear - 5;
+  this.el.months.style.display = 'none';
+  this.el.years.style.display = '';
+  this._renderYears();
+};
+
+MonthYearPicker.prototype._showMonthPicker = function() {
+  this.view = 'month';
+  this.el.years.style.display = 'none';
+  this.el.months.style.display = '';
+  this._renderMonths();
+};
+
+MonthYearPicker.prototype._renderMonths = function() {
+  var self = this;
+  this.el.label.textContent = this.currentYear;
+  this.el.months.innerHTML = '';
+
+  var today = new Date();
+  var thisYear = today.getFullYear();
+  var thisMonth = today.getMonth();
+
+  for (var i = 0; i < 12; i++) {
+    (function(idx) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'myp-month-btn';
+      btn.textContent = MONTH_NAMES[idx];
+
+      if (idx === self.selectedMonth && self.currentYear === self.selectedYear) {
+        btn.classList.add('myp-selected');
+      }
+      if (idx === thisMonth && self.currentYear === thisYear) {
+        btn.classList.add('myp-today');
+      }
+
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        self.selectedMonth = idx;
+        self.selectedYear = self.currentYear;
+        self._updateDisplay();
+        self._syncHidden();
+        self.close();
+        self.onChange(self.hiddenInput.value);
+      });
+
+      self.el.months.appendChild(btn);
+    })(i);
+  }
+};
+
+MonthYearPicker.prototype._renderYears = function() {
+  var self = this;
+  var start = this.yearPageStart;
+  var end = start + 11;
+  this.el.label.textContent = start + ' – ' + end;
+  this.el.years.innerHTML = '';
+
+  var today = new Date();
+  var thisYear = today.getFullYear();
+
+  for (var i = 0; i < 12; i++) {
+    (function(idx) {
+      var y = start + idx;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'myp-year-btn';
+      btn.textContent = y;
+
+      if (y === self.selectedYear) {
+        btn.classList.add('myp-selected');
+      }
+      if (y === thisYear) {
+        btn.classList.add('myp-today');
+      }
+
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        self.currentYear = y;
+        self._showMonthPicker();
+      });
+
+      self.el.years.appendChild(btn);
+    })(i);
+  }
+};
+
+MonthYearPicker.prototype._updateDisplay = function() {
+  if (this.selectedMonth !== null && this.selectedYear !== null) {
+    this.el.inp.value = MONTH_NAMES[this.selectedMonth] + ' ' + this.selectedYear;
+  } else {
+    this.el.inp.value = '';
+  }
+};
+
+MonthYearPicker.prototype._syncHidden = function() {
+  if (this.selectedMonth !== null && this.selectedYear !== null) {
+    var m = String(this.selectedMonth + 1).padStart(2, '0');
+    this.hiddenInput.value = this.selectedYear + '-' + m;
+  } else {
+    this.hiddenInput.value = '';
+  }
+};
+
+MonthYearPicker.prototype.setValue = function(ym) {
+  if (ym && /^\d{4}-\d{2}$/.test(ym)) {
+    this.selectedYear = parseInt(ym.substring(0, 4), 10);
+    this.selectedMonth = parseInt(ym.substring(5, 7), 10) - 1;
+    this.currentYear = this.selectedYear;
+    this.currentMonth = this.selectedMonth;
+  } else {
+    this.selectedYear = null;
+    this.selectedMonth = null;
+  }
+  this._updateDisplay();
+  this._syncHidden();
+};
