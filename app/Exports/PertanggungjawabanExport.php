@@ -9,7 +9,6 @@ use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
@@ -61,14 +60,13 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         $sheet->setCellValue('A1', '');
 
         $this->setColumnWidths($sheet);
-        $this->writeLogo($sheet);
 
         $row = 1;
         $row = $this->writeMainTitle($sheet, $row);
-        $row++;
 
         foreach ($this->data['weeks'] as $week) {
             $row = $this->writeWeekTitle($sheet, $row, $week['no'], $week['periodeLabel']);
+            $row++;
 
             $groups = array_values(array_filter(
                 $week['groups'],
@@ -123,29 +121,11 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         }
     }
 
-    private function writeLogo(Worksheet $sheet): void
-    {
-        $path = public_path('images/logo-pln2.png');
-
-        if (!file_exists($path)) {
-            return;
-        }
-
-        $drawing = new Drawing();
-        $drawing->setName('Logo PLN');
-        $drawing->setPath($path);
-        $drawing->setHeight(45);
-        $drawing->setCoordinates('A1');
-        $drawing->setOffsetX(4);
-        $drawing->setOffsetY(4);
-        $drawing->setWorksheet($sheet);
-    }
-
     private function writeMainTitle(Worksheet $sheet, int $row): int
     {
-        $sheet->mergeCells("B{$row}:D{$row}");
-        $sheet->setCellValue("B{$row}", 'PEMAKAIAN BBM KENDARAAN DINAS');
-        $sheet->getStyle("B{$row}")->applyFromArray([
+        $sheet->mergeCells("A{$row}:D{$row}");
+        $sheet->setCellValue("A{$row}", 'PEMAKAIAN BBM KENDARAAN DINAS');
+        $sheet->getStyle("A{$row}")->applyFromArray([
             'font'      => ['bold' => true, 'size' => 13],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ]);
@@ -270,25 +250,9 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         $sheet->setCellValue("A{$row}", 'Laporan Pengeluaran BBM bulan ' . $this->data['bulanLabel']);
         $row += 2;
 
-        $lines = [
-            'Pemakaian BBM untuk di Paiton' => $k['paiton'],
-            'Pemakaian BBM ke Luar Paiton'  => $k['luar_paiton'],
-            'Pemb. Sparepart Consumable'    => $k['service_oli'],
-            'Penggunaan Jasa'               => $k['jasa'],
-        ];
-
-        foreach ($lines as $label => $value) {
-            $sheet->setCellValue("A{$row}", '- ' . $label);
-            $sheet->setCellValue("C{$row}", 'Rp');
-            $sheet->setCellValueExplicit("D{$row}", number_format($value, 0, ',', '.'), DataType::TYPE_STRING);
-            $sheet->getStyle("D{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-            $row++;
-        }
-
-        $sheet->setCellValue("A{$row}", 'Jumlah');
+        $sheet->setCellValue("A{$row}", '- Pemakaian BBM untuk di Paiton');
         $sheet->setCellValue("C{$row}", 'Rp');
-        $sheet->setCellValueExplicit("D{$row}", number_format($k['jumlah'], 0, ',', '.'), DataType::TYPE_STRING);
-        $sheet->getStyle("A{$row}:D{$row}")->getFont()->setBold(true);
+        $sheet->setCellValueExplicit("D{$row}", number_format($k['paiton'], 0, ',', '.'), DataType::TYPE_STRING);
         $sheet->getStyle("D{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
         $row += 2;
 
