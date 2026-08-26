@@ -23,26 +23,6 @@
           <td style="padding:2px 8px; border:none;">Rp</td>
           <td style="padding:2px 0; text-align:right; min-width:110px; border:none;">{{ number_format($keterangan['paiton'], 0, ',', '.') }}</td>
         </tr>
-        <tr>
-          <td style="padding:2px 0; border:none;">- Pemakaian BBM ke Luar Paiton</td>
-          <td style="padding:2px 8px; border:none;">Rp</td>
-          <td style="padding:2px 0; text-align:right; border:none;">{{ number_format($keterangan['luar_paiton'], 0, ',', '.') }}</td>
-        </tr>
-        <tr>
-          <td style="padding:2px 0; border:none;">- Pemb. Sparepart Consumable</td>
-          <td style="padding:2px 8px; border:none;">Rp</td>
-          <td style="padding:2px 0; text-align:right; border:none;">{{ number_format($keterangan['service_oli'], 0, ',', '.') }}</td>
-        </tr>
-        <tr>
-          <td style="padding:2px 0; border:none;">- Penggunaan Jasa</td>
-          <td style="padding:2px 8px; border:none;">Rp</td>
-          <td style="padding:2px 0; text-align:right; border:none;">{{ number_format($keterangan['jasa'], 0, ',', '.') }}</td>
-        </tr>
-        <tr style="font-weight:bold; border-top:1px solid #333;">
-          <td style="padding:4px 0; border:none;">Jumlah</td>
-          <td style="padding:4px 8px; border:none;">Rp</td>
-          <td style="padding:4px 0; text-align:right; border:none;">{{ number_format($keterangan['jumlah'], 0, ',', '.') }}</td>
-        </tr>
       </table>
     </td>
 

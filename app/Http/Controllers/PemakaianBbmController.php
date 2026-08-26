@@ -140,7 +140,7 @@ class PemakaianBbmController extends Controller
             $minggus    = $validated['minggu'];
 
             $weeks      = $this->buildWeeks($minggus);
-            $keterangan = $this->buildKeterangan($minggus);
+            $keterangan = $this->buildKeterangan($weeks);
         }
 
         return view('pemakaian-bbm.pertanggungjawaban', compact(
@@ -183,10 +183,15 @@ class PemakaianBbmController extends Controller
             'service_oli'      => 'nullable|numeric|min:0',
             'jasa'             => 'nullable|numeric|min:0',
         ], [
+            'tanggal.required'          => 'Tanggal wajib diisi.',
+            'tanggal.date'              => 'Format tanggal tidak valid.',
             'kendaraan_id.required'     => 'Kendaraan wajib dipilih.',
             'kendaraan_id.exists'       => 'Kendaraan tidak valid.',
             'jenis_bbm.required'        => 'Jenis BBM wajib dipilih.',
             'lokasi_pembelian.required' => 'Lokasi pembelian wajib dipilih.',
+            'liter.numeric'             => 'Liter harus berupa angka.',
+            'service_oli.numeric'       => 'Sparepart Consumable harus berupa angka.',
+            'jasa.numeric'              => 'Jasa harus berupa angka.',
         ]);
     }
 
@@ -213,14 +218,28 @@ class PemakaianBbmController extends Controller
         ];
     }
 
+    /**
+     * Validasi periode Rekapan. Tanggal akhir tetap wajib >= tanggal awal
+     * (data integrity), tapi pesan error dibuat jelas biar user ngerti salahnya di mana.
+     */
     private function validatePeriode(Request $request): array
     {
         return $request->validate([
             'tanggal_awal'  => 'required|date',
             'tanggal_akhir' => 'required|date|after_or_equal:tanggal_awal',
+        ], [
+            'tanggal_awal.required'      => 'Tanggal awal wajib diisi.',
+            'tanggal_awal.date'          => 'Format tanggal awal tidak valid.',
+            'tanggal_akhir.required'     => 'Tanggal akhir wajib diisi.',
+            'tanggal_akhir.date'         => 'Format tanggal akhir tidak valid.',
+            'tanggal_akhir.after_or_equal' => 'Tanggal akhir tidak boleh sebelum tanggal awal. Cek kembali kedua tanggal yang diisi.',
         ]);
     }
 
+    /**
+     * Validasi form Pertanggungjawaban. Tanggal akhir tiap minggu tetap wajib
+     * >= tanggal awal minggu itu, dengan pesan error yang jelas per-minggu.
+     */
     private function validatePertanggungjawaban(Request $request): array
     {
         return $request->validate([
@@ -228,11 +247,21 @@ class PemakaianBbmController extends Controller
             'minggu'                  => 'required|array|min:1',
             'minggu.*.tanggal_awal'   => 'required|date',
             'minggu.*.tanggal_akhir'  => 'required|date|after_or_equal:minggu.*.tanggal_awal',
+        ], [
+            'bulan_label.required'                => 'Label bulan wajib diisi.',
+            'minggu.required'                     => 'Minimal harus ada 1 minggu yang diisi.',
+            'minggu.*.tanggal_awal.required'      => 'Tanggal awal Minggu ke-:position wajib diisi.',
+            'minggu.*.tanggal_awal.date'          => 'Tanggal awal Minggu ke-:position tidak valid.',
+            'minggu.*.tanggal_akhir.required'     => 'Tanggal akhir Minggu ke-:position wajib diisi.',
+            'minggu.*.tanggal_akhir.date'         => 'Tanggal akhir Minggu ke-:position tidak valid.',
+            'minggu.*.tanggal_akhir.after_or_equal' => 'Tanggal akhir Minggu ke-:position tidak boleh sebelum tanggal awalnya. Cek kembali kedua tanggal di minggu itu.',
         ]);
     }
 
     /**
      * Bangun data tiap minggu (grouped table) memakai rekap service yang sudah ada.
+     * Ikut hitung total gabungan Roda Empat + Roda Dua (exclude Roda Tiga) per minggu -
+     * ini yang jadi acuan angka "Pemakaian BBM untuk di Paiton" di bagian Keterangan.
      */
     private function buildWeeks(array $minggus): array
     {
@@ -241,11 +270,23 @@ class PemakaianBbmController extends Controller
         foreach ($minggus as $i => $minggu) {
             $data = $this->rekapService->build($minggu['tanggal_awal'], $minggu['tanggal_akhir']);
 
+            $groupsTanpaRodaTiga = array_values(array_filter(
+                $data['groups'],
+                fn ($g) => !str_contains($g['label'], 'Roda Tiga')
+            ));
+
+            $totalGabungan = ['liter' => 0, 'rp' => 0];
+            foreach ($groupsTanpaRodaTiga as $g) {
+                $totalGabungan['liter'] += $g['total']['liter'];
+                $totalGabungan['rp'] += $g['total']['rp'];
+            }
+
             $weeks[] = [
-                'no'           => $i + 1,
-                'periodeLabel' => $data['periodeLabel'],
-                'groups'       => $data['groups'],
-                'grandTotal'   => $data['grandTotal'],
+                'no'                 => $i + 1,
+                'periodeLabel'       => $data['periodeLabel'],
+                'groups'             => $data['groups'],
+                'grandTotal'         => $data['grandTotal'],
+                'totalGabungan'      => $totalGabungan, // = "Jumlah 1 + 2" minggu ini
             ];
         }
 
@@ -253,30 +294,20 @@ class PemakaianBbmController extends Controller
     }
 
     /**
-     * Hitung total keterangan (Paiton / Luar Paiton / Service-Oli / Jasa) untuk
-     * seluruh rentang minggu yang dipilih, dipakai di bagian "Keterangan" laporan.
+     * Bagian "Keterangan" laporan sekarang cuma 1 baris: "Pemakaian BBM untuk di
+     * Paiton", nilainya adalah total "Jumlah 1 + 2" (Roda Empat + Roda Dua) dari
+     * seluruh minggu yang dipilih, dijumlahkan.
      */
-    private function buildKeterangan(array $minggus): array
+    private function buildKeterangan(array $weeks): array
     {
-        $rows = PemakaianBbm::query()
-            ->where(function ($query) use ($minggus) {
-                foreach ($minggus as $minggu) {
-                    $query->orWhereBetween('tanggal', [$minggu['tanggal_awal'], $minggu['tanggal_akhir']]);
-                }
-            })
-            ->get();
+        $paiton = 0.0;
 
-        $paiton     = (float) $rows->where('lokasi_pembelian', 'paiton')->sum('rp');
-        $luarPaiton = (float) $rows->where('lokasi_pembelian', 'luar_paiton')->sum('rp');
-        $serviceOli = (float) $rows->sum('service_oli');
-        $jasa       = (float) $rows->sum('jasa');
+        foreach ($weeks as $week) {
+            $paiton += $week['totalGabungan']['rp'];
+        }
 
         return [
-            'paiton'      => $paiton,
-            'luar_paiton' => $luarPaiton,
-            'service_oli' => $serviceOli,
-            'jasa'        => $jasa,
-            'jumlah'      => $paiton + $luarPaiton + $serviceOli + $jasa,
+            'paiton' => $paiton,
         ];
     }
 
@@ -288,7 +319,7 @@ class PemakaianBbmController extends Controller
         $validated = $this->validatePertanggungjawaban($request);
 
         $weeks         = $this->buildWeeks($validated['minggu']);
-        $keterangan    = $this->buildKeterangan($validated['minggu']);
+        $keterangan    = $this->buildKeterangan($weeks);
         $penandatangan = Penandatangan::where('jabatan', Penandatangan::ASMAN)->first();
 
         return [

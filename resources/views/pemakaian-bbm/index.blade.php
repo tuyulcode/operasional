@@ -183,12 +183,19 @@
             </div>
 
             <div class="form-group">
-              <label for="lokasi_pembelian">Lokasi Pembelian</label>
-              <select id="lokasi_pembelian" name="lokasi_pembelian" class="form-control" required>
-                <option value="">-- Pilih Lokasi --</option>
-                <option value="paiton" {{ old('lokasi_pembelian', $edit->lokasi_pembelian ?? '') == 'paiton' ? 'selected' : '' }}>Paiton</option>
-                <option value="luar_paiton" {{ old('lokasi_pembelian', $edit->lokasi_pembelian ?? '') == 'luar_paiton' ? 'selected' : '' }}>Luar Paiton</option>
-              </select>
+              <label>Lokasi Pembelian</label>
+              <div style="display:flex; gap:20px; align-items:center; height:38px;">
+                <label style="display:flex; align-items:center; gap:6px; font-weight:400; margin:0; cursor:pointer;">
+                  <input type="radio" id="lokasi_pembelian_paiton" name="lokasi_pembelian" value="paiton"
+                         {{ old('lokasi_pembelian', $edit->lokasi_pembelian ?? '') == 'paiton' ? 'checked' : '' }} required>
+                  Paiton
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; font-weight:400; margin:0; cursor:pointer;">
+                  <input type="radio" id="lokasi_pembelian_luar_paiton" name="lokasi_pembelian" value="luar_paiton"
+                         {{ old('lokasi_pembelian', $edit->lokasi_pembelian ?? '') == 'luar_paiton' ? 'checked' : '' }} required>
+                  Luar Paiton
+                </label>
+              </div>
               <small class="form-hint form-hint-spacer">&nbsp;</small>
             </div>
 
@@ -373,7 +380,8 @@
     document.getElementById('tanggal').value = btn.dataset.tanggal;
     document.getElementById('kendaraan_id').value = btn.dataset.kendaraanId;
     document.getElementById('jenis_bbm').value = btn.dataset.jenisBbm;
-    document.getElementById('lokasi_pembelian').value = btn.dataset.lokasiPembelian;
+    const lokasiRadio = document.querySelector('input[name="lokasi_pembelian"][value="' + btn.dataset.lokasiPembelian + '"]');
+    if (lokasiRadio) lokasiRadio.checked = true;
     document.getElementById('liter').value = btn.dataset.liter;
     document.getElementById('service_oli').value = btn.dataset.serviceOli;
     document.getElementById('jasa').value = btn.dataset.jasa;
