@@ -12,5 +12,5 @@ class Penandatangan extends Model
 
     protected $table = 'penandatangan';
 
-    protected $fillable = ['jabatan', 'nama', 'tempat', 'tanggal_cetak'];
+    protected $fillable = ['jabatan', 'nama', 'tempat'];
 }

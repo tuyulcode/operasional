@@ -56,19 +56,11 @@
           @endforeach
         </div>
 
-        <div class="form-grid" style="margin-top: 22px;">
-          <div class="form-group">
-            <label for="tempat"><i class="fa-solid fa-location-dot" style="color: #999; margin-right: 5px;"></i> Tempat</label>
-            <input type="text" id="tempat" name="tempat" class="form-control"
-                   placeholder="Contoh: Paiton"
-                   value="{{ old('tempat', $penandatangan->first()->tempat ?? '') }}">
-          </div>
-
-          <div class="form-group">
-            <label for="tanggal_cetak"><i class="fa-solid fa-calendar-days" style="color: #999; margin-right: 5px;"></i> Tanggal</label>
-            <input type="date" id="tanggal_cetak" name="tanggal_cetak" class="form-control"
-                   value="{{ old('tanggal_cetak', $penandatangan->first()->tanggal_cetak ?? now()->format('Y-m-d')) }}">
-          </div>
+        <div class="form-group" style="margin-top: 22px; max-width: 320px;">
+          <label for="tempat"><i class="fa-solid fa-location-dot" style="color: #999; margin-right: 5px;"></i> Tempat</label>
+          <input type="text" id="tempat" name="tempat" class="form-control"
+                 placeholder="Contoh: Paiton"
+                 value="{{ old('tempat', $penandatangan->first()->tempat ?? '') }}">
         </div>
 
         <div class="form-actions" style="margin-top: 4px;">
@@ -107,8 +99,7 @@
           <div style="text-align: center; color: #64748b; font-size: 0.85rem; margin-top: 24px; padding-top: 14px; border-top: 1px solid #e2e8f0;">
             @php
               $previewTempat = $penandatangan->first()->tempat ?? '';
-              $previewTanggalRaw = old('tanggal_cetak', $penandatangan->first()->tanggal_cetak ?? now()->format('Y-m-d'));
-              $previewTanggal = \Carbon\Carbon::parse($previewTanggalRaw)->locale('id')->translatedFormat('d F Y');
+              $previewTanggal = now()->locale('id')->translatedFormat('d F Y');
             @endphp
             {{ ($previewTempat ? $previewTempat . ', ' : '') . $previewTanggal }}
           </div>

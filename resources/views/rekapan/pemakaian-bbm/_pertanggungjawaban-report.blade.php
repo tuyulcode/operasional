@@ -49,8 +49,7 @@
     <td style="width:40%; vertical-align:top; text-align:center; border:none;">
       @php
         $tempat = $penandatangan->tempat ?? '';
-        $tanggalCetak = $penandatangan->tanggal_cetak ?? now();
-        $tanggalCetakLabel = \Carbon\Carbon::parse($tanggalCetak)->locale('id')->translatedFormat('d F Y');
+        $tanggalCetakLabel = now()->locale('id')->translatedFormat('d F Y');
       @endphp
       {{ ($tempat ? $tempat . ', ' : '') . $tanggalCetakLabel }}<br>
       <strong>{{ strtoupper($penandatangan->jabatan ?? 'ASMAN SDM UMUM & CSR') }}</strong>
