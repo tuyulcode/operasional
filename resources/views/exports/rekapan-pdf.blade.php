@@ -408,9 +408,7 @@
     $ttdKiri = $ttd[0] ?? null;
     $ttdKanan = $ttd[1] ?? null;
     $tempatTtd = $ttdKiri ? $ttdKiri->tempat : '';
-    $tanggalTtd = ($ttdKiri && $ttdKiri->tanggal_cetak)
-        ? \Carbon\Carbon::parse($ttdKiri->tanggal_cetak)->locale('id')->translatedFormat('d F Y')
-        : now()->locale('id')->translatedFormat('d F Y');
+    $tanggalTtd = now()->locale('id')->translatedFormat('d F Y');
   ?>
   @if($ttdKiri || $ttdKanan)
     <div class="sign">

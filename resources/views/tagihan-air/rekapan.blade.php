@@ -226,8 +226,7 @@
         <div class="rekapan-ttd-tanggal">
           @php($ttdRow = $report['penandatangan']->first())
           @php($tempat = $ttdRow->tempat ?? '')
-          @php($tanggalRaw = $ttdRow->tanggal_cetak ?? now()->format('Y-m-d'))
-          @php($tanggal = \Carbon\Carbon::parse($tanggalRaw)->locale('id')->translatedFormat('d F Y'))
+          @php($tanggal = now()->locale('id')->translatedFormat('d F Y'))
           {{ ($tempat ? $tempat . ', ' : '') . $tanggal }}
         </div>
       </div>

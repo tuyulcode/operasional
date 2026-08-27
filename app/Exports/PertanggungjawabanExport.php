@@ -264,8 +264,7 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         $p = $this->data['penandatangan'];
 
         $tempat       = $p->tempat ?? '';
-        $tanggal      = $p->tanggal_cetak ?? now();
-        $tanggalLabel = \Carbon\Carbon::parse($tanggal)->locale('id')->translatedFormat('d F Y');
+        $tanggalLabel = now()->locale('id')->translatedFormat('d F Y');
 
         $sheet->mergeCells("C{$row}:D{$row}");
         $sheet->setCellValue("C{$row}", ($tempat ? $tempat . ', ' : '') . $tanggalLabel);
