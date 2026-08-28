@@ -71,7 +71,6 @@
                         data-nama="{{ $area->nama }}"
                         data-alamat="{{ $area->alamat }}"
                         data-kena-ppn="{{ $area->kena_ppn ? '1' : '0' }}"
-                        data-format-rekap="{{ $area->format_rekap }}"
                         onclick="openEditArea(this)">
                   <i class="fa-solid fa-pen"></i>
                 </button>
@@ -135,21 +134,7 @@
             </label>
           </div>
 
-          <div class="form-group" style="margin-bottom: 0; margin-top: 8px;">
-            <label for="format_rekap">Format Rekap</label>
-            <select id="format_rekap" name="format_rekap" class="form-control">
-              <option value="standar" {{ old('format_rekap', $edit->format_rekap ?? 'standar') == 'standar' ? 'selected' : '' }}>
-                Standar (satu pelanggan per tabel)
-              </option>
-              <option value="list" {{ old('format_rekap', $edit->format_rekap ?? 'standar') == 'list' ? 'selected' : '' }}>
-                List (banyak titik meter per tabel)
-              </option>
-              <option value="multikolom" {{ old('format_rekap', $edit->format_rekap ?? 'standar') == 'multikolom' ? 'selected' : '' }}>
-                Multi Kolom (satu kolom per titik meter)
-              </option>
-            </select>
-            <small style="color: #999;">Format tabel di rekap PDF / Excel.</small>
-          </div>
+
         </div>
 
         <div class="modal-footer">
@@ -202,7 +187,6 @@
     document.getElementById('nama').value = btn.dataset.nama;
     document.getElementById('alamat').value = btn.dataset.alamat || '';
     document.getElementById('kena_ppn').checked = btn.dataset.kenaPpn === '1';
-    document.getElementById('format_rekap').value = btn.dataset.formatRekap || 'standar';
     document.getElementById('areaModalTitle').textContent = 'Edit Area';
     document.getElementById('areaModal').classList.add('show');
   }
