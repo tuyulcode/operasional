@@ -6,18 +6,14 @@ use App\Exports\EtollExport;
 use App\Models\PemegangKendaraan;
 use App\Models\PemakaianEtoll;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 
 class EtollController extends Controller
 {
-    private const NAMA_BULAN = [
-        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
-    ];
-
     public function index(Request $request)
     {
         $tab = $request->query('tab', 'input');
@@ -90,128 +86,148 @@ class EtollController extends Controller
 
     public function exportPdf(Request $request)
     {
-        $periode = $this->parsePeriode($request);
-        if (!$periode) {
+        $rentang = $this->parseRentangTanggal($request);
+        if (!$rentang) {
             return redirect()->route('pemakaian-etoll.index', ['tab' => 'rekapan'])
-                ->with('error', 'Pilih bulan dan tahun terlebih dahulu untuk export.');
+                ->with('error', 'Pilih tanggal awal dan tanggal akhir terlebih dahulu untuk export.');
         }
-        [$bulan, $tahun] = $periode;
+        [$awal, $akhir] = $rentang;
 
-        $data = $this->buildLaporanData($bulan, $tahun);
+        $data = $this->buildLaporanData($awal, $akhir);
 
         $pdf = Pdf::loadView('exports.etoll-pdf', $data);
         $pdf->setPaper('a4', 'landscape');
 
-        return $pdf->stream('rekap-etoll-' . strtolower($data['bulanNama']) . '-' . $tahun . '.pdf');
+        $namaFile = 'rekap-etoll-' . $awal->format('Ymd') . '-' . $akhir->format('Ymd') . '.pdf';
+
+        return $pdf->stream($namaFile);
     }
 
     public function exportExcel(Request $request)
     {
-        $periode = $this->parsePeriode($request);
-        if (!$periode) {
+        $rentang = $this->parseRentangTanggal($request);
+        if (!$rentang) {
             return redirect()->route('pemakaian-etoll.index', ['tab' => 'rekapan'])
-                ->with('error', 'Pilih bulan dan tahun terlebih dahulu untuk export.');
+                ->with('error', 'Pilih tanggal awal dan tanggal akhir terlebih dahulu untuk export.');
         }
-        [$bulan, $tahun] = $periode;
+        [$awal, $akhir] = $rentang;
 
-        $data = $this->buildLaporanData($bulan, $tahun);
+        $data = $this->buildLaporanData($awal, $akhir);
 
-        return Excel::download(
-            new EtollExport($data),
-            'rekap-etoll-' . strtolower($data['bulanNama']) . '-' . $tahun . '.xlsx'
-        );
+        $namaFile = 'rekap-etoll-' . $awal->format('Ymd') . '-' . $akhir->format('Ymd') . '.xlsx';
+
+        return Excel::download(new EtollExport($data), $namaFile);
     }
 
     /**
-     * Parse query string 'bulan' (format YYYY-MM, dari <input type="month">).
-     * Wajib diisi & valid, tidak ada default otomatis.
+     * Parse & validasi query string 'tanggal_awal' dan 'tanggal_akhir' (format Y-m-d,
+     * dari <input type="date">). Wajib diisi keduanya, valid, dan tanggal_akhir >=
+     * tanggal_awal. Tidak ada default otomatis.
      *
-     * @return array{0: int, 1: int}|null
+     * @return array{0: Carbon, 1: Carbon}|null
      */
-    private function parsePeriode(Request $request): ?array
+    private function parseRentangTanggal(Request $request): ?array
     {
-        $bulan = $request->query('bulan');
+        $awalRaw = $request->query('tanggal_awal');
+        $akhirRaw = $request->query('tanggal_akhir');
 
-        if (!$bulan || !preg_match('/^\d{4}-\d{2}$/', $bulan)) {
+        if (!$awalRaw || !$akhirRaw) {
             return null;
         }
 
-        [$tahun, $bulanNum] = array_map('intval', explode('-', $bulan));
+        try {
+            $awal = Carbon::createFromFormat('Y-m-d', $awalRaw)->startOfDay();
+            $akhir = Carbon::createFromFormat('Y-m-d', $akhirRaw)->startOfDay();
+        } catch (\Exception $e) {
+            return null;
+        }
 
-        return [$bulanNum, $tahun];
+        if ($akhir->lt($awal)) {
+            return null;
+        }
+
+        return [$awal, $akhir];
     }
 
     /**
-     * Susun data buat tab Rekapan (ditampilkan di layar). Kalau bulan belum
-     * dipilih, kembalikan data kosong supaya view bisa nampilin placeholder
-     * "silakan pilih bulan dulu", bukan langsung nampilin laporan bulan berjalan.
+     * Susun data buat tab Rekapan (ditampilkan di layar). Kalau tanggal awal/akhir
+     * belum dipilih atau tidak valid, kembalikan data kosong supaya view bisa
+     * nampilin placeholder "silakan pilih tanggal dulu".
      */
     private function buildReport(Request $request): array
     {
-        $bulanRaw = $request->query('bulan');
-        $periode = $this->parsePeriode($request);
+        $tanggalAwalRaw = $request->query('tanggal_awal');
+        $tanggalAkhirRaw = $request->query('tanggal_akhir');
+        $rentang = $this->parseRentangTanggal($request);
 
-        if (!$periode) {
+        if (!$rentang) {
             return [
-                'bulanRaw' => $bulanRaw,
+                'tanggalAwalRaw' => $tanggalAwalRaw,
+                'tanggalAkhirRaw' => $tanggalAkhirRaw,
                 'pemegangs' => collect(),
                 'rows' => [],
                 'totalPerPemegang' => [],
                 'totalKeseluruhan' => 0,
-                'bulan' => null,
-                'tahun' => null,
-                'bulanNama' => null,
+                'awal' => null,
+                'akhir' => null,
                 'periodeLabel' => null,
             ];
         }
 
-        [$bulan, $tahun] = $periode;
-        $data = $this->buildLaporanData($bulan, $tahun);
-        $data['bulanRaw'] = $bulanRaw;
-        $data['periodeLabel'] = $data['bulanNama'] . ' ' . $tahun;
+        [$awal, $akhir] = $rentang;
+        $data = $this->buildLaporanData($awal, $akhir);
+        $data['tanggalAwalRaw'] = $tanggalAwalRaw;
+        $data['tanggalAkhirRaw'] = $tanggalAkhirRaw;
 
         return $data;
     }
 
     /**
-     * Susun data laporan pivot per tanggal: baris = tanggal (1 s/d akhir bulan),
-     * kolom = nama pemegang kendaraan. Filter tetap per bulan & tahun.
+     * Susun data laporan pivot per tanggal (bisa lintas bulan/tahun): baris = setiap
+     * tanggal dari $awal s/d $akhir (inklusif), kolom = nama pemegang kendaraan.
      */
-    private function buildLaporanData(int $bulan, int $tahun): array
+    private function buildLaporanData(Carbon $awal, Carbon $akhir): array
     {
         $pemegangs = PemegangKendaraan::orderBy('id')->get();
+        $pemegangIds = $pemegangs->pluck('id')->all();
 
-        $transaksi = PemakaianEtoll::whereMonth('tanggal', $bulan)
-            ->whereYear('tanggal', $tahun)
-            ->get();
+        $transaksi = PemakaianEtoll::whereBetween('tanggal', [
+            $awal->format('Y-m-d'),
+            $akhir->format('Y-m-d'),
+        ])->get();
 
-        $jumlahHari = \Carbon\Carbon::create($tahun, $bulan, 1)->daysInMonth;
+        $periode = CarbonPeriod::create($awal, $akhir);
 
-        // nilai[tanggal][pemegang_id] = total nominal di tanggal itu
+        // nilai[Y-m-d][pemegang_id] = total nominal di tanggal itu
         $nilai = [];
-        for ($tgl = 1; $tgl <= $jumlahHari; $tgl++) {
-            $nilai[$tgl] = array_fill_keys($pemegangs->pluck('id')->all(), 0);
+        foreach ($periode as $tgl) {
+            $nilai[$tgl->format('Y-m-d')] = array_fill_keys($pemegangIds, 0);
         }
 
         foreach ($transaksi as $item) {
-            $tgl = $item->tanggal->day;
-            $nilai[$tgl][$item->pemegang_kendaraan_id] = ($nilai[$tgl][$item->pemegang_kendaraan_id] ?? 0) + (float) $item->nominal;
+            $key = $item->tanggal->format('Y-m-d');
+            if (!isset($nilai[$key])) {
+                continue;
+            }
+            $nilai[$key][$item->pemegang_kendaraan_id] = ($nilai[$key][$item->pemegang_kendaraan_id] ?? 0) + (float) $item->nominal;
         }
 
         $rows = [];
-        $totalPerPemegang = array_fill_keys($pemegangs->pluck('id')->all(), 0);
+        $totalPerPemegang = array_fill_keys($pemegangIds, 0);
         $totalKeseluruhan = 0;
 
-        for ($tgl = 1; $tgl <= $jumlahHari; $tgl++) {
-            $rowTotal = array_sum($nilai[$tgl]);
+        foreach ($periode as $tgl) {
+            $key = $tgl->format('Y-m-d');
+            $rowTotal = array_sum($nilai[$key]);
 
             $rows[] = [
-                'tanggal' => $tgl,
-                'nilai' => $nilai[$tgl],
+                'tanggalKey' => $key,
+                'tanggal' => $tgl->format('d/m'),
+                'nilai' => $nilai[$key],
                 'total' => $rowTotal,
             ];
 
-            foreach ($nilai[$tgl] as $pemegangId => $val) {
+            foreach ($nilai[$key] as $pemegangId => $val) {
                 $totalPerPemegang[$pemegangId] += $val;
             }
             $totalKeseluruhan += $rowTotal;
@@ -222,9 +238,9 @@ class EtollController extends Controller
             'rows' => $rows,
             'totalPerPemegang' => $totalPerPemegang,
             'totalKeseluruhan' => $totalKeseluruhan,
-            'bulan' => $bulan,
-            'tahun' => $tahun,
-            'bulanNama' => self::NAMA_BULAN[$bulan] ?? (string) $bulan,
+            'awal' => $awal,
+            'akhir' => $akhir,
+            'periodeLabel' => $awal->translatedFormat('d F Y') . ' - ' . $akhir->translatedFormat('d F Y'),
         ];
     }
 }
