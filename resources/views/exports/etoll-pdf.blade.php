@@ -34,7 +34,7 @@
       border: 1px solid #000000;
     }
 
-    td.tanggal { text-align: center; width: 26px; }
+    td.nama { text-align: left; white-space: nowrap; }
     td.angka { text-align: right; }
 
     tfoot td {
@@ -49,35 +49,35 @@
 <body>
 
   <p class="header-title">Rekap E-Toll</p>
-  <p class="header-sub">Periode Bulan {{ $bulanNama }} {{ $tahun }}</p>
+  <p class="header-sub">Periode {{ $periodeLabel }}</p>
 
   <table>
     <tr class="kategori">
-      <td colspan="{{ $pemegangs->count() + 2 }}">A. Roda Empat</td>
+      <td colspan="{{ count($rows) + 2 }}">A. Roda Empat</td>
     </tr>
     <thead>
       <tr>
-        <th>Tanggal</th>
-        @foreach($pemegangs as $p)
-          <th>{{ $p->nama }}</th>
+        <th>Nama</th>
+        @foreach($rows as $row)
+          <th>{{ $row['tanggal'] }}</th>
         @endforeach
         <th>Jumlah</th>
       </tr>
     </thead>
     <tbody>
-      @foreach($rows as $row)
+      @foreach($pemegangs as $p)
       <tr>
-        <td class="tanggal">{{ $row['tanggal'] }}</td>
-        @foreach($pemegangs as $p)
+        <td class="nama">{{ $p->nama }}</td>
+        @foreach($rows as $row)
           <td class="angka">{{ ($row['nilai'][$p->id] ?? 0) > 0 ? number_format($row['nilai'][$p->id], 0, ',', '.') : '-' }}</td>
         @endforeach
-        <td class="angka">{{ $row['total'] > 0 ? number_format($row['total'], 0, ',', '.') : '-' }}</td>
+        <td class="angka" style="font-weight: bold;">{{ ($totalPerPemegang[$p->id] ?? 0) > 0 ? number_format($totalPerPemegang[$p->id], 0, ',', '.') : '-' }}</td>
       </tr>
       @endforeach
     </tbody>
     <tfoot>
       <tr>
-        <td colspan="{{ $pemegangs->count() + 1 }}" style="text-align: center;">Total</td>
+        <td colspan="{{ count($rows) + 1 }}" style="text-align: center;">Total</td>
         <td class="angka">{{ number_format($totalKeseluruhan, 0, ',', '.') }}</td>
       </tr>
     </tfoot>
