@@ -79,6 +79,8 @@ Route::middleware('auth')->group(function () {
     Route::prefix('harga-bbm')->name('harga-bbm.')->group(function () {
         Route::get('/', [HargaBbmController::class, 'index'])->name('index');
         Route::post('/', [HargaBbmController::class, 'store'])->name('store');
+        Route::put('/{hargaBbm}', [HargaBbmController::class, 'update'])->name('update');
+        Route::delete('/{hargaBbm}', [HargaBbmController::class, 'destroy'])->name('destroy');
     });
 
     Route::prefix('pemakaian-etoll')->name('pemakaian-etoll.')->group(function () {
