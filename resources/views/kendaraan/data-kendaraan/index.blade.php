@@ -120,11 +120,30 @@
             </select>
           </div>
 
+          {{-- PLAT NOMOR: 3 FIELD TERPISAH (DEPAN - TENGAH - BELAKANG) --}}
           <div class="form-group">
-            <label for="plat_nomor">Plat Nomor</label>
-            <input type="text" id="plat_nomor" name="plat_nomor" class="form-control"
-                   placeholder="Contoh: B 1234 ABC"
-                   value="{{ old('plat_nomor', $edit->plat_nomor ?? '') }}" required>
+            <label for="plat_depan">Plat Nomor</label>
+            @php
+              $platParts = explode(' ', old('plat_nomor_raw', $edit->plat_nomor ?? ''));
+            @endphp
+            <div class="plat-nomor-group">
+              <input type="text" id="plat_depan" name="plat_depan" class="form-control plat-depan"
+                     placeholder="AG" maxlength="2" autocomplete="off"
+                     oninput="formatPlatDepan(this)"
+                     value="{{ old('plat_depan', $platParts[0] ?? '') }}" required>
+              <span class="plat-sep">-</span>
+              <input type="text" id="plat_tengah" name="plat_tengah" class="form-control plat-tengah"
+                     placeholder="1234" maxlength="4" autocomplete="off" inputmode="numeric"
+                     oninput="formatPlatTengah(this)"
+                     value="{{ old('plat_tengah', $platParts[1] ?? '') }}" required>
+              <span class="plat-sep">-</span>
+              <input type="text" id="plat_belakang" name="plat_belakang" class="form-control plat-belakang"
+                     placeholder="ABC" maxlength="3" autocomplete="off"
+                     oninput="formatPlatBelakang(this)"
+                     value="{{ old('plat_belakang', $platParts[2] ?? '') }}">
+            </div>
+            {{-- field gabungan yang benar-benar dikirim ke server --}}
+            <input type="hidden" id="plat_nomor" name="plat_nomor" value="{{ $edit->plat_nomor ?? '' }}">
           </div>
 
           <div class="form-group">
@@ -243,6 +262,37 @@
     background-color: #b91c1c;
     border-color: #b91c1c;
   }
+
+  /* PLAT NOMOR 3 FIELD */
+  .plat-nomor-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .plat-nomor-group .form-control {
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  .plat-depan {
+    flex: 0 0 60px;
+  }
+
+  .plat-tengah {
+    flex: 0 0 90px;
+  }
+
+  .plat-belakang {
+    flex: 0 0 70px;
+  }
+
+  .plat-sep {
+    color: #9ca3af;
+    font-weight: 700;
+  }
 </style>
 @endpush
 
@@ -251,6 +301,7 @@
   document.addEventListener('DOMContentLoaded', function() {
     const overlay = document.getElementById('kendaraanModal');
     const deleteOverlay = document.getElementById('deleteKendaraanModal');
+    const kendaraanForm = document.getElementById('kendaraanForm');
 
     overlay.addEventListener('click', function(e) {
       if (e.target === overlay) closeKendaraanModal();
@@ -267,10 +318,37 @@
       }
     });
 
+    // Gabungkan 3 field plat nomor jadi satu sebelum form dikirim
+    kendaraanForm.addEventListener('submit', function() {
+      combinePlatNomor();
+    });
+
     @if($edit || $errors->any())
       document.getElementById('kendaraanModal').classList.add('show');
     @endif
   });
+
+  // ===== Format & batasi input plat nomor =====
+  function formatPlatDepan(el) {
+    el.value = el.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
+  }
+
+  function formatPlatTengah(el) {
+    el.value = el.value.replace(/[^0-9]/g, '').slice(0, 4);
+  }
+
+  function formatPlatBelakang(el) {
+    el.value = el.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
+  }
+
+  function combinePlatNomor() {
+    const depan = document.getElementById('plat_depan').value.trim();
+    const tengah = document.getElementById('plat_tengah').value.trim();
+    const belakang = document.getElementById('plat_belakang').value.trim();
+    document.getElementById('plat_nomor').value = [depan, tengah, belakang]
+      .filter(Boolean)
+      .join(' ');
+  }
 
   function openAddKendaraan() {
     const form = document.getElementById('kendaraanForm');
@@ -288,7 +366,13 @@
     form.action = '{{ route('kendaraan.update', '__ID__') }}'.replace('__ID__', btn.dataset.id);
     document.getElementById('kendaraanMethod').value = 'PUT';
     document.getElementById('jenis_kendaraan_id').value = btn.dataset.jenisKendaraanId;
-    document.getElementById('plat_nomor').value = btn.dataset.platNomor;
+
+    // Pecah plat_nomor lama (contoh: "AG 1234 XX") jadi 3 field
+    const platParts = (btn.dataset.platNomor || '').trim().split(/\s+/);
+    document.getElementById('plat_depan').value = platParts[0] || '';
+    document.getElementById('plat_tengah').value = platParts[1] || '';
+    document.getElementById('plat_belakang').value = platParts[2] || '';
+
     document.getElementById('nama_jenis').value = btn.dataset.namaJenis;
     document.getElementById('unit').value = btn.dataset.unit;
     document.getElementById('kendaraanModalTitle').textContent = 'Edit Kendaraan';
