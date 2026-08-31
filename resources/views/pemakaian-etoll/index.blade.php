@@ -52,7 +52,7 @@
       <div class="card-header">
         <div class="card-header-title">
           <h3>Pemakaian E-Toll</h3>
-          <p>Daftar catatan pemakaian e-toll kendaraan</p>
+          <p>Catatan penggunaan </p>
         </div>
         <div class="card-actions">
           <button type="button" class="btn btn-primary btn-sm" onclick="openAddEtoll()">
@@ -66,7 +66,7 @@
             <thead>
               <tr>
                 <th>No</th>
-                <th>Tanggal</th>
+                <th>Tanggal Pengisian</th>
                 <th>Pemegang Kendaraan</th>
                 <th>Nominal</th>
                 <th>Aksi</th>
@@ -143,7 +143,7 @@
             </div>
 
             <div class="form-group">
-              <label for="tanggal">Tanggal</label>
+              <label for="tanggal">Tanggal Pengisian</label>
               <input type="date" id="tanggal" name="tanggal" class="form-control"
                      value="{{ old('tanggal', isset($edit) ? \Carbon\Carbon::parse($edit->tanggal)->format('Y-m-d') : now()->format('Y-m-d')) }}" required>
             </div>
