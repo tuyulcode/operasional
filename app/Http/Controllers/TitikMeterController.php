@@ -22,7 +22,6 @@ class TitikMeterController extends Controller
             'lokasi_flow_meter' => 'nullable|string|max:255',
             'meter_faktor' => 'required|numeric|min:0',
             'tarif_harga' => 'required|numeric|gt:0',
-            'status' => 'required|in:aktif,nonaktif',
         ]);
     }
 
@@ -42,6 +41,7 @@ class TitikMeterController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validatedData($request);
+        $validated['status'] = 'aktif';
 
         TitikMeter::create($validated);
 
@@ -74,5 +74,15 @@ class TitikMeterController extends Controller
 
         return redirect()->route('titik-meter.index')
             ->with('success', 'Data titik meter berhasil dihapus.');
+    }
+
+    public function toggleStatus($id)
+    {
+        $titikMeter = TitikMeter::findOrFail($id);
+        $newStatus = $titikMeter->status === 'aktif' ? 'nonaktif' : 'aktif';
+        $titikMeter->update(['status' => $newStatus]);
+
+        return redirect()->route('titik-meter.index')
+            ->with('success', "Titik meter {$titikMeter->nama} berhasil di{$newStatus}.");
     }
 }

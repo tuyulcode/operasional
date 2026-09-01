@@ -63,9 +63,14 @@
               <td>{{ $titikMeter->meter_faktor }}</td>
               <td>Rp {{ number_format($titikMeter->tarif_harga, 2, ',', '.') }}</td>
               <td>
-                <span class="badge-status {{ $titikMeter->status == 'aktif' ? 'badge-aktif' : 'badge-nonaktif' }}">
-                  {{ ucfirst($titikMeter->status) }}
-                </span>
+                <form action="{{ route('titik-meter.toggle-status', $titikMeter->id) }}" method="POST" style="display:inline;">
+                  @csrf
+                  <button type="submit" class="btn-toggle-status {{ $titikMeter->status == 'aktif' ? 'status-aktif' : 'status-nonaktif' }}"
+                          title="Klik untuk {{ $titikMeter->status == 'aktif' ? 'nonaktifkan' : 'aktifkan' }}">
+                    <i class="fa-solid fa-{{ $titikMeter->status == 'aktif' ? 'circle-check' : 'circle-xmark' }}"></i>
+                    {{ ucfirst($titikMeter->status) }}
+                  </button>
+                </form>
               </td>
               <td>
                 <button type="button" class="btn btn-icon btn-edit" title="Edit"
@@ -75,7 +80,6 @@
                         data-lokasi-flow-meter="{{ $titikMeter->lokasi_flow_meter }}"
                         data-meter-faktor="{{ $titikMeter->meter_faktor }}"
                         data-tarif-harga="{{ $titikMeter->tarif_harga }}"
-                        data-status="{{ $titikMeter->status }}"
                         onclick="openEditTitikMeter(this)">
                   <i class="fa-solid fa-pen"></i>
                 </button>
@@ -159,13 +163,6 @@
                    value="{{ old('tarif_harga', $edit->tarif_harga ?? '0') }}" required>
           </div>
 
-          <div class="form-group" style="margin-bottom: 0;">
-            <label for="status">Status</label>
-            <select id="status" name="status" class="form-control" required>
-              <option value="aktif" {{ old('status', $edit->status ?? '') == 'aktif' ? 'selected' : '' }}>Aktif</option>
-              <option value="nonaktif" {{ old('status', $edit->status ?? '') == 'nonaktif' ? 'selected' : '' }}>Nonaktif</option>
-            </select>
-          </div>
         </div>
 
         <div class="modal-footer">
@@ -280,7 +277,6 @@
     document.getElementById('nama').value = btn.dataset.nama;
     document.getElementById('lokasi_flow_meter').value = btn.dataset.lokasiFlowMeter || '';
     document.getElementById('meter_faktor').value = btn.dataset.meterFaktor;
-    document.getElementById('status').value = btn.dataset.status;
     const hargaInput = document.getElementById('tarif_harga');
     hargaInput.value = btn.dataset.tarifHarga ? Number(btn.dataset.tarifHarga).toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '';
     document.getElementById('titikMeterModalTitle').textContent = 'Edit Titik Meter';
