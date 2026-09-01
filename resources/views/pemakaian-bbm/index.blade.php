@@ -78,12 +78,12 @@
           <thead>
             <tr>
               <th>No</th>
-              <th>Tanggal</th>
+              <th>Tanggal Pengisian</th>
               <th>Kendaraan</th>
               <th>Jenis BBM</th>
               <th>Lokasi</th>
               <th>Liter</th>
-              <th>Sparepart Consumable</th>
+              <th style="text-align:center;">Sparepart</th>
               <th>Jasa</th>
               <th>Jumlah</th>
               <th>Aksi</th>
@@ -91,14 +91,21 @@
           </thead>
           <tbody>
             @forelse($pemakaianBbms as $i => $item)
+            @php
+              // Tampilkan liter sesuai jumlah desimal yang diinput (maks 3), tanpa nol berlebih di belakang
+              $literDisplay = '-';
+              if ($item->liter) {
+                $literDisplay = rtrim(rtrim(number_format($item->liter, 3, ',', '.'), '0'), ',');
+              }
+            @endphp
             <tr>
               <td>{{ $pemakaianBbms->firstItem() + $i }}</td>
               <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d/m/Y') }}</td>
               <td>{{ $item->kendaraan->plat_nomor ?? '-' }}</td>
               <td>{{ $jenisBbmLabels[$item->jenis_bbm] ?? '-' }}</td>
               <td>{{ $item->lokasi_pembelian === 'luar_paiton' ? 'Luar Paiton' : 'Paiton' }}</td>
-              <td>{{ $item->liter ? number_format($item->liter, 3, ',', '.') : '-' }}</td>
-              <td>{{ $item->service_oli ? number_format($item->service_oli, 0, ',', '.') : '-' }}</td>
+              <td>{{ $literDisplay }}</td>
+              <td style="text-align:center;">{{ $item->service_oli ? number_format($item->service_oli, 0, ',', '.') : '-' }}</td>
               <td>{{ $item->jasa ? number_format($item->jasa, 0, ',', '.') : '-' }}</td>
               <td>{{ number_format($item->jumlah, 0, ',', '.') }}</td>
               <td>
@@ -209,7 +216,7 @@
             <div class="form-group">
               <label for="liter">Liter</label>
               <input type="text" inputmode="decimal" id="liter" name="liter" class="form-control"
-                     placeholder="0.000" value="{{ old('liter', $edit->liter ?? '') }}">
+                     placeholder="0,000" value="{{ old('liter', isset($edit->liter) ? str_replace('.', ',', (string) $edit->liter) : '') }}">
               <small class="form-hint">Input 0, jika tidak ada data (maks. 3 angka di belakang koma)</small>
             </div>
           </div>
@@ -444,14 +451,15 @@
     document.getElementById('jenis_bbm').addEventListener('change', updateHargaPerLiterDisplay);
     document.getElementById('tanggal').addEventListener('change', updateHargaPerLiterDisplay);
 
+    // Liter: pakai KOMA sebagai pemisah desimal, maksimal 3 angka di belakang koma
     document.getElementById('liter').addEventListener('input', function() {
-      let v = this.value.replace(/[^0-9.]/g, '');
-      const firstDot = v.indexOf('.');
-      if (firstDot !== -1) {
-        v = v.slice(0, firstDot + 1) + v.slice(firstDot + 1).replace(/\./g, '');
-        const decimals = v.slice(firstDot + 1);
+      let v = this.value.replace(/[^0-9,]/g, '');
+      const firstComma = v.indexOf(',');
+      if (firstComma !== -1) {
+        v = v.slice(0, firstComma + 1) + v.slice(firstComma + 1).replace(/,/g, '');
+        const decimals = v.slice(firstComma + 1);
         if (decimals.length > 3) {
-          v = v.slice(0, firstDot + 1) + decimals.slice(0, 3);
+          v = v.slice(0, firstComma + 1) + decimals.slice(0, 3);
         }
       }
       this.value = v;
@@ -473,6 +481,10 @@
     pemakaianForm.addEventListener('submit', function() {
       serviceOliInput.value = serviceOliInput.value.replace(/[^\d]/g, '');
       jasaInput.value = jasaInput.value.replace(/[^\d]/g, '');
+
+      // Kirim ke server pakai titik (format numerik standar), tampilan tetap koma
+      const literInput = document.getElementById('liter');
+      literInput.value = literInput.value.replace(',', '.');
     });
 
     @if($edit || $errors->any())
@@ -543,7 +555,8 @@
     const lokasiRadio = document.querySelector('input[name="lokasi_pembelian"][value="' + btn.dataset.lokasiPembelian + '"]');
     if (lokasiRadio) lokasiRadio.checked = true;
 
-    document.getElementById('liter').value = btn.dataset.liter;
+    // dataset.liter datang dari DB pakai titik (mis. "12.500") - tampilkan pakai koma
+    document.getElementById('liter').value = String(btn.dataset.liter || '').replace('.', ',');
     document.getElementById('service_oli').value = btn.dataset.serviceOli;
     document.getElementById('jasa').value = btn.dataset.jasa;
     formatRupiah(document.getElementById('service_oli'));
