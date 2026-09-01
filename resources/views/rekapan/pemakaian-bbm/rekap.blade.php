@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Rekap Pemakaian BBM')
+@section('title', 'Rekap BBM & Consumable')
 
 @section('content')
 

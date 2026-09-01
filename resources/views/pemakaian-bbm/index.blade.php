@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Pemakaian BBM')
+@section('title', 'BBM & Consumable')
 
 @section('content')
 
@@ -14,13 +14,13 @@
   @endphp
 
   <div class="page-header">
-    <div class="page-title">Pemakaian BBM</div>
+    <div class="page-title">BBM & Consumable</div>
     <ul class="breadcrumb">
       <li><a href="{{ route('dashboard') }}">Dashboard</a></li>
       <li><i class="fa-solid fa-angle-right"></i></li>
       <li>Transaksi</li>
       <li><i class="fa-solid fa-angle-right"></i></li>
-      <li>Pemakaian BBM</li>
+      <li>BBM & Consumable</li>
     </ul>
   </div>
 
@@ -63,8 +63,8 @@
   <div class="card">
     <div class="card-header">
       <div class="card-header-title">
-        <h3>Pemakaian BBM</h3>
-        <p>Input transaksi pemakaian BBM harian per kendaraan</p>
+        <h3>BBM & Consumable</h3>
+        <p>Input transaksi pemakaian BBM dan Consumable harian per kendaraan</p>
       </div>
       <div class="card-actions">
         <button type="button" class="btn btn-primary btn-sm" onclick="openAddPemakaian()">
@@ -125,7 +125,7 @@
             <tr>
               <td colspan="10" style="text-align: center; padding: 30px; color: #999;">
                 <i class="fa-solid fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
-                Belum ada data pemakaian BBM
+                Belum ada data pemakaian BBM & Consumable
               </td>
             </tr>
             @endforelse

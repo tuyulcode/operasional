@@ -39,7 +39,7 @@
       <a href="{{ route('pemakaian-bbm.index') }}" class="menu-link">
         <div class="link-left">
           <i class="fa-solid fa-gas-pump link-icon"></i>
-          <span class="link-text">Pemakaian BBM</span>
+          <span class="link-text">BBM & Consumable</span>
         </div>
       </a>
     </li>
