@@ -54,6 +54,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [TitikMeterController::class, 'index'])->name('index');
         Route::post('/', [TitikMeterController::class, 'store'])->name('store');
         Route::put('/{id}', [TitikMeterController::class, 'update'])->name('update');
+        Route::post('/{id}/toggle-status', [TitikMeterController::class, 'toggleStatus'])->name('toggle-status');
         Route::delete('/{id}', [TitikMeterController::class, 'destroy'])->name('destroy');
     });
 

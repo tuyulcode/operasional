@@ -106,15 +106,15 @@
             <div class="form-group">
               <label for="meter_faktor">Meter Faktor</label>
               <input type="number" id="meter_faktor" name="meter_faktor" class="form-control"
-                     step="0.01" min="0" placeholder="Contoh: 1"
-                     value="{{ old('meter_faktor', $edit->meter_faktor ?? '1') }}" required>
+                     step="0.01" min="0" readonly
+                     value="{{ old('meter_faktor', $edit->meter_faktor ?? '1') }}">
             </div>
 
             <div class="form-group">
               <label for="tarif">Tarif (Rp/m³)</label>
               <input type="text" id="tarif" name="tarif" class="form-control"
-                     inputmode="numeric" placeholder="Contoh: 5.000"
-                     value="{{ old('tarif', $edit ? number_format($edit->tarif, 2, ',', '.') : '') }}" required>
+                     inputmode="numeric" readonly
+                     value="{{ old('tarif', $edit ? number_format($edit->tarif, 2, ',', '.') : '') }}">
             </div>
 
             <div class="form-group">

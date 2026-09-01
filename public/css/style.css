@@ -1155,6 +1155,53 @@ textarea.form-control {
 }
 
 /* ==========================================
+   TOGGLE STATUS BUTTON
+   ========================================== */
+.btn-toggle-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1.4;
+}
+
+.btn-toggle-status i {
+  font-size: 0.7rem;
+}
+
+.btn-toggle-status.status-aktif {
+  background-color: #e6f9f4;
+  color: #0f9d74;
+  border: 1px solid #b2ebe1;
+}
+
+.btn-toggle-status.status-aktif:hover {
+  background-color: #d0f4ea;
+  border-color: #8eddc9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(15, 157, 116, 0.2);
+}
+
+.btn-toggle-status.status-nonaktif {
+  background-color: #f1f3f5;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+}
+
+.btn-toggle-status.status-nonaktif:hover {
+  background-color: #e2e6ea;
+  border-color: #cdd3d8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(108, 117, 125, 0.15);
+}
+
+/* ==========================================
    TABS STYLES
    ========================================== */
 .tabs-nav {
@@ -1436,6 +1483,28 @@ body.dark-mode .btn-secondary:hover {
 body.dark-mode .badge-nonaktif {
   background-color: #334155;
   color: #94a3b8;
+}
+
+body.dark-mode .btn-toggle-status.status-aktif {
+  background-color: rgba(15, 157, 116, 0.15);
+  color: #34d399;
+  border-color: rgba(15, 157, 116, 0.3);
+}
+
+body.dark-mode .btn-toggle-status.status-aktif:hover {
+  background-color: rgba(15, 157, 116, 0.25);
+  border-color: rgba(15, 157, 116, 0.5);
+}
+
+body.dark-mode .btn-toggle-status.status-nonaktif {
+  background-color: #334155;
+  color: #94a3b8;
+  border-color: #475569;
+}
+
+body.dark-mode .btn-toggle-status.status-nonaktif:hover {
+  background-color: #475569;
+  border-color: #64748b;
 }
 
 body.dark-mode .alert-success {
