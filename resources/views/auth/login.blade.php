@@ -365,7 +365,7 @@
           </div>
           <div class="feature">
             <i class="fa-solid fa-check"></i>
-            Pemakaian BBM bensin &amp; solar
+            BBM & Consumable
           </div>
           <div class="feature">
             <i class="fa-solid fa-check"></i>

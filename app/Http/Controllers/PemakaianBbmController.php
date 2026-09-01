@@ -30,24 +30,31 @@ class PemakaianBbmController extends Controller
 
         $kendaraans = Kendaraan::orderBy('plat_nomor')->get();
 
-        // Map jenis BBM -> harga per liter, dipakai JS buat nampilin harga otomatis (read-only)
-        $hargaBbmMap = HargaBbm::pluck('harga_paiton', 'jenis');
+        // Daftar riwayat harga BBM (urut terbaru dulu), dipakai JS buat nyari harga
+        // yang berlaku pada tanggal transaksi + jenis BBM yang dipilih.
+        $hargaBbmList = HargaBbm::orderByDesc('tanggal_berlaku')->get()->map(function ($h) {
+            return [
+                'tanggal_berlaku'      => $h->tanggal_berlaku->format('Y-m-d'),
+                'harga_pertamax'       => (float) $h->harga_pertamax,
+                'harga_pertadex'       => (float) $h->harga_pertadex,
+                'harga_dexlite'        => (float) $h->harga_dexlite,
+                'harga_pertamax_turbo' => (float) $h->harga_pertamax_turbo,
+            ];
+        });
 
         $edit = null;
         if ($request->has('edit')) {
             $edit = PemakaianBbm::with('hargaBbm')->find($request->query('edit'));
         }
 
-        return view('pemakaian-bbm.index', compact('pemakaianBbms', 'kendaraans', 'edit', 'hargaBbmMap'));
+        return view('pemakaian-bbm.index', compact('pemakaianBbms', 'kendaraans', 'edit', 'hargaBbmList'));
     }
 
     public function store(Request $request)
     {
         $validated = $this->validatePemakaian($request);
 
-        $hargaBbm = HargaBbm::where('jenis', $validated['jenis_bbm'])->firstOrFail();
-
-        PemakaianBbm::create($this->buildPayload($validated, $hargaBbm));
+        PemakaianBbm::create($this->buildPayload($validated));
 
         return redirect()->route('pemakaian-bbm.index')
             ->with('success', 'Data pemakaian BBM berhasil disimpan.');
@@ -59,9 +66,7 @@ class PemakaianBbmController extends Controller
 
         $validated = $this->validatePemakaian($request);
 
-        $hargaBbm = HargaBbm::where('jenis', $validated['jenis_bbm'])->firstOrFail();
-
-        $pemakaian->update($this->buildPayload($validated, $hargaBbm));
+        $pemakaian->update($this->buildPayload($validated));
 
         return redirect()->route('pemakaian-bbm.index')
             ->with('success', 'Data pemakaian BBM berhasil diperbarui.');
@@ -177,7 +182,7 @@ class PemakaianBbmController extends Controller
         return $request->validate([
             'tanggal'          => 'required|date',
             'kendaraan_id'     => 'required|exists:kendaraan,id',
-            'jenis_bbm'        => 'required|in:bensin,solar',
+            'jenis_bbm'        => 'required|in:pertamax,pertadex,dexlite,pertamax_turbo',
             'lokasi_pembelian' => 'required|in:paiton,luar_paiton',
             'liter'            => 'nullable|numeric|min:0',
             'service_oli'      => 'nullable|numeric|min:0',
@@ -188,6 +193,7 @@ class PemakaianBbmController extends Controller
             'kendaraan_id.required'     => 'Kendaraan wajib dipilih.',
             'kendaraan_id.exists'       => 'Kendaraan tidak valid.',
             'jenis_bbm.required'        => 'Jenis BBM wajib dipilih.',
+            'jenis_bbm.in'              => 'Jenis BBM tidak valid.',
             'lokasi_pembelian.required' => 'Lokasi pembelian wajib dipilih.',
             'liter.numeric'             => 'Liter harus berupa angka.',
             'service_oli.numeric'       => 'Sparepart Consumable harus berupa angka.',
@@ -195,19 +201,41 @@ class PemakaianBbmController extends Controller
         ]);
     }
 
-    private function buildPayload(array $validated, HargaBbm $hargaBbm): array
+    /**
+     * Cari harga BBM yang sedang berlaku untuk sebuah tanggal (baris dengan
+     * tanggal_berlaku terbaru yang <= tanggal transaksi), lalu hitung Rp dari
+     * kolom harga sesuai jenis BBM yang dipilih.
+     */
+    private function buildPayload(array $validated): array
     {
+        $tanggal  = $validated['tanggal'];
+        $jenisBbm = $validated['jenis_bbm'];
+
+        $hargaBbm = HargaBbm::where('tanggal_berlaku', '<=', $tanggal)
+            ->orderByDesc('tanggal_berlaku')
+            ->first();
+
+        if (!$hargaBbm) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'jenis_bbm' => 'Belum ada data harga BBM yang berlaku untuk tanggal ini. Tambahkan dulu di menu Harga BBM.',
+            ]);
+        }
+
+        $kolomHarga    = 'harga_' . $jenisBbm;
+        $hargaPerLiter = (float) $hargaBbm->{$kolomHarga};
+
         $liter      = (float) ($validated['liter'] ?? 0);
         $serviceOli = (float) ($validated['service_oli'] ?? 0);
         $jasa       = (float) ($validated['jasa'] ?? 0);
 
-        $rp     = $liter * $hargaBbm->harga_paiton;
+        $rp     = $liter * $hargaPerLiter;
         $jumlah = $rp + $serviceOli + $jasa;
 
         return [
             'kendaraan_id'     => $validated['kendaraan_id'],
             'harga_bbm_id'     => $hargaBbm->id,
-            'tanggal'          => $validated['tanggal'],
+            'jenis_bbm'        => $jenisBbm,
+            'tanggal'          => $tanggal,
             'lokasi_pembelian' => $validated['lokasi_pembelian'],
             'liter'            => $liter,
             'rp'               => $rp,
