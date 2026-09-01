@@ -14,6 +14,8 @@ class RekapanExcel
 
     private const GRAND_FILL = 'FFe2efda';
 
+    private const PPN_FILL = 'FFE2EFDA';
+
     public static function generate(array $report): Spreadsheet
     {
         $spreadsheet = new Spreadsheet;
@@ -62,31 +64,49 @@ class RekapanExcel
 
     private static function headerBlock(Worksheet $sheet, string $periodeLabel, string $lastCol): int
     {
+        $sheet->getParent()->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
+
         $logo = public_path('images/logo.png');
         if (is_file($logo)) {
             $drawing = new Drawing;
             $drawing->setName('logo');
             $drawing->setPath($logo);
             $drawing->setCoordinates('A1');
-            $drawing->setOffsetX(2);
-            $drawing->setOffsetY(2);
-            $drawing->setWidth(64);
+            $drawing->setOffsetX(5);
+            $drawing->setOffsetY(5);
+            $drawing->setWidth(100);
             $drawing->setWorksheet($sheet);
-            $sheet->getRowDimension(1)->setRowHeight(30);
+            $sheet->getRowDimension(1)->setRowHeight(35);
         }
 
-        $sheet->setCellValue('A2', 'TAGIHAN AIR BULANAN');
-        $sheet->setCellValue('A3', $periodeLabel);
-        $sheet->mergeCells('A2:'.$lastCol.'2');
-        $sheet->mergeCells('A3:'.$lastCol.'3');
-        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A3')->getFont()->setSize(11);
-        $sheet->getStyle('A2:A3')->getAlignment()->setHorizontal('center');
-        $sheet->getRowDimension(2)->setRowHeight(24);
-        $sheet->getRowDimension(3)->setRowHeight(18);
-        $sheet->getRowDimension(4)->setRowHeight(10);
+        $sheet->setCellValue('B1', 'PT. PLN NUSANTARA POWER');
+        $sheet->getStyle('B1')->getFont()->setName('Calibri')->setBold(true)->setSize(12);
+        $sheet->getStyle('B1')->getAlignment()->setVertical('center');
 
-        return 5;
+        $sheet->setCellValue('B2', 'UNIT PEMBANGKITAN PAITON');
+        $sheet->getStyle('B2')->getFont()->setName('Calibri')->setBold(true)->setSize(11);
+        $sheet->getStyle('B2')->getAlignment()->setVertical('center');
+        $sheet->getRowDimension(2)->setRowHeight(20);
+
+        $r = 3;
+        $sheet->mergeCells("A{$r}:{$lastCol}{$r}");
+        $sheet->setCellValue("A{$r}", 'BIAYA PEMAKAIAN AIR');
+        $sheet->getStyle("A{$r}")->getFont()->setName('Calibri')->setBold(true)->setSize(16);
+        $sheet->getStyle("A{$r}")->getAlignment()->setHorizontal('center')->setVertical('center');
+        $sheet->getRowDimension($r)->setRowHeight(28);
+        $r++;
+
+        $sheet->mergeCells("A{$r}:{$lastCol}{$r}");
+        $sheet->setCellValue("A{$r}", $periodeLabel);
+        $sheet->getStyle("A{$r}")->getFont()->setName('Calibri')->setSize(12);
+        $sheet->getStyle("A{$r}")->getAlignment()->setHorizontal('center');
+        $sheet->getRowDimension($r)->setRowHeight(20);
+        $r++;
+
+        $sheet->getRowDimension($r)->setRowHeight(8);
+        $r++;
+
+        return $r;
     }
 
     private static function vertical(Worksheet $sheet, array $area, string $periodeLabel): void
@@ -117,6 +137,9 @@ class RekapanExcel
         self::kv($sheet, $r, 'Jumlah (Rp)', self::rp($area['subtotal']), true);
         if ($area['kena_ppn']) {
             self::kv($sheet, $r, 'PPN '.number_format($area['persen_ppn'], 0, ',', '.').'%', self::rp($area['ppn']));
+            $sheet->getStyle('A'.($r - 1).':C'.($r - 1))
+                ->getFill()->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB(self::PPN_FILL);
             self::kv($sheet, $r, 'Jumlah (Rp)', self::rp($area['total']), true);
         }
 
@@ -139,7 +162,7 @@ class RekapanExcel
             $r++;
         }
 
-        self::borders($sheet, 'A5:C'.($r - 1));
+        self::borders($sheet, 'A6:C'.($r - 1));
     }
 
     private static function horizontal(Worksheet $sheet, array $area, string $periodeLabel): void
@@ -153,7 +176,7 @@ class RekapanExcel
         self::hcell($sheet, 'B'.$head, 'Nama Titik Meter', true);
         $sheet->setCellValue('C'.$head, 'COUNTER M3');
         $sheet->mergeCells('C'.$head.':D'.$head);
-        $sheet->getStyle('C'.$head)->getFont()->setBold(true);
+        $sheet->getStyle('C'.$head)->getFont()->setName('Calibri')->setBold(true);
         $sheet->getStyle('C'.$head.':D'.$head)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::HEADER_FILL);
         self::hcell($sheet, 'E'.$head, 'Pengambilan', true);
         self::hcell($sheet, 'F'.$head, 'Tarif (Rp/M3)', true);
@@ -206,6 +229,9 @@ class RekapanExcel
             $sheet->mergeCells('A'.$r.':D'.$r);
             $sheet->getStyle('A'.$r)->getFont()->setBold(true);
             $sheet->setCellValue('G'.$r, self::rp($area['ppn']));
+            $sheet->getStyle('A'.$r.':G'.$r)
+                ->getFill()->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB(self::PPN_FILL);
             $r++;
 
             $sheet->setCellValue('A'.$r, 'Total '.$area['area']->nama);
@@ -224,7 +250,7 @@ class RekapanExcel
     {
         $sheet->setCellValue('A'.$r, $label);
         $sheet->mergeCells('A'.$r.':C'.$r);
-        $sheet->getStyle('A'.$r)->getFont()->setBold(true);
+        $sheet->getStyle('A'.$r)->getFont()->setName('Calibri')->setBold(true);
         $r++;
     }
 
@@ -233,6 +259,8 @@ class RekapanExcel
         $sheet->setCellValue('A'.$r, $label);
         $sheet->setCellValue('B'.$r, ':');
         $sheet->setCellValue('C'.$r, $value);
+        $sheet->getStyle('A'.$r)->getFont()->setName('Calibri');
+        $sheet->getStyle('C'.$r)->getFont()->setName('Calibri');
         if ($bold) {
             $sheet->getStyle('A'.$r)->getFont()->setBold(true);
             $sheet->getStyle('C'.$r)->getFont()->setBold(true);
@@ -244,14 +272,14 @@ class RekapanExcel
     {
         $sheet->setCellValue($cell, $value);
         $style = $sheet->getStyle($cell);
-        $style->getFont()->setBold($bold);
+        $style->getFont()->setName('Calibri')->setBold($bold);
         $style->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::HEADER_FILL);
     }
 
     private static function borders(Worksheet $sheet, string $range): void
     {
         $sheet->getStyle($range)->getBorders()->applyFromArray([
-            'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FF555555']],
+            'allBorders' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['argb' => 'FF555555']],
         ]);
     }
 

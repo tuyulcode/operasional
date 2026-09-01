@@ -71,6 +71,7 @@
                         data-nama="{{ $area->nama }}"
                         data-alamat="{{ $area->alamat }}"
                         data-kena-ppn="{{ $area->kena_ppn ? '1' : '0' }}"
+                        data-format-rekap="{{ $area->format_rekap }}"
                         onclick="openEditArea(this)">
                   <i class="fa-solid fa-pen"></i>
                 </button>
@@ -134,6 +135,20 @@
             </label>
           </div>
 
+          <div class="form-group">
+            <label for="format_rekap">
+              Format Rekap
+              <i class="fa-solid fa-circle-question"
+                 style="font-size: 0.75rem; color: #9ca3af; cursor: help; margin-left: 4px;"
+                 title="Standar: 1 pelanggan per tabel. List: banyak titik meter dalam 1 tabel. Multi Kolom: beberapa titik ukur berdampingan."></i>
+            </label>
+            <select id="format_rekap" name="format_rekap" class="form-control">
+              <option value="standar" {{ old('format_rekap', $edit->format_rekap ?? 'standar') === 'standar' ? 'selected' : '' }}>Standar</option>
+              <option value="list" {{ old('format_rekap', $edit->format_rekap ?? '') === 'list' ? 'selected' : '' }}>List</option>
+              <option value="multikolom" {{ old('format_rekap', $edit->format_rekap ?? '') === 'multikolom' ? 'selected' : '' }}>Multi Kolom</option>
+            </select>
+            <small style="color: #999;">Standar: 1 pelanggan per tabel. List: banyak titik meter/pelanggan sejenis dalam 1 tabel (misal daftar warung/toilet). Multi Kolom: 1 pelanggan dengan beberapa titik ukur meter ditampilkan berdampingan sebagai kolom (misal beberapa titik di 1 hotel).</small>
+          </div>
 
         </div>
 
@@ -175,6 +190,7 @@
     form.action = '{{ route('area.store') }}';
     document.getElementById('areaMethod').value = '';
     document.getElementById('areaModalTitle').textContent = 'Tambah Area';
+    document.getElementById('format_rekap').value = 'standar';
     document.getElementById('areaModal').classList.add('show');
     document.getElementById('nama').focus();
   }
@@ -187,6 +203,7 @@
     document.getElementById('nama').value = btn.dataset.nama;
     document.getElementById('alamat').value = btn.dataset.alamat || '';
     document.getElementById('kena_ppn').checked = btn.dataset.kenaPpn === '1';
+    document.getElementById('format_rekap').value = btn.dataset.formatRekap || 'standar';
     document.getElementById('areaModalTitle').textContent = 'Edit Area';
     document.getElementById('areaModal').classList.add('show');
   }
