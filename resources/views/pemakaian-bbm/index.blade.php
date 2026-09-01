@@ -4,6 +4,15 @@
 
 @section('content')
 
+  @php
+    $jenisBbmLabels = [
+      'pertamax'       => 'Pertamax',
+      'pertadex'       => 'Pertadex',
+      'dexlite'        => 'Dexlite',
+      'pertamax_turbo' => 'Pertamax Turbo',
+    ];
+  @endphp
+
   <div class="page-header">
     <div class="page-title">Pemakaian BBM</div>
     <ul class="breadcrumb">
@@ -74,7 +83,7 @@
               <th>Jenis BBM</th>
               <th>Lokasi</th>
               <th>Liter</th>
-              <th style="text-align:center;">Sparepart Consumable</th>
+              <th>Sparepart Consumable</th>
               <th>Jasa</th>
               <th>Jumlah</th>
               <th>Aksi</th>
@@ -86,10 +95,10 @@
               <td>{{ $pemakaianBbms->firstItem() + $i }}</td>
               <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d/m/Y') }}</td>
               <td>{{ $item->kendaraan->plat_nomor ?? '-' }}</td>
-              <td>{{ ucfirst($item->hargaBbm->jenis ?? '-') }}</td>
+              <td>{{ $jenisBbmLabels[$item->jenis_bbm] ?? '-' }}</td>
               <td>{{ $item->lokasi_pembelian === 'luar_paiton' ? 'Luar Paiton' : 'Paiton' }}</td>
-              <td>{{ $item->liter ? number_format($item->liter, 2, ',', '.') : '-' }}</td>
-              <td style="text-align:center;">{{ $item->service_oli ? number_format($item->service_oli, 0, ',', '.') : '-' }}</td>
+              <td>{{ $item->liter ? number_format($item->liter, 3, ',', '.') : '-' }}</td>
+              <td>{{ $item->service_oli ? number_format($item->service_oli, 0, ',', '.') : '-' }}</td>
               <td>{{ $item->jasa ? number_format($item->jasa, 0, ',', '.') : '-' }}</td>
               <td>{{ number_format($item->jumlah, 0, ',', '.') }}</td>
               <td>
@@ -97,7 +106,7 @@
                         data-id="{{ $item->id }}"
                         data-tanggal="{{ \Carbon\Carbon::parse($item->tanggal)->format('Y-m-d') }}"
                         data-kendaraan-id="{{ $item->kendaraan_id }}"
-                        data-jenis-bbm="{{ $item->hargaBbm->jenis ?? '' }}"
+                        data-jenis-bbm="{{ $item->jenis_bbm }}"
                         data-lokasi-pembelian="{{ $item->lokasi_pembelian }}"
                         data-liter="{{ $item->liter }}"
                         data-service-oli="{{ $item->service_oli }}"
@@ -144,24 +153,21 @@
         <input type="hidden" name="_method" id="pemakaianMethod" value="{{ $edit ? 'PUT' : '' }}">
 
         <div class="modal-body">
+
+          <h4 class="form-section-title">Pemakaian BBM</h4>
           <div class="form-grid">
             <div class="form-group">
-              <label for="tanggal">Tanggal</label>
+              <label for="tanggal">Tanggal Pengisian</label>
               <input type="date" id="tanggal" name="tanggal" class="form-control"
                      value="{{ old('tanggal', $edit->tanggal ?? '') }}" required>
               <small class="form-hint form-hint-spacer">&nbsp;</small>
             </div>
 
-            <div class="form-group">
-              <label for="kendaraan_id">Kendaraan</label>
-              <select id="kendaraan_id" name="kendaraan_id" class="form-control" required>
-                <option value="">-- Pilih Kendaraan --</option>
-                @foreach($kendaraans as $kendaraan)
-                  <option value="{{ $kendaraan->id }}" {{ old('kendaraan_id', $edit->kendaraan_id ?? '') == $kendaraan->id ? 'selected' : '' }}>
-                    {{ $kendaraan->plat_nomor }} ({{ $kendaraan->nama_jenis }}{{ $kendaraan->unit ? ' - ' . $kendaraan->unit : '' }})
-                  </option>
-                @endforeach
-              </select>
+            <div class="form-group searchable-select" id="kendaraanSelectWrap">
+              <label for="kendaraan_search">Kendaraan</label>
+              <input type="text" id="kendaraan_search" class="form-control" placeholder="Cari kendaraan..." autocomplete="off">
+              <input type="hidden" id="kendaraan_id" name="kendaraan_id" value="{{ old('kendaraan_id', $edit->kendaraan_id ?? '') }}" required>
+              <div class="searchable-dropdown" id="kendaraanDropdown"></div>
               <small class="form-hint form-hint-spacer">&nbsp;</small>
             </div>
 
@@ -169,8 +175,9 @@
               <label for="jenis_bbm">Jenis BBM</label>
               <select id="jenis_bbm" name="jenis_bbm" class="form-control" required>
                 <option value="">-- Pilih Jenis BBM --</option>
-                <option value="bensin" {{ old('jenis_bbm', $edit->hargaBbm->jenis ?? '') == 'bensin' ? 'selected' : '' }}>Bensin</option>
-                <option value="solar" {{ old('jenis_bbm', $edit->hargaBbm->jenis ?? '') == 'solar' ? 'selected' : '' }}>Solar</option>
+                @foreach($jenisBbmLabels as $value => $label)
+                  <option value="{{ $value }}" {{ old('jenis_bbm', $edit->jenis_bbm ?? '') == $value ? 'selected' : '' }}>{{ $label }}</option>
+                @endforeach
               </select>
               <small class="form-hint form-hint-spacer">&nbsp;</small>
             </div>
@@ -178,22 +185,22 @@
             <div class="form-group">
               <label for="harga_per_liter_display">Harga per Liter</label>
               <input type="text" id="harga_per_liter_display" class="form-control" readonly
-                     placeholder="Pilih jenis BBM dulu" style="background:#f3f4f6; cursor:not-allowed;">
+                     placeholder="Isi tanggal & jenis BBM dulu" style="background:#f3f4f6; cursor:not-allowed;">
               <small class="form-hint form-hint-spacer">&nbsp;</small>
             </div>
 
             <div class="form-group">
               <label>Lokasi Pembelian</label>
-              <div style="display:flex; gap:20px; align-items:center; height:38px;">
-                <label style="display:flex; align-items:center; gap:6px; font-weight:400; margin:0; cursor:pointer;">
-                  <input type="radio" id="lokasi_pembelian_paiton" name="lokasi_pembelian" value="paiton"
+              <div class="radio-group">
+                <label class="radio-option">
+                  <input type="radio" name="lokasi_pembelian" value="paiton"
                          {{ old('lokasi_pembelian', $edit->lokasi_pembelian ?? '') == 'paiton' ? 'checked' : '' }} required>
-                  Paiton
+                  <span>Paiton</span>
                 </label>
-                <label style="display:flex; align-items:center; gap:6px; font-weight:400; margin:0; cursor:pointer;">
-                  <input type="radio" id="lokasi_pembelian_luar_paiton" name="lokasi_pembelian" value="luar_paiton"
-                         {{ old('lokasi_pembelian', $edit->lokasi_pembelian ?? '') == 'luar_paiton' ? 'checked' : '' }} required>
-                  Luar Paiton
+                <label class="radio-option">
+                  <input type="radio" name="lokasi_pembelian" value="luar_paiton"
+                         {{ old('lokasi_pembelian', $edit->lokasi_pembelian ?? '') == 'luar_paiton' ? 'checked' : '' }}>
+                  <span>Luar Paiton</span>
                 </label>
               </div>
               <small class="form-hint form-hint-spacer">&nbsp;</small>
@@ -201,11 +208,16 @@
 
             <div class="form-group">
               <label for="liter">Liter</label>
-              <input type="number" step="0.01" min="0" id="liter" name="liter" class="form-control"
-                     value="{{ old('liter', $edit->liter ?? '') }}">
-              <small class="form-hint">Input 0, jika tidak ada data</small>
+              <input type="text" inputmode="decimal" id="liter" name="liter" class="form-control"
+                     placeholder="0.000" value="{{ old('liter', $edit->liter ?? '') }}">
+              <small class="form-hint">Input 0, jika tidak ada data (maks. 3 angka di belakang koma)</small>
             </div>
+          </div>
 
+          <hr class="form-section-divider">
+
+          <h4 class="form-section-title">Consumable Kendaraan</h4>
+          <div class="form-grid">
             <div class="form-group">
               <label for="service_oli">Sparepart Consumable (Rp)</label>
               <input type="text" inputmode="numeric" id="service_oli" name="service_oli" class="form-control"
@@ -220,6 +232,7 @@
               <small class="form-hint">Input 0, jika tidak ada data</small>
             </div>
           </div>
+
         </div>
 
         <div class="modal-footer">
@@ -288,13 +301,128 @@
   #pemakaianForm .form-group {
     margin-bottom: 0;
   }
+
+  .form-section-title {
+    margin: 0 0 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6b7280;
+  }
+  .form-section-divider {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 20px 0 16px;
+  }
+
+  .radio-group {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    height: 38px;
+  }
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: #374151;
+    cursor: pointer;
+    font-weight: 400;
+  }
+  .radio-option input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+
+  .searchable-select {
+    position: relative;
+  }
+  .searchable-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    right: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    z-index: 50;
+  }
+  .searchable-dropdown.show {
+    display: block;
+  }
+  .searchable-dropdown-item {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .searchable-dropdown-item:hover {
+    background: #f3f4f6;
+  }
+  .searchable-dropdown-empty {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #9ca3af;
+  }
 </style>
 @endpush
 
 @push('scripts')
 <script>
-  // Map jenis BBM -> harga per liter, dipakai buat nampilin harga read-only di box sebelah Jenis BBM
-  const hargaBbmMap = @json($hargaBbmMap);
+  // Riwayat harga BBM (urut tanggal_berlaku terbaru dulu). Harga sekarang tergantung
+  // TANGGAL TRANSAKSI + JENIS BBM (bukan cuma jenis doang seperti dulu).
+  const hargaBbmList = @json($hargaBbmList);
+
+  // Daftar kendaraan buat combobox pencarian - label cuma plat + jenis, tanpa "Unit ..."
+  const kendaraanList = @json($kendaraans->map(fn($k) => [
+    'id'    => $k->id,
+    'label' => $k->plat_nomor . ' (' . $k->nama_jenis . ')',
+  ]));
+
+  function cariHargaBbm(tanggal, jenis) {
+    if (!tanggal || !jenis) return null;
+    const row = hargaBbmList.find(function(h) { return h.tanggal_berlaku <= tanggal; });
+    if (!row) return null;
+    const nilai = row['harga_' + jenis];
+    return (nilai === undefined || nilai === null) ? null : nilai;
+  }
+
+  function renderKendaraanDropdown(filter) {
+    const dropdown = document.getElementById('kendaraanDropdown');
+    const term = filter.toLowerCase();
+    const filtered = kendaraanList.filter(function(k) { return k.label.toLowerCase().includes(term); });
+
+    dropdown.innerHTML = '';
+    if (!filtered.length) {
+      dropdown.innerHTML = '<div class="searchable-dropdown-empty">Kendaraan tidak ditemukan</div>';
+    } else {
+      filtered.forEach(function(k) {
+        const item = document.createElement('div');
+        item.className = 'searchable-dropdown-item';
+        item.textContent = k.label;
+        item.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          document.getElementById('kendaraan_id').value = k.id;
+          document.getElementById('kendaraan_search').value = k.label;
+          dropdown.classList.remove('show');
+        });
+        dropdown.appendChild(item);
+      });
+    }
+    dropdown.classList.add('show');
+  }
+
+  function setKendaraanById(id) {
+    const found = kendaraanList.find(function(k) { return String(k.id) === String(id); });
+    document.getElementById('kendaraan_id').value = id || '';
+    document.getElementById('kendaraan_search').value = found ? found.label : '';
+  }
 
   document.addEventListener('DOMContentLoaded', function() {
     const overlay = document.getElementById('pemakaianModal');
@@ -313,8 +441,32 @@
     serviceOliInput.addEventListener('input', function() { formatRupiah(serviceOliInput); });
     jasaInput.addEventListener('input', function() { formatRupiah(jasaInput); });
 
-    document.getElementById('jenis_bbm').addEventListener('change', function() {
-      updateHargaPerLiterDisplay(this.value);
+    document.getElementById('jenis_bbm').addEventListener('change', updateHargaPerLiterDisplay);
+    document.getElementById('tanggal').addEventListener('change', updateHargaPerLiterDisplay);
+
+    document.getElementById('liter').addEventListener('input', function() {
+      let v = this.value.replace(/[^0-9.]/g, '');
+      const firstDot = v.indexOf('.');
+      if (firstDot !== -1) {
+        v = v.slice(0, firstDot + 1) + v.slice(firstDot + 1).replace(/\./g, '');
+        const decimals = v.slice(firstDot + 1);
+        if (decimals.length > 3) {
+          v = v.slice(0, firstDot + 1) + decimals.slice(0, 3);
+        }
+      }
+      this.value = v;
+    });
+
+    const kendaraanSearch = document.getElementById('kendaraan_search');
+    kendaraanSearch.addEventListener('focus', function() { renderKendaraanDropdown(this.value); });
+    kendaraanSearch.addEventListener('input', function() {
+      document.getElementById('kendaraan_id').value = '';
+      renderKendaraanDropdown(this.value);
+    });
+    document.addEventListener('click', function(e) {
+      if (!document.getElementById('kendaraanSelectWrap').contains(e.target)) {
+        document.getElementById('kendaraanDropdown').classList.remove('show');
+      }
     });
 
     const pemakaianForm = document.getElementById('pemakaianForm');
@@ -327,15 +479,21 @@
       document.getElementById('pemakaianModal').classList.add('show');
       formatRupiah(serviceOliInput);
       formatRupiah(jasaInput);
-      updateHargaPerLiterDisplay(document.getElementById('jenis_bbm').value);
+      updateHargaPerLiterDisplay();
+      setKendaraanById(document.getElementById('kendaraan_id').value);
     @endif
   });
 
-  function updateHargaPerLiterDisplay(jenis) {
+  function updateHargaPerLiterDisplay() {
+    const tanggal = document.getElementById('tanggal').value;
+    const jenis = document.getElementById('jenis_bbm').value;
     const display = document.getElementById('harga_per_liter_display');
-    if (jenis && hargaBbmMap[jenis]) {
-      const harga = Number(hargaBbmMap[jenis]).toLocaleString('id-ID');
-      display.value = `Rp ${harga}`;
+
+    const harga = cariHargaBbm(tanggal, jenis);
+    if (harga !== null) {
+      display.value = `Rp ${Number(harga).toLocaleString('id-ID')}`;
+    } else if (tanggal && jenis) {
+      display.value = 'Belum ada harga untuk tanggal ini';
     } else {
       display.value = '';
     }
@@ -362,7 +520,8 @@
     document.getElementById('pemakaianModalTitle').textContent = 'Tambah Pemakaian BBM';
 
     document.getElementById('tanggal').value = pfTodayDateString();
-    updateHargaPerLiterDisplay('');
+    setKendaraanById('');
+    updateHargaPerLiterDisplay();
 
     document.getElementById('service_oli').value = '0';
     document.getElementById('jasa').value = '0';
@@ -378,16 +537,18 @@
     form.action = '{{ route('pemakaian-bbm.update', '__ID__') }}'.replace('__ID__', btn.dataset.id);
     document.getElementById('pemakaianMethod').value = 'PUT';
     document.getElementById('tanggal').value = btn.dataset.tanggal;
-    document.getElementById('kendaraan_id').value = btn.dataset.kendaraanId;
+    setKendaraanById(btn.dataset.kendaraanId);
     document.getElementById('jenis_bbm').value = btn.dataset.jenisBbm;
+
     const lokasiRadio = document.querySelector('input[name="lokasi_pembelian"][value="' + btn.dataset.lokasiPembelian + '"]');
     if (lokasiRadio) lokasiRadio.checked = true;
+
     document.getElementById('liter').value = btn.dataset.liter;
     document.getElementById('service_oli').value = btn.dataset.serviceOli;
     document.getElementById('jasa').value = btn.dataset.jasa;
     formatRupiah(document.getElementById('service_oli'));
     formatRupiah(document.getElementById('jasa'));
-    updateHargaPerLiterDisplay(btn.dataset.jenisBbm);
+    updateHargaPerLiterDisplay();
     document.getElementById('pemakaianModalTitle').textContent = 'Edit Pemakaian BBM';
     document.getElementById('pemakaianModal').classList.add('show');
   }
