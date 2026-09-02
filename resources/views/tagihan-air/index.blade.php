@@ -59,7 +59,9 @@
               <select id="area_id" name="area_id" class="form-control" required>
                 <option value="">-- Pilih Nama Pengguna --</option>
                 @foreach($areas as $area)
-                  <option value="{{ $area->id }}" {{ old('area_id', $edit->area_id ?? '') == $area->id ? 'selected' : '' }}>
+                  <option value="{{ $area->id }}"
+                          data-kena-ppn="{{ $area->kena_ppn ? 1 : 0 }}"
+                          {{ old('area_id', $edit->titikMeter->area_id ?? '') == $area->id ? 'selected' : '' }}>
                     {{ $area->nama }}
                   </option>
                 @endforeach
@@ -89,6 +91,13 @@
             </div>
 
             <div class="form-group">
+              <label for="meter_faktor">Meter Faktor</label>
+              <input type="number" id="meter_faktor" name="meter_faktor" class="form-control"
+                     step="0.01" min="0" readonly
+                     value="{{ old('meter_faktor', $edit->meter_faktor ?? '1') }}">
+            </div>
+
+            <div class="form-group">
               <label for="meter_lalu">Meter Bulan Lalu</label>
               <input type="number" id="meter_lalu" name="meter_lalu" class="form-control"
                      step="0.01" min="0"
@@ -101,13 +110,6 @@
               <input type="number" id="meter_ini" name="meter_ini" class="form-control"
                      step="0.01" min="0" placeholder="Contoh: 120"
                      value="{{ old('meter_ini', $edit->meter_ini ?? '') }}" required>
-            </div>
-
-            <div class="form-group">
-              <label for="meter_faktor">Meter Faktor</label>
-              <input type="number" id="meter_faktor" name="meter_faktor" class="form-control"
-                     step="0.01" min="0" readonly
-                     value="{{ old('meter_faktor', $edit->meter_faktor ?? '1') }}">
             </div>
 
             <div class="form-group">
@@ -158,17 +160,38 @@
             </div>
 
             <div class="form-group">
-              <label for="pemakaian">Pemakaian Terkoreksi (m³)</label>
+              <label for="pemakaian">Jumlah Pengambilan</label>
               <input type="text" id="pemakaian" class="form-control" readonly
                      value="{{ $edit ? number_format($edit->pemakaian, 2, ',', '.') : '' }}">
               <small style="color: #999;">(Meter Bulan Ini - Meter Bulan Lalu) x Meter Faktor</small>
+            </div>
+
+            <div class="form-group">
+              <label for="jumlah_sebelum_ppn">Jumlah Sebelum PPN (Rp)</label>
+              <input type="text" id="jumlah_sebelum_ppn" class="form-control" readonly
+                     value="{{ $edit ? 'Rp ' . number_format($edit->jumlah - $edit->ppn_nominal, 0, ',', '.') : '' }}">
+              <small style="color: #999;">Jumlah Pengambilan x Tarif</small>
+            </div>
+
+            <div class="form-group">
+              <label for="ppn_persentase">PPN (%)</label>
+              <input type="text" id="ppn_persentase" class="form-control" readonly
+                     value="{{ $edit ? number_format($edit->ppn_persentase, 2, ',', '.') : '' }}">
+              <small style="color: #999;">Persentase PPN yang berlaku</small>
+            </div>
+
+            <div class="form-group">
+              <label for="ppn_nominal">PPN (Rp)</label>
+              <input type="text" id="ppn_nominal" class="form-control" readonly
+                     value="{{ $edit ? 'Rp ' . number_format($edit->ppn_nominal, 0, ',', '.') : '' }}">
+              <small style="color: #999;">Jumlah Sebelum PPN x PPN(%)</small>
             </div>
 
             <div class="form-group" style="margin-bottom: 0;">
               <label for="jumlah">Jumlah (Rp)</label>
               <input type="text" id="jumlah" class="form-control" readonly
                      value="{{ $edit ? 'Rp ' . number_format($edit->jumlah, 0, ',', '.') : '' }}">
-              <small style="color: #999;">Pemakaian x Tarif</small>
+              <small style="color: #999;">Jumlah Sebelum PPN + PPN(Rp)</small>
             </div>
           </div>
 
@@ -213,7 +236,9 @@
                 <th>Meter Bulan Ini</th>
                 <th>Faktor</th>
                 <th>Tarif</th>
-                <th>Pemakaian</th>
+                <th>Jml Pengambilan</th>
+                <th>PPN (%)</th>
+                <th>PPN (Rp)</th>
                 <th>Jumlah</th>
                 <th>Foto</th>
                 <th>Aksi</th>
@@ -237,6 +262,8 @@
                 <td>{{ $t->meter_faktor }}</td>
                 <td>Rp {{ number_format($t->tarif, 2, ',', '.') }}</td>
                 <td>{{ number_format($t->pemakaian, 2, ',', '.') }}</td>
+                <td>{{ $t->ppn_persentase > 0 ? number_format($t->ppn_persentase, 2, ',', '.') : '-' }}</td>
+                <td>{{ $t->ppn_nominal > 0 ? 'Rp ' . number_format($t->ppn_nominal, 0, ',', '.') : '-' }}</td>
                 <td>Rp {{ number_format($t->jumlah, 0, ',', '.') }}</td>
                 <td>
                   @if($t->fotos->count())
@@ -269,14 +296,14 @@
               </tr>
               @empty
               <tr>
-                <td colspan="12" style="text-align: center; padding: 30px; color: #999;">
+                <td colspan="14" style="text-align: center; padding: 30px; color: #999;">
                   <i class="fa-solid fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
                   Belum ada data tagihan air
                 </td>
               </tr>
               @endforelse
               <tr id="noSearchRow" style="display: none;">
-                <td colspan="12" style="text-align: center; padding: 30px; color: #999;">
+                <td colspan="14" style="text-align: center; padding: 30px; color: #999;">
                   <i class="fa-solid fa-magnifying-glass" style="font-size: 1.6rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
                   Tidak ada data yang cocok
                 </td>
@@ -335,7 +362,11 @@
   const meterFaktorInput = document.getElementById('meter_faktor');
   const tarifInput = document.getElementById('tarif');
   const pemakaianInput = document.getElementById('pemakaian');
+  const jumlahSebelumPpnInput = document.getElementById('jumlah_sebelum_ppn');
+  const ppnPersentaseInput = document.getElementById('ppn_persentase');
+  const ppnNominalInput = document.getElementById('ppn_nominal');
   const jumlahInput = document.getElementById('jumlah');
+  const defaultPpnPersen = '{{ $ppnAktif->persentase ?? 0 }}';
 
   function formatNumber(value, decimals) {
     if (isNaN(value)) return '0';
@@ -443,9 +474,17 @@
     const lalu = parseIdValue(meterLaluInput.value);
     const faktor = parseIdValue(meterFaktorInput.value);
     const tarif = parseIdValue(tarifInput.value);
+
     const pemakaian = (ini - lalu) * faktor;
+    const jumlahSebelumPpn = pemakaian * tarif;
+    const ppnPersen = parseIdValue(ppnPersentaseInput.value);
+    const ppnNominal = Math.round(jumlahSebelumPpn * ppnPersen / 100);
+    const jumlah = jumlahSebelumPpn + ppnNominal;
+
     pemakaianInput.value = formatNumber(pemakaian, 2);
-    jumlahInput.value = 'Rp ' + formatNumber(pemakaian * tarif);
+    jumlahSebelumPpnInput.value = 'Rp ' + formatNumber(jumlahSebelumPpn, 0);
+    ppnNominalInput.value = 'Rp ' + formatNumber(ppnNominal, 0);
+    jumlahInput.value = 'Rp ' + formatNumber(jumlah, 0);
   }
 
   function autoFillMaster() {
@@ -598,6 +637,12 @@
     formatRupiah(tarifInput);
 
     areaSelect.addEventListener('change', filterTitikMeter);
+    areaSelect.addEventListener('change', function() {
+      const opt = areaSelect.selectedOptions[0];
+      const kenaPpn = opt && opt.dataset.kenaPpn === '1';
+      ppnPersentaseInput.value = kenaPpn ? defaultPpnPersen : '0';
+      recalcTotals();
+    });
     tmSelect.addEventListener('change', autoFillMaster);
     periodeInput.addEventListener('change', fillMeterLalu);
     meterIniInput.addEventListener('input', recalcTotals);
