@@ -8,9 +8,11 @@ use App\Models\HargaBbm;
 use App\Models\Kendaraan;
 use App\Models\PemakaianBbm;
 use App\Models\Penandatangan;
+use App\Models\PertanggungjawabanPeriode;
 use App\Services\PemakaianBbmRekapService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 
 class PemakaianBbmController extends Controller
@@ -127,30 +129,95 @@ class PemakaianBbmController extends Controller
         return $pdf->download($filename);
     }
 
-    /**
-     * Halaman laporan Pertanggungjawaban: gabungan beberapa minggu dalam 1 bulan,
-     * dengan tabel sederhana (No, Nomor Kendaraan, Liter, Rp) + keterangan + tanda tangan.
+        /**
+     * Halaman laporan Pertanggungjawaban.
+     *
+     * Periode disimpan permanen di tabel pertanggungjawaban_periode (bukan lagi
+     * form array "minggu" per-request). Tanggal yang sudah dipakai suatu periode
+     * otomatis tidak bisa dipakai lagi oleh periode lain (siapapun user-nya) sampai
+     * admin menghapusnya (lihat destroyPeriode()).
      */
     public function pertanggungjawaban(Request $request)
     {
-        $bulanLabel    = $request->query('bulan_label');
-        $minggus       = $request->query('minggu', []);
+        $bulanLabel = $request->query('bulan_label');
+ 
+        $periodes = PertanggungjawabanPeriode::query()
+            ->when($bulanLabel, fn ($q) => $q->where('bulan_label', $bulanLabel))
+            ->orderBy('tanggal_awal')
+            ->get();
+ 
         $weeks         = [];
         $keterangan    = null;
         $penandatangan = Penandatangan::where('jabatan', Penandatangan::ASMAN)->first();
-
-        if ($bulanLabel && !empty($minggus)) {
-            $validated  = $this->validatePertanggungjawaban($request);
-            $bulanLabel = $validated['bulan_label'];
-            $minggus    = $validated['minggu'];
-
-            $weeks      = $this->buildWeeks($minggus);
+ 
+        if ($bulanLabel && $periodes->isNotEmpty()) {
+            $weeks      = $this->buildWeeks($periodes);
             $keterangan = $this->buildKeterangan($weeks);
         }
-
+ 
+        // Dropdown daftar label bulan yang sudah pernah diinput, biar gampang dipilih ulang
+        $bulanOptions = PertanggungjawabanPeriode::select('bulan_label')
+            ->distinct()
+            ->orderByDesc('bulan_label')
+            ->pluck('bulan_label');
+ 
         return view('pemakaian-bbm.pertanggungjawaban', compact(
-            'bulanLabel', 'minggus', 'weeks', 'keterangan', 'penandatangan'
+            'bulanLabel', 'periodes', 'weeks', 'keterangan', 'penandatangan', 'bulanOptions'
         ));
+    }
+ 
+    /**
+     * Tambah 1 periode baru. Bisa dilakukan siapa saja (bukan admin-only) - setiap
+     * user boleh generate laporan untuk rentang tanggal yang dia mau. Ditolak kalau
+     * rentang tanggalnya tumpang tindih dengan periode yang sudah ada.
+     */
+    public function storePeriode(Request $request)
+    {
+        $validated = $request->validate([
+            'bulan_label'   => 'required|string|max:50',
+            'tanggal_awal'  => 'required|date',
+            'tanggal_akhir' => 'required|date|after_or_equal:tanggal_awal',
+        ], [
+            'bulan_label.required'         => 'Label bulan wajib diisi.',
+            'tanggal_awal.required'        => 'Tanggal awal wajib diisi.',
+            'tanggal_akhir.required'       => 'Tanggal akhir wajib diisi.',
+            'tanggal_akhir.after_or_equal' => 'Tanggal akhir tidak boleh sebelum tanggal awal.',
+        ]);
+ 
+        $overlap = PertanggungjawabanPeriode::where('tanggal_awal', '<=', $validated['tanggal_akhir'])
+            ->where('tanggal_akhir', '>=', $validated['tanggal_awal'])
+            ->exists();
+ 
+        if ($overlap) {
+            return redirect()
+                ->route('pemakaian-bbm.pertanggungjawaban', ['bulan_label' => $validated['bulan_label']])
+                ->withErrors([
+                    'tanggal_awal' => 'Sebagian atau seluruh tanggal pada rentang tersebut sudah dipakai di periode lain. Hapus periode itu dulu (tab Riwayat) kalau memang salah input.',
+                ])
+                ->withInput();
+        }
+ 
+        PertanggungjawabanPeriode::create($validated);
+ 
+        return redirect()
+            ->route('pemakaian-bbm.pertanggungjawaban', ['bulan_label' => $validated['bulan_label']])
+            ->with('success', 'Periode berhasil ditambahkan.');
+    }
+ 
+    /**
+     * Hapus 1 periode. Cuma admin. Tanggalnya jadi bebas dipakai lagi setelah ini.
+     */
+    public function destroyPeriode($id)
+    {
+        abort_unless(auth()->user()?->isAdmin(), 403, 'Hanya admin yang bisa menghapus periode.');
+ 
+        $periode    = PertanggungjawabanPeriode::findOrFail($id);
+        $bulanLabel = $periode->bulan_label;
+        $periode->delete();
+ 
+        return redirect()
+            ->route('pemakaian-bbm.pertanggungjawaban', ['bulan_label' => $bulanLabel])
+            ->with('success', 'Periode berhasil dihapus, tanggalnya bisa dipilih lagi.');
     }
 
     public function exportPertanggungjawabanExcel(Request $request)
@@ -171,6 +238,18 @@ class PemakaianBbmController extends Controller
         $pdf = Pdf::loadView('rekapan.pemakaian-bbm.pertanggungjawaban-pdf', $data)->setPaper('a4', 'portrait');
 
         return $pdf->download($filename);
+    }
+
+    /**
+     * Halaman Riwayat: daftar semua periode laporan Pertanggungjawaban yang pernah
+     * dibuat (semua bulan). Semua user bisa lihat, cuma admin yang bisa hapus
+     * (lihat destroyPeriode()).
+     */
+    public function riwayat()
+    {
+        $periodes = PertanggungjawabanPeriode::orderByDesc('tanggal_awal')->get();
+ 
+        return view('pemakaian-bbm.riwayat', compact('periodes'));
     }
 
     /* =======================================================
@@ -263,6 +342,8 @@ class PemakaianBbmController extends Controller
             'tanggal_akhir.after_or_equal' => 'Tanggal akhir tidak boleh sebelum tanggal awal. Cek kembali kedua tanggal yang diisi.',
         ]);
     }
+
+    
 
     /**
      * Validasi form Pertanggungjawaban. Tanggal akhir tiap minggu tetap wajib

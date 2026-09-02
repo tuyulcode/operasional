@@ -134,6 +134,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/pertanggungjawaban', [PemakaianBbmController::class, 'pertanggungjawaban'])->name('pertanggungjawaban');
         Route::get('/export/pertanggungjawaban/excel', [PemakaianBbmController::class, 'exportPertanggungjawabanExcel'])->name('export-pertanggungjawaban-excel');
         Route::get('/export/pertanggungjawaban/pdf', [PemakaianBbmController::class, 'exportPertanggungjawabanPdf'])->name('export-pertanggungjawaban-pdf');
+        Route::post('/pertanggungjawaban/periode', [PemakaianBbmController::class, 'storePeriode'])->name('pertanggungjawaban.periode.store');
+        Route::delete('/pertanggungjawaban/periode/{id}', [PemakaianBbmController::class, 'destroyPeriode'])->name('pertanggungjawaban.periode.destroy');
+
+        Route::get('/riwayat', [PemakaianBbmController::class, 'riwayat'])->name('riwayat');
     });
 });
 

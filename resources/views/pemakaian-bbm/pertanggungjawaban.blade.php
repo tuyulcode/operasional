@@ -5,7 +5,7 @@
 @section('content')
 
   <div class="page-header">
-    <div class="page-title">Pertanggungjawaban BBM</div>
+    <div class="page-title">Pertanggung Jawaban BBM</div>
     <ul class="breadcrumb">
       <li><a href="{{ route('dashboard') }}">Dashboard</a></li>
       <li><i class="fa-solid fa-angle-right"></i></li>
@@ -27,6 +27,10 @@
     <a href="{{ route('pemakaian-bbm.pertanggungjawaban') }}"
        class="tab-link {{ request()->routeIs('pemakaian-bbm.pertanggungjawaban') ? 'active' : '' }}">
       <i class="fa-solid fa-file-signature"></i> Pertanggungjawaban
+    </a>
+    <a href="{{ route('pemakaian-bbm.riwayat') }}"
+       class="tab-link {{ request()->routeIs('pemakaian-bbm.riwayat') ? 'active' : '' }}">
+      <i class="fa-solid fa-clock-rotate-left"></i> Riwayat
     </a>
   </div>
 

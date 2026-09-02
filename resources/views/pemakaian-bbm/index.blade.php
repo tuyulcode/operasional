@@ -58,6 +58,10 @@
        class="tab-link {{ request()->routeIs('pemakaian-bbm.pertanggungjawaban') ? 'active' : '' }}">
       <i class="fa-solid fa-file-signature"></i> Pertanggungjawaban
     </a>
+    <a href="{{ route('pemakaian-bbm.riwayat') }}"
+       class="tab-link {{ request()->routeIs('pemakaian-bbm.riwayat') ? 'active' : '' }}">
+      <i class="fa-solid fa-clock-rotate-left"></i> Riwayat
+    </a>
   </div>
 
   <div class="card">
