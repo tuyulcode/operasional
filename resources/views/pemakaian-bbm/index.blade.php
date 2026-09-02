@@ -71,6 +71,12 @@
         <p>Input transaksi pemakaian BBM dan Consumable harian per kendaraan</p>
       </div>
       <div class="card-actions">
+        <form id="refreshHargaForm" method="POST" action="{{ route('pemakaian-bbm.refresh-harga') }}" style="display:inline-block;">
+          @csrf
+          <button type="submit" class="btn btn-outline-primary btn-sm" id="btnRefreshHarga" title="Hitung ulang Jumlah kalau ada perubahan Harga BBM">
+            <i class="fa-solid fa-rotate"></i> Refresh
+          </button>
+        </form>
         <button type="button" class="btn btn-primary btn-sm" onclick="openAddPemakaian()">
           <i class="fa-solid fa-plus"></i> Tambah Data
         </button>
@@ -441,6 +447,17 @@
 
     overlay.addEventListener('click', function(e) { if (e.target === overlay) closePemakaianModal(); });
     deleteOverlay.addEventListener('click', function(e) { if (e.target === deleteOverlay) closeDeletePemakaianModal(); });
+
+    // Tombol Refresh: hitung ulang Jumlah semua baris berdasarkan Harga BBM yang
+    // berlaku sekarang. Server yang nentuin baris mana yang benar-benar berubah
+    // (lihat PemakaianBbmController::refreshHarga), di sini cuma kasih feedback
+    // loading biar user nggak klik berkali-kali sambil nunggu.
+    const refreshHargaForm = document.getElementById('refreshHargaForm');
+    refreshHargaForm.addEventListener('submit', function() {
+      const btn = document.getElementById('btnRefreshHarga');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menghitung ulang...';
+    });
 
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') { closePemakaianModal(); closeDeletePemakaianModal(); }

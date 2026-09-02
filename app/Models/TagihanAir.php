@@ -12,6 +12,7 @@ class TagihanAir extends Model
         'titik_meter_id', 'periode',
         'meter_lalu', 'meter_ini',
         'meter_faktor', 'tarif',
+        'ppn_persentase', 'ppn_nominal',
         'pemakaian', 'jumlah',
         'foto',
     ];

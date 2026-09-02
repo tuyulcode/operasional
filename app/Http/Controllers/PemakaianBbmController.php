@@ -84,6 +84,66 @@ class PemakaianBbmController extends Controller
     }
 
     /**
+     * Hitung ulang harga_bbm_id, rp, dan jumlah untuk SEMUA data pemakaian BBM
+     * berdasarkan harga yang berlaku SAAT INI untuk tanggal masing-masing baris.
+     *
+     * Dipanggil dari tombol "Refresh" di halaman Input Data. Berguna ketika ada
+     * perubahan pada data Harga BBM (tambah/edit/hapus harga dengan tanggal_berlaku
+     * tertentu) yang membuat harga yang berlaku untuk tanggal-tanggal transaksi lama
+     * jadi berubah, padahal rp/jumlah yang tersimpan di baris pemakaian itu masih
+     * pakai harga yang lama.
+     *
+     * Fokus perubahan cuma pada baris yang memang kena dampak: baris yang hasil
+     * hitung ulangnya (harga_bbm_id/rp/jumlah) sama persis dengan yang sudah
+     * tersimpan TIDAK disentuh sama sekali (skip, tidak ikut ke-update_at-kan).
+     */
+    public function refreshHarga(Request $request)
+    {
+        $updated = 0;
+        $dilewati = 0;
+
+        PemakaianBbm::orderBy('id')->chunkById(200, function ($items) use (&$updated, &$dilewati) {
+            foreach ($items as $item) {
+                $hargaBbm = $this->cariHargaBerlaku($item->tanggal);
+
+                if (!$hargaBbm) {
+                    // Tanggal transaksi ini belum ada harga BBM yang berlaku sama sekali,
+                    // biarkan data lama apa adanya (jangan dipaksa jadi 0).
+                    $dilewati++;
+                    continue;
+                }
+
+                $hargaPerLiter = $this->hargaPerLiterUntuk($hargaBbm, $item->jenis_bbm);
+
+                $rpBaru     = (float) $item->liter * $hargaPerLiter;
+                $jumlahBaru = $rpBaru + (float) $item->service_oli + (float) $item->jasa;
+
+                $berubah = (int) $item->harga_bbm_id !== (int) $hargaBbm->id
+                    || round((float) $item->rp, 2) !== round($rpBaru, 2)
+                    || round((float) $item->jumlah, 2) !== round($jumlahBaru, 2);
+
+                if (!$berubah) {
+                    $dilewati++;
+                    continue;
+                }
+
+                $item->update([
+                    'harga_bbm_id' => $hargaBbm->id,
+                    'rp'           => $rpBaru,
+                    'jumlah'       => $jumlahBaru,
+                ]);
+                $updated++;
+            }
+        });
+
+        $pesan = $updated > 0
+            ? "Berhasil refresh {$updated} data yang terdampak perubahan harga BBM ({$dilewati} data lain sudah sesuai)."
+            : 'Semua data sudah sesuai dengan harga BBM terbaru, tidak ada yang perlu diperbarui.';
+
+        return redirect()->route('pemakaian-bbm.index')->with('success', $pesan);
+    }
+
+    /**
      * Halaman rekap periode + export.
      */
     public function rekapan(Request $request)
@@ -290,9 +350,7 @@ class PemakaianBbmController extends Controller
         $tanggal  = $validated['tanggal'];
         $jenisBbm = $validated['jenis_bbm'];
 
-        $hargaBbm = HargaBbm::where('tanggal_berlaku', '<=', $tanggal)
-            ->orderByDesc('tanggal_berlaku')
-            ->first();
+        $hargaBbm = $this->cariHargaBerlaku($tanggal);
 
         if (!$hargaBbm) {
             throw \Illuminate\Validation\ValidationException::withMessages([
@@ -300,8 +358,7 @@ class PemakaianBbmController extends Controller
             ]);
         }
 
-        $kolomHarga    = 'harga_' . $jenisBbm;
-        $hargaPerLiter = (float) $hargaBbm->{$kolomHarga};
+        $hargaPerLiter = $this->hargaPerLiterUntuk($hargaBbm, $jenisBbm);
 
         $liter      = (float) ($validated['liter'] ?? 0);
         $serviceOli = (float) ($validated['service_oli'] ?? 0);
@@ -323,6 +380,32 @@ class PemakaianBbmController extends Controller
             'jumlah'           => $jumlah,
             'dicatat_oleh'     => auth()->id(),
         ];
+    }
+
+    /**
+     * Cari baris HargaBbm yang berlaku untuk sebuah tanggal: baris dengan
+     * tanggal_berlaku terbaru yang <= tanggal transaksi. Dipakai bareng-bareng
+     * oleh buildPayload() (simpan/update satu baris) dan refreshHarga() (hitung
+     * ulang massal), supaya aturan pencarian harganya selalu konsisten.
+     */
+    private function cariHargaBerlaku(string $tanggal): ?HargaBbm
+    {
+        return HargaBbm::where('tanggal_berlaku', '<=', $tanggal)
+            ->orderByDesc('tanggal_berlaku')
+            ->first();
+    }
+
+    /**
+     * Ambil harga per liter dari satu baris HargaBbm sesuai jenis_bbm. Kalau
+     * jenis_bbm kosong/tidak dikenal (kolomnya nggak ada di HargaBbm), hasilnya 0
+     * biar tidak error - dipakai juga oleh refreshHarga() buat data lama yang
+     * jenis BBM-nya kosong ("-").
+     */
+    private function hargaPerLiterUntuk(HargaBbm $hargaBbm, ?string $jenisBbm): float
+    {
+        $kolomHarga = 'harga_' . $jenisBbm;
+
+        return isset($hargaBbm->{$kolomHarga}) ? (float) $hargaBbm->{$kolomHarga} : 0.0;
     }
 
     /**
