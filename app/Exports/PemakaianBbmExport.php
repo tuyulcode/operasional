@@ -104,8 +104,8 @@ class PemakaianBbmExport implements FromArray, WithEvents, WithTitle
     private function setColumnWidths(Worksheet $sheet): void
     {
         $widths = [
-            'A' => 5, 'B' => 24, 'C' => 12, 'D' => 14,
-            'E' => 20, 'F' => 12, 'G' => 16,
+            'A' => 5, 'B' => 26, 'C' => 10, 'D' => 13,
+            'E' => 12, 'F' => 11, 'G' => 16,
         ];
 
         foreach ($widths as $col => $width) {
@@ -170,25 +170,35 @@ class PemakaianBbmExport implements FromArray, WithEvents, WithTitle
     {
         $r1 = $row;
         $r2 = $row + 1;
+        $r3 = $row + 2;
 
-        $sheet->mergeCells("A{$r1}:A{$r1}");
+        $sheet->mergeCells("A{$r1}:A{$r2}");
         $sheet->setCellValue("A{$r1}", 'No.');
 
-        $sheet->setCellValue("B{$r1}", "Nomor Kendaraan");
+        $sheet->mergeCells("B{$r1}:B{$r2}");
+        $sheet->setCellValue("B{$r1}", 'Nomor Kendaraan');
         $sheet->getStyle("B{$r1}")->getAlignment()->setWrapText(true);
 
-        $sheet->setCellValue("C{$r1}", 'Liter');
-        $sheet->setCellValue("D{$r1}", 'Rp.');
+        $sheet->mergeCells("C{$r1}:D{$r1}");
+        $sheet->setCellValue("C{$r1}", 'BBM');
+
+        $sheet->mergeCells("E{$r1}:F{$r1}");
         $sheet->setCellValue("E{$r1}", 'Sparepart Consumable');
-        $sheet->setCellValue("F{$r1}", 'Jasa');
+
+        $sheet->mergeCells("G{$r1}:G{$r2}");
         $sheet->setCellValue("G{$r1}", 'Jumlah');
+
+        $sheet->setCellValue("C{$r2}", 'Liter');
+        $sheet->setCellValue("D{$r2}", 'Rp.');
+        $sheet->setCellValue("E{$r2}", 'Sparepart');
+        $sheet->setCellValue("F{$r2}", 'Jasa');
 
         $numbers = ['A' => '1', 'B' => '2', 'C' => '3', 'D' => '4', 'E' => '5', 'F' => '6', 'G' => '7 = 4+5+6'];
         foreach ($numbers as $col => $val) {
-            $sheet->setCellValue("{$col}{$r2}", $val);
+            $sheet->setCellValue("{$col}{$r3}", $val);
         }
 
-        $range = "A{$r1}:G{$r2}";
+        $range = "A{$r1}:G{$r3}";
         $sheet->getStyle($range)->applyFromArray([
             'font'      => ['bold' => true],
             'alignment' => [
@@ -198,10 +208,11 @@ class PemakaianBbmExport implements FromArray, WithEvents, WithTitle
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $accentColor]],
         ]);
         $this->applyBorder($sheet, $range);
-        $sheet->getRowDimension($r1)->setRowHeight(24);
+        $sheet->getRowDimension($r1)->setRowHeight(20);
         $sheet->getRowDimension($r2)->setRowHeight(18);
+        $sheet->getRowDimension($r3)->setRowHeight(16);
 
-        return $r2 + 1;
+        return $r3 + 1;
     }
 
     private function writeSectionLabel(Worksheet $sheet, int $row, string $label, string $accentColor): int
