@@ -40,7 +40,7 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
 
     public function title(): string
     {
-        return 'Pertanggungjawaban BBM';
+        return 'Pertanggung Jawaban BBM';
     }
 
     public function registerEvents(): array
