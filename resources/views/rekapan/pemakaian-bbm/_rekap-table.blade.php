@@ -13,7 +13,7 @@
       <col style="width:13%">
       <col style="width:11%">
       <col style="width:11%">
-      <col style="width:28%">
+      <col style="width:15%">
     </colgroup>
     <thead>
       <tr style="background:#f2f2f2; font-weight:bold; text-align:center;">
@@ -44,7 +44,7 @@
         @php $groupColor = $groupColors[$loop->index % count($groupColors)]; @endphp
 
         <tr style="background:#{{ $groupColor }}; font-weight:bold;">
-          <td colspan="7" style="text-align:left;">{{ $group['label'] }}</td>
+          <td colspan="7" style="text-align:left; padding-left:12px;">{{ $group['label'] }}</td>
         </tr>
 
         @foreach($group['sections'] as $section)
@@ -68,7 +68,7 @@
         @endforeach
 
         <tr style="font-weight:bold; text-align:center; background:#{{ $groupColor }};">
-          <td colspan="2" style="text-align:left;">Jumlah {{ substr($group['label'], 0, 1) }}</td>
+          <td colspan="2" style="text-align:left; padding-left:12px;">Jumlah {{ substr($group['label'], 0, 1) }}</td>
           <td>{{ number_format($group['total']['liter'], 2, ',', '.') }}</td>
           <td>{{ number_format($group['total']['rp'], 0, ',', '.') }}</td>
           <td>{{ $group['total']['service_oli'] ? number_format($group['total']['service_oli'], 0, ',', '.') : '-' }}</td>
@@ -81,7 +81,7 @@
 
       @if(!empty($groups))
         <tr style="font-weight:bold; text-align:center; background:#{{ $grandColor }};">
-          <td colspan="2" style="text-align:left;">
+          <td colspan="2" style="text-align:left; padding-left:12px;">
             Jumlah {{ implode('+', array_map(fn($g) => substr($g['label'], 0, 1), $groups)) }}
           </td>
           <td>{{ number_format($grandTotal['liter'], 2, ',', '.') }}</td>

@@ -159,7 +159,7 @@ class PemakaianBbmExport implements FromArray, WithEvents, WithTitle
         $sheet->setCellValue("A{$row}", $label);
         $sheet->getStyle("A{$row}")->applyFromArray([
             'font'      => ['bold' => true],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'vertical' => Alignment::VERTICAL_CENTER],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'vertical' => Alignment::VERTICAL_CENTER, 'indent' => 1],
         ]);
         $this->applyBorder($sheet, "A{$row}:G{$row}");
 
@@ -264,6 +264,7 @@ class PemakaianBbmExport implements FromArray, WithEvents, WithTitle
             'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $bgColor]],
         ]);
         $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        $sheet->getStyle("A{$row}")->getAlignment()->setIndent(1);
         $this->applyBorder($sheet, "A{$row}:G{$row}");
 
         return $row + 1;
