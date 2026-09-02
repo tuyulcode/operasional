@@ -71,6 +71,12 @@ class RekapanPdf
         return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $s);
     }
 
+    private function displayName(string $s): string
+    {
+        // "PT." -> "PT " (hilangkan titik setelah PT)
+        return preg_replace('/\bPT\.\s*/i', 'PT ', trim($s));
+    }
+
     private function text(string $s, float $size = 8, ?float $x = null, bool $bold = false): void
     {
         $x = $x ?? self::M;
@@ -138,6 +144,7 @@ class RekapanPdf
             }
             $value = (string) ($c['value'] ?? '');
             $right = $c['right'] ?? false;
+            $center = $c['center'] ?? false;
             $bold = $c['bold'] ?? false;
             $span = $c['span'] ?? 1;
 
@@ -148,9 +155,10 @@ class RekapanPdf
             }
 
             $x = $this->gridXs[$col];
-            if ($span <= 1 && $right) {
+            if ($span <= 1 && ($right || $center)) {
                 $cellW = $this->gridXs[$col + 1] - $this->gridXs[$col];
-                $x += $cellW - strlen($value) * 4.4;
+                $textW = strlen($value) * 4.4;
+                $x += $center ? ($cellW - $textW) / 2 : $cellW - $textW;
             }
             $this->content .= sprintf("BT /F%d 8 Tf %.2f %.2f Td (%s) Tj ET\n", $bold ? 2 : 1, $x, $textY, $this->esc($value));
         }
@@ -183,7 +191,14 @@ class RekapanPdf
     {
         $cells = [];
         foreach ($vals as $i => $v) {
-            $cells[] = ['col' => $i, 'value' => (string) $v, 'right' => $i >= 2];
+            $cells[] = [
+                'col' => $i,
+                'value' => (string) $v,
+                // Bulan Ini, Bulan Lalu, Pengambilan -> rata tengah
+                'center' => $i >= 2 && $i <= 4,
+                // Tarif, Jumlah -> tetap rata kanan (nominal uang)
+                'right' => $i >= 5,
+            ];
         }
         $this->gridRow(11, $cells);
     }
@@ -209,7 +224,7 @@ class RekapanPdf
             }
 
             $pdf->ensure(4);
-            $pdf->text('Area: '.$area['area']->nama, 10, self::M, true);
+            $pdf->text('Area: '.$pdf->displayName($area['area']->nama), 10, self::M, true);
             $pdf->y -= 2;
             $pdf->drawHeader();
 
@@ -227,8 +242,8 @@ class RekapanPdf
             }
 
             $pdf->gridRow(11, [
-                ['col' => 0, 'value' => 'Subtotal '.$area['area']->nama, 'span' => 4, 'bold' => true],
-                ['col' => 4, 'value' => $area['total_pemakaian'] ? (int) round($area['total_pemakaian']) : '-', 'right' => true],
+                ['col' => 0, 'value' => 'Subtotal '.$pdf->displayName($area['area']->nama), 'span' => 4, 'bold' => true],
+                ['col' => 4, 'value' => $area['total_pemakaian'] ? (int) round($area['total_pemakaian']) : '-', 'center' => true],
                 ['col' => 6, 'value' => $pdf->fmtRp($area['subtotal']), 'right' => true, 'bold' => true],
             ]);
 
@@ -238,21 +253,13 @@ class RekapanPdf
                     ['col' => 6, 'value' => $pdf->fmtRp($area['ppn']), 'right' => true],
                 ]);
                 $pdf->gridRow(11, [
-                    ['col' => 0, 'value' => 'TOTAL '.$area['area']->nama, 'span' => 4, 'bold' => true],
+                    ['col' => 0, 'value' => 'TOTAL '.$pdf->displayName($area['area']->nama), 'span' => 4, 'bold' => true],
                     ['col' => 6, 'value' => $pdf->fmtRp($area['total']), 'right' => true, 'bold' => true],
                 ]);
             }
 
             $pdf->y -= 4;
         }
-
-        $pdf->ensureH(25);
-        $pdf->hr();
-        $pdf->text(
-            'GRAND TOTAL: '.$pdf->fmtRp($report['grandTotal']).
-            '   ('.number_format($report['grandPemakaian'] ?? 0, 0, ',', '.').' m3)',
-            11, self::M, true
-        );
 
         $pdf->signatureBlock($report['penandatangan'] ?? []);
 
@@ -277,7 +284,7 @@ class RekapanPdf
 
         foreach ([
             ['Bulan', $periodeLabel],
-            ['NAMA', $area['area']->nama],
+            ['NAMA', $this->displayName($area['area']->nama)],
             ['ALAMAT', $area['area']->alamat ?: '-'],
             ['LOKASI FLOW METER', $row1['titik_meter']->nama],
         ] as [$label, $value]) {
@@ -299,7 +306,7 @@ class RekapanPdf
             ['Meter Faktor', $tg ? number_format((float) $tg->meter_faktor, 0, ',', '.') : '0'],
             ['Jumlah Pengambilan', $tg ? (int) round((float) $tg->pemakaian) : 0],
             ['Tarif / M3', $this->fmtRp($tg->tarif ?? 0)],
-            ['Jumlah (Rp)', $this->fmtRp($area['subtotal']), true],
+            ['Subtotal (Rp)', $this->fmtRp($area['subtotal']), true],
         ] as $r) {
             $this->gridRow(11, [
                 ['col' => 0, 'value' => $r[0], 'bold' => $r[2] ?? false],
@@ -315,7 +322,7 @@ class RekapanPdf
                 ['col' => 2, 'value' => $this->fmtRp($area['ppn'])],
             ]);
             $this->gridRow(11, [
-                ['col' => 0, 'value' => 'Jumlah (Rp)', 'bold' => true],
+                ['col' => 0, 'value' => 'Total (Rp)', 'bold' => true],
                 ['col' => 1, 'value' => ':'],
                 ['col' => 2, 'value' => $this->fmtRp($area['total']), 'bold' => true],
             ]);
@@ -341,6 +348,11 @@ class RekapanPdf
         $this->content .= sprintf("%.2f %.2f m %.2f %.2f l S\n", $x, $y, $x + $width, $y);
     }
 
+    private function centerX(string $s, float $colX, float $colW, float $charW = 4.7): float
+    {
+        return $colX + ($colW - strlen($s) * $charW) / 2;
+    }
+
     private function signatureBlock(iterable $penandatangan): void
     {
         if (empty($penandatangan)) {
@@ -361,13 +373,18 @@ class RekapanPdf
 
         $lineY = $baseY - 80;
         $nameY = $lineY - 18;
+        $lineWidth = 150;
 
         foreach ($penandatangan as $i => $row) {
             $x = $i === 0 ? $xLeft : $xRight;
-            $this->place($row->jabatan, 9, $x, $baseY, true);
+
+            $this->place($row->jabatan, 9, $this->centerX($row->jabatan, $x, $colW, 4.7), $baseY, true);
+
             $nama = $row->nama ?: '........................................';
-            $this->place($nama, 10, $x, $nameY);
-            $this->hline($x, $lineY, 150);
+            $this->place($nama, 10, $this->centerX($nama, $x, $colW, 5.0), $nameY);
+
+            $lineX = $x + ($colW - $lineWidth) / 2;
+            $this->hline($lineX, $lineY, $lineWidth);
         }
 
         $this->y = $nameY - 22;
