@@ -50,16 +50,23 @@
     </div>
     <div class="card-body">
       <div class="table-responsive">
-        <table class="table" style="width:100%;">
+        <table class="table" style="width:100%; max-width:900px;">
+          <colgroup>
+            <col style="width:70px;">
+            <col style="width:220px;">
+            <col style="width:180px;">
+            <col style="width:180px;">
+            <col style="width:100px;">
+          </colgroup>
           <thead>
             <tr>
-              <th style="width:48px;">No.</th>
-              <th>Bulan</th>
-              <th>Tanggal Awal</th>
-              <th>Tanggal Akhir</th>
+              <th style="text-align:center;">No.</th>
+              <th style="text-align:center;">Bulan</th>
+              <th style="text-align:center;">Tanggal Awal</th>
+              <th style="text-align:center;">Tanggal Akhir</th>
               @auth
                 @if(auth()->user()->isAdmin())
-                  <th style="width:80px;">Aksi</th>
+                  <th style="text-align:center;">Aksi</th>
                 @endif
               @endauth
             </tr>
@@ -67,17 +74,17 @@
           <tbody>
             @forelse($periodes as $i => $periode)
               <tr>
-                <td>{{ $i + 1 }}</td>
-                <td>
+                <td style="text-align:center;">{{ $i + 1 }}</td>
+                <td style="text-align:center;">
                   <a href="{{ route('pemakaian-bbm.pertanggungjawaban', ['bulan_label' => $periode->bulan_label]) }}">
                     {{ $periode->bulan_label }}
                   </a>
                 </td>
-                <td>{{ $periode->tanggal_awal->format('d-m-Y') }}</td>
-                <td>{{ $periode->tanggal_akhir->format('d-m-Y') }}</td>
+                <td style="text-align:center;">{{ $periode->tanggal_awal->format('d-m-Y') }}</td>
+                <td style="text-align:center;">{{ $periode->tanggal_akhir->format('d-m-Y') }}</td>
                 @auth
                   @if(auth()->user()->isAdmin())
-                    <td>
+                    <td style="text-align:center;">
                       <form method="POST" action="{{ route('pemakaian-bbm.pertanggungjawaban.periode.destroy', $periode->id) }}"
                             onsubmit="return confirm('Hapus periode ini? Tanggalnya akan bisa dipilih lagi.');">
                         @csrf
