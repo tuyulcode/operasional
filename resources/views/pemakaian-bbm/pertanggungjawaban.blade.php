@@ -5,7 +5,7 @@
 @section('content')
 
   <div class="page-header">
-    <div class="page-title">Pertanggung Jawaban BBM</div>
+    <div class="page-title">Pertanggungjawaban BBM</div>
     <ul class="breadcrumb">
       <li><a href="{{ route('dashboard') }}">Dashboard</a></li>
       <li><i class="fa-solid fa-angle-right"></i></li>
@@ -41,60 +41,90 @@
     </div>
   @endif
 
+  @if(session('success'))
+    <div class="alert-custom alert-success">
+      <i class="fa-solid fa-circle-check"></i>
+      <span>{{ session('success') }}</span>
+    </div>
+  @endif
+
+  {{-- Filter bulan + export --}}
   <div class="card">
     <div class="card-body">
-      <form method="GET" action="{{ route('pemakaian-bbm.pertanggungjawaban') }}" id="form-ptj">
-        <div class="form-group" style="max-width:260px;">
-          <label for="bulan_label">Label Bulan</label>
-          <input type="text" id="bulan_label" name="bulan_label" class="form-control"
-                 placeholder="Contoh: Agustus 2026"
-                 value="{{ $bulanLabel ?? '' }}" required>
+      <form method="GET" action="{{ route('pemakaian-bbm.pertanggungjawaban') }}"
+            style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+        <div class="form-group" style="margin:0; max-width:260px;">
+          <label for="bulan_label_filter">Label Bulan</label>
+          <input type="text" id="bulan_label_filter" name="bulan_label" class="form-control" list="bulan-options"
+                 placeholder="Contoh: Agustus 2026" value="{{ $bulanLabel ?? '' }}">
+          <datalist id="bulan-options">
+            @foreach($bulanOptions as $opt)
+              <option value="{{ $opt }}">
+            @endforeach
+          </datalist>
         </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-magnifying-glass"></i> Tampilkan
+        </button>
 
-        <div id="minggu-container" style="margin-top:14px;">
-          @php $mingguRows = !empty($minggus) ? $minggus : [['tanggal_awal' => '', 'tanggal_akhir' => '']]; @endphp
-          @foreach($mingguRows as $i => $m)
-            <div class="minggu-row" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; margin-bottom:10px;">
-              <div class="form-group" style="margin:0;">
-                <label class="minggu-label">Minggu {{ $i + 1 }} - Tanggal Awal</label>
-                <input type="date" name="minggu[{{ $i }}][tanggal_awal]" class="form-control"
-                       value="{{ $m['tanggal_awal'] ?? '' }}" required>
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label>Tanggal Akhir</label>
-                <input type="date" name="minggu[{{ $i }}][tanggal_akhir]" class="form-control"
-                       value="{{ $m['tanggal_akhir'] ?? '' }}" required>
-              </div>
-              <button type="button" class="btn btn-danger btn-remove-minggu" style="height:38px;" title="Hapus minggu ini">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            </div>
-          @endforeach
-        </div>
+        @if(!empty($weeks))
+          <a class="btn btn-success"
+             href="{{ route('pemakaian-bbm.export-pertanggungjawaban-excel', ['bulan_label' => $bulanLabel]) }}">
+            <i class="fa-solid fa-file-excel"></i> Export Excel
+          </a>
+          <a class="btn btn-danger"
+             href="{{ route('pemakaian-bbm.export-pertanggungjawaban-pdf', ['bulan_label' => $bulanLabel]) }}">
+            <i class="fa-solid fa-file-pdf"></i> Export PDF
+          </a>
+        @endif
 
-        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:6px;">
-          <button type="button" id="btn-add-minggu" class="btn btn-secondary">
-            <i class="fa-solid fa-plus"></i> Tambah Minggu
-          </button>
-          <button type="submit" class="btn btn-primary">
-            <i class="fa-solid fa-magnifying-glass"></i> Tampilkan
-          </button>
-
-          @if(!empty($weeks))
-            <a class="btn btn-success"
-               href="{{ route('pemakaian-bbm.export-pertanggungjawaban-excel', request()->query()) }}">
-              <i class="fa-solid fa-file-excel"></i> Export Excel
-            </a>
-            <a class="btn btn-danger"
-               href="{{ route('pemakaian-bbm.export-pertanggungjawaban-pdf', request()->query()) }}">
-              <i class="fa-solid fa-file-pdf"></i> Export PDF
-            </a>
-          @endif
-        </div>
+        <a href="{{ route('pemakaian-bbm.riwayat') }}" class="btn btn-secondary" style="margin-left:auto;">
+          <i class="fa-solid fa-clock-rotate-left"></i> Lihat Semua Riwayat Periode
+        </a>
       </form>
     </div>
   </div>
 
+  {{-- Tambah periode baru: semua user boleh, biar bisa generate laporan sendiri --}}
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-title">
+        <h3><i class="fa-solid fa-calendar-plus" style="color: var(--primary-color); margin-right: 8px;"></i> Tambah Periode</h3>
+      </div>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ route('pemakaian-bbm.pertanggungjawaban.periode.store') }}"
+            style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+        @csrf
+        <div class="form-group" style="margin:0; max-width:220px;">
+          <label for="bulan_label">Label Bulan</label>
+          <input type="text" id="bulan_label" name="bulan_label" class="form-control" list="bulan-options"
+                 placeholder="Contoh: Agustus 2026"
+                 value="{{ old('bulan_label', $bulanLabel ?? '') }}" required>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label for="tanggal_awal">Tanggal Awal</label>
+          <input type="date" id="tanggal_awal" name="tanggal_awal" class="form-control"
+                 value="{{ old('tanggal_awal') }}" required>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label for="tanggal_akhir">Tanggal Akhir</label>
+          <input type="date" id="tanggal_akhir" name="tanggal_akhir" class="form-control"
+                 value="{{ old('tanggal_akhir') }}" required>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-plus"></i> Tambah Periode
+        </button>
+      </form>
+      <p style="margin-top:10px; color:#94a3b8; font-size:0.85rem;">
+        <i class="fa-solid fa-circle-info"></i>
+        Tanggal yang sudah dipakai periode lain otomatis tidak bisa dipakai lagi.
+        Kalau salah input, minta admin hapus periode-nya di tab <strong>Riwayat</strong> supaya tanggalnya bisa dipilih ulang.
+      </p>
+    </div>
+  </div>
+
+  {{-- Preview laporan --}}
   @if(!empty($weeks))
     <div class="card">
       <div class="card-body">
@@ -109,51 +139,3 @@
   @endif
 
 @endsection
-
-@push('scripts')
-<script>
-  (function () {
-    const container = document.getElementById('minggu-container');
-    const btnAdd = document.getElementById('btn-add-minggu');
-
-    function reindex() {
-      container.querySelectorAll('.minggu-row').forEach((row, i) => {
-        row.querySelector('.minggu-label').textContent = 'Minggu ' + (i + 1) + ' - Tanggal Awal';
-        row.querySelectorAll('input').forEach((input) => {
-          input.name = input.name.replace(/minggu\[\d+\]/, 'minggu[' + i + ']');
-        });
-      });
-    }
-
-    btnAdd.addEventListener('click', function () {
-      const idx = container.querySelectorAll('.minggu-row').length;
-      const row = document.createElement('div');
-      row.className = 'minggu-row';
-      row.style.cssText = 'display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; margin-bottom:10px;';
-      row.innerHTML = `
-        <div class="form-group" style="margin:0;">
-          <label class="minggu-label">Minggu ${idx + 1} - Tanggal Awal</label>
-          <input type="date" name="minggu[${idx}][tanggal_awal]" class="form-control" required>
-        </div>
-        <div class="form-group" style="margin:0;">
-          <label>Tanggal Akhir</label>
-          <input type="date" name="minggu[${idx}][tanggal_akhir]" class="form-control" required>
-        </div>
-        <button type="button" class="btn btn-danger btn-remove-minggu" style="height:38px;" title="Hapus minggu ini">
-          <i class="fa-solid fa-trash"></i>
-        </button>
-      `;
-      container.appendChild(row);
-    });
-
-    container.addEventListener('click', function (e) {
-      const btn = e.target.closest('.btn-remove-minggu');
-      if (!btn) return;
-      const rows = container.querySelectorAll('.minggu-row');
-      if (rows.length <= 1) return;
-      btn.closest('.minggu-row').remove();
-      reindex();
-    });
-  })();
-</script>
-@endpush
