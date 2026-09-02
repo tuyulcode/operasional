@@ -124,6 +124,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('pemakaian-bbm')->name('pemakaian-bbm.')->group(function () {
         Route::get('/', [PemakaianBbmController::class, 'index'])->name('index');
         Route::post('/', [PemakaianBbmController::class, 'store'])->name('store');
+        Route::post('refresh-harga', [PemakaianBbmController::class, 'refreshHarga'])->name('refresh-harga');
         Route::put('/{id}', [PemakaianBbmController::class, 'update'])->name('update');
         Route::delete('/{id}', [PemakaianBbmController::class, 'destroy'])->name('destroy');
 
