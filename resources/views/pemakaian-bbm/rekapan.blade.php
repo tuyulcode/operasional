@@ -52,16 +52,55 @@
         </button>
 
         @if(!empty($tanggalAwal) && !empty($tanggalAkhir))
+          <button type="button" id="btnExportLaporan" class="btn btn-success" onclick="openExportConfirm()">
+            <i class="fa-solid fa-file-export"></i> Export Laporan
+          </button>
+        @endif
+      </form>
+    </div>
+  </div>
+
+  {{-- MODAL EXPORT (konfirmasi -> pilihan format) --}}
+  <div class="modal-overlay" id="exportConfirmModal">
+    <div class="modal modal-confirm">
+
+      <div id="exportConfirmStep">
+        <div class="modal-body modal-confirm-body">
+          <div class="modal-confirm-icon">
+            <i class="fa-solid fa-file-export"></i>
+          </div>
+          <h3 class="modal-confirm-title">Export Laporan?</h3>
+          <p class="modal-confirm-text">Apakah Anda yakin ingin export laporan rekapan untuk periode ini?</p>
+        </div>
+        <div class="modal-footer modal-confirm-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeExportConfirm()">Tidak</button>
+          <button type="button" class="btn btn-primary" onclick="showExportFormatStep()">Ya</button>
+        </div>
+      </div>
+
+      <div id="exportFormatStep" style="display:none;">
+        <div class="modal-body modal-confirm-body">
+          <div class="modal-confirm-icon">
+            <i class="fa-solid fa-file-export"></i>
+          </div>
+          <h3 class="modal-confirm-title">Pilih Format Export</h3>
+          <p class="modal-confirm-text">Silakan pilih format laporan yang ingin diunduh.</p>
+        </div>
+        <div class="modal-footer modal-confirm-footer">
           <a class="btn btn-success"
-             href="{{ route('pemakaian-bbm.export-excel', ['tanggal_awal' => $tanggalAwal, 'tanggal_akhir' => $tanggalAkhir]) }}">
+             href="{{ route('pemakaian-bbm.export-excel', ['tanggal_awal' => $tanggalAwal ?? '', 'tanggal_akhir' => $tanggalAkhir ?? '']) }}">
             <i class="fa-solid fa-file-excel"></i> Export Excel
           </a>
           <a class="btn btn-danger"
-             href="{{ route('pemakaian-bbm.export-pdf', ['tanggal_awal' => $tanggalAwal, 'tanggal_akhir' => $tanggalAkhir]) }}">
+             href="{{ route('pemakaian-bbm.export-pdf', ['tanggal_awal' => $tanggalAwal ?? '', 'tanggal_akhir' => $tanggalAkhir ?? '']) }}">
             <i class="fa-solid fa-file-pdf"></i> Export PDF
           </a>
-        @endif
-      </form>
+        </div>
+        <div class="modal-footer" style="justify-content:center; padding-top:0;">
+          <button type="button" class="btn btn-secondary" onclick="closeExportConfirm()">Tutup</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -78,3 +117,55 @@
   @endif
 
 @endsection
+
+@push('styles')
+<style>
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #fff; border-radius: 12px; width: 90%; }
+  .modal-confirm { max-width: 420px; }
+  .modal-confirm-body { text-align: center; padding: 32px 24px 8px; }
+  .modal-confirm-icon {
+    width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 50%;
+    background: #ecfdf5; color: #059669; display: flex; align-items: center;
+    justify-content: center; font-size: 1.5rem;
+  }
+  .modal-confirm-title { margin: 0 0 8px; font-size: 1.1rem; font-weight: 700; color: #1f2937; }
+  .modal-confirm-text { margin: 0; color: #6b7280; font-size: 0.9rem; line-height: 1.5; }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; }
+  .modal-confirm-footer { justify-content: center; padding-top: 20px; padding-bottom: 24px; }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+  function openExportConfirm() {
+    document.getElementById('exportConfirmStep').style.display = 'block';
+    document.getElementById('exportFormatStep').style.display = 'none';
+    document.getElementById('exportConfirmModal').classList.add('show');
+  }
+  function closeExportConfirm() {
+    document.getElementById('exportConfirmModal').classList.remove('show');
+  }
+  function showExportFormatStep() {
+    document.getElementById('exportConfirmStep').style.display = 'none';
+    document.getElementById('exportFormatStep').style.display = 'block';
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    const overlay = document.getElementById('exportConfirmModal');
+    if (overlay) {
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) closeExportConfirm();
+      });
+    }
+  });
+</script>
+@endpush
