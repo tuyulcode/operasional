@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Area;
+use App\Models\Ppn;
 use App\Models\TagihanAir;
 use App\Models\TagihanAirFoto;
 use App\Models\TitikMeter;
@@ -40,10 +41,12 @@ class TagihanAirController extends Controller
 
         $edit = null;
         if ($request->has('edit')) {
-            $edit = TagihanAir::with('fotos')->findOrFail($request->query('edit'));
+            $edit = TagihanAir::with('fotos', 'titikMeter.area')->findOrFail($request->query('edit'));
         }
 
-        return view('tagihan-air.index', compact('tab', 'areas', 'titikMeters', 'meterMap', 'edit'));
+        $ppnAktif = Ppn::where('status', 'aktif')->first();
+
+        return view('tagihan-air.index', compact('tab', 'areas', 'titikMeters', 'meterMap', 'edit', 'ppnAktif'));
     }
 
     protected function prevMeter($titikMeterId, $periode): ?float
@@ -93,6 +96,8 @@ class TagihanAirController extends Controller
             'meter_ini' => 'required|numeric|min:0',
             'meter_faktor' => 'required|numeric|min:0',
             'tarif' => 'required|numeric|gt:0',
+            'ppn_persentase' => 'nullable|numeric|min:0|max:100',
+            'ppn_nominal' => 'nullable|numeric|min:0',
             'meter_lalu' => 'nullable|numeric|min:0',
             'foto_meter' => [
                 'nullable',
@@ -164,8 +169,15 @@ class TagihanAirController extends Controller
             ]);
         }
 
+        $titikMeter = TitikMeter::with('area')->find($validated['titik_meter_id']);
+        $area = $titikMeter->area;
+        $ppnAktif = Ppn::where('status', 'aktif')->first();
+
         $pemakaian = ($validated['meter_ini'] - $meterLalu) * $validated['meter_faktor'];
-        $jumlah = $pemakaian * $validated['tarif'];
+        $jumlahSebelumPpn = $pemakaian * $validated['tarif'];
+        $ppnPersentase = $area->kena_ppn ? (float) ($ppnAktif->persentase ?? 0) : 0;
+        $ppnNominal = round($jumlahSebelumPpn * $ppnPersentase / 100, 2);
+        $jumlah = $jumlahSebelumPpn + $ppnNominal;
 
         $tagihan = TagihanAir::create([
             'titik_meter_id' => $validated['titik_meter_id'],
@@ -175,6 +187,8 @@ class TagihanAirController extends Controller
             'meter_faktor' => $validated['meter_faktor'],
             'tarif' => $validated['tarif'],
             'pemakaian' => $pemakaian,
+            'ppn_persentase' => $ppnPersentase,
+            'ppn_nominal' => $ppnNominal,
             'jumlah' => $jumlah,
         ]);
 
@@ -197,8 +211,15 @@ class TagihanAirController extends Controller
             $meterLalu = NumberFormatter::parseId($tagihan->meter_lalu) ?? 0;
         }
 
+        $titikMeter = TitikMeter::with('area')->find($validated['titik_meter_id']);
+        $area = $titikMeter->area;
+        $ppnAktif = Ppn::where('status', 'aktif')->first();
+
         $pemakaian = ($validated['meter_ini'] - $meterLalu) * $validated['meter_faktor'];
-        $jumlah = $pemakaian * $validated['tarif'];
+        $jumlahSebelumPpn = $pemakaian * $validated['tarif'];
+        $ppnPersentase = $area->kena_ppn ? (float) ($ppnAktif->persentase ?? 0) : 0;
+        $ppnNominal = round($jumlahSebelumPpn * $ppnPersentase / 100, 2);
+        $jumlah = $jumlahSebelumPpn + $ppnNominal;
 
         $data = [
             'titik_meter_id' => $validated['titik_meter_id'],
@@ -208,6 +229,8 @@ class TagihanAirController extends Controller
             'meter_faktor' => $validated['meter_faktor'],
             'tarif' => $validated['tarif'],
             'pemakaian' => $pemakaian,
+            'ppn_persentase' => $ppnPersentase,
+            'ppn_nominal' => $ppnNominal,
             'jumlah' => $jumlah,
         ];
 

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Area;
 use App\Models\Penandatangan;
-use App\Models\Ppn;
 use App\Models\TagihanAir;
 use App\Services\RekapanExcel;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -36,17 +35,17 @@ class RekapanController extends Controller
             $areaQuery->where('id', $areaId);
         }
 
-        $ppnPersen = (float) (Ppn::where('status', 'aktif')->value('persentase') ?? 0);
-
-        $data = $areaQuery->get()->map(function ($area) use ($tagihans, $ppnPersen) {
+        $data = $areaQuery->get()->map(function ($area) use ($tagihans) {
             $rows = $area->titikMeter->map(fn ($tm) => [
                 'titik_meter' => $tm,
                 'tagihan' => $tagihans->get($tm->id),
             ]);
 
-            $subtotal = $rows->sum(fn ($r) => $r['tagihan']->jumlah ?? 0);
+            $subtotal = $rows->sum(fn ($r) => max(0, (float) ($r['tagihan']->jumlah ?? 0) - (float) ($r['tagihan']->ppn_nominal ?? 0)));
+            $ppn = $rows->sum(fn ($r) => (float) ($r['tagihan']->ppn_nominal ?? 0));
             $kenaPpn = (bool) $area->kena_ppn;
-            $ppn = $kenaPpn ? round($subtotal * $ppnPersen / 100, 2) : 0;
+            $firstPpnTagihan = $rows->first(fn ($r) => $r['tagihan'] && (float) $r['tagihan']->ppn_persentase > 0);
+            $persenPpn = $firstPpnTagihan ? (float) $firstPpnTagihan['tagihan']->ppn_persentase : 0;
 
             return [
                 'area' => $area,
@@ -55,7 +54,7 @@ class RekapanController extends Controller
                 'subtotal' => $subtotal,
                 'total_pemakaian' => $rows->sum(fn ($r) => $r['tagihan']->pemakaian ?? 0),
                 'kena_ppn' => $kenaPpn,
-                'persen_ppn' => $ppnPersen,
+                'persen_ppn' => $persenPpn,
                 'ppn' => $ppn,
                 'total' => $subtotal + $ppn,
             ];
