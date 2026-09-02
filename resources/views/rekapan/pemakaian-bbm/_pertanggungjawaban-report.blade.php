@@ -12,7 +12,7 @@
   </div>
 @endforeach
 
-<table style="width:100%; border-collapse:collapse; margin-top:28px; font-size:13px; page-break-inside: avoid;">
+<table style="width:65%; margin:28px auto 0; border-collapse:collapse; font-size:13px; page-break-inside: avoid;">
   <tr>
     <td style="width:60%; vertical-align:top; padding-right:24px; border:none;">
       <strong>Keterangan :</strong><br>
