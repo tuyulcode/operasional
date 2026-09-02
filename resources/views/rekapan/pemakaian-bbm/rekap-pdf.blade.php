@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <style>
-    @page { size: portrait; margin: 20px; }
+    @page { size: portrait; margin: 25px 45px; }
     body { font-family: sans-serif; }
 
     .header-table {
@@ -21,7 +21,7 @@
       text-align: left;
     }
     .logo-cell img {
-      height: 45px;
+      height: 35px;
     }
     .title-cell {
       width: 70%;
