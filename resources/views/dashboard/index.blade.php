@@ -153,8 +153,7 @@
     color: #fff;
     position: relative;
     overflow: hidden;
-    opacity: 0;
-    animation: fadeSlideUp 0.55s ease forwards;
+    animation: fadeSlideUp 0.55s ease both;
     transition: transform 0.3s cubic-bezier(.22,1,.36,1), box-shadow 0.3s ease;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   }
@@ -243,8 +242,7 @@
   .card {
     border-radius: 14px;
     background: var(--card-bg, #fff);
-    opacity: 0;
-    animation: fadeSlideUp 0.55s ease forwards;
+    animation: fadeSlideUp 0.55s ease both;
     animation-delay: 0.2s;
     transition: box-shadow 0.3s ease, transform 0.3s ease;
   }
@@ -283,8 +281,7 @@
     align-items: center;
     padding: 10px 4px;
     border-bottom: 1px dashed rgba(0,0,0,0.08);
-    opacity: 0;
-    animation: fadeSlideUp 0.4s ease forwards;
+    animation: fadeSlideUp 0.4s ease both;
     transition: background 0.2s ease, padding-left 0.2s ease;
     border-radius: 8px;
   }
@@ -310,8 +307,7 @@
     padding: 10px 14px;
     border-radius: 10px;
     font-size: 0.86rem;
-    opacity: 0;
-    animation: fadeSlideUp 0.45s ease forwards;
+    animation: fadeSlideUp 0.45s ease both;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
   .alert-item:hover {
@@ -353,8 +349,7 @@
     z-index: 1;
   }
   .app-sales-table tbody tr {
-    opacity: 0;
-    animation: fadeIn 0.4s ease forwards;
+    animation: fadeIn 0.4s ease both;
     transition: background 0.2s ease;
   }
   .app-sales-table tbody tr:hover {
@@ -391,15 +386,13 @@
   .chart-wrap {
     height: 250px;
     position: relative;
-    opacity: 0;
-    animation: fadeIn 0.7s ease 0.3s forwards;
+    animation: fadeIn 0.7s ease 0.3s both;
   }
 
   .chart-wrap-lg {
     height: 270px;
     position: relative;
-    opacity: 0;
-    animation: fadeIn 0.7s ease 0.3s forwards;
+    animation: fadeIn 0.7s ease 0.3s both;
   }
 
   /* badge kecil untuk jumlah transaksi e-toll */
