@@ -16,16 +16,16 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        // ==============================
-        // 3. FILTER BULAN / TAHUN
-        // ==============================
         $bulan = (int) $request->input('bulan', now()->month);
         $tahun = (int) $request->input('tahun', now()->year);
 
         $periodeIni  = Carbon::create($tahun, $bulan, 1)->startOfMonth();
         $periodeLalu = $periodeIni->copy()->subMonth();
+        $awalBulanIni  = $periodeIni->copy()->startOfMonth();
+        $akhirBulanIni = $periodeIni->copy()->endOfMonth();
+        $awalBulanLalu  = $periodeLalu->copy()->startOfMonth();
+        $akhirBulanLalu = $periodeLalu->copy()->endOfMonth();
 
-        // Untuk dropdown filter di view
         $bulanList = collect(range(1, 12))->map(function ($m) {
             return [
                 'value' => $m,
@@ -36,33 +36,23 @@ class DashboardController extends Controller
         $tahunAwal = (int) (TagihanAir::min('periode') ? Carbon::parse(TagihanAir::min('periode'))->year : now()->year);
         $tahunList = collect(range(min($tahunAwal, now()->year - 1), now()->year))->reverse()->values();
 
-        // ==============================
-        // 1. TOTAL BIAYA OPERASIONAL
-        // 2. BBM: Rp + Liter
-        // ==============================
-        $totalEtollBulanIni = (float) PemakaianEtoll::whereMonth('tanggal', $bulan)
-            ->whereYear('tanggal', $tahun)
-            ->sum('nominal');
+        // --- BULAN INI: 3 queries ---
+        $totalEtollBulanIni = (float) PemakaianEtoll::whereBetween('tanggal', [$awalBulanIni, $akhirBulanIni])->sum('nominal');
 
-        $bbmBulanIni = PemakaianBbm::whereMonth('tanggal', $bulan)
-            ->whereYear('tanggal', $tahun)
+        $bbmBulanIni = PemakaianBbm::whereBetween('tanggal', [$awalBulanIni, $akhirBulanIni])
             ->selectRaw('COALESCE(SUM(jumlah),0) as total_rp, COALESCE(SUM(liter),0) as total_liter')
             ->first();
-
         $totalBbmBulanIni     = (float) $bbmBulanIni->total_rp;
         $totalLiterBbmBulanIni = (float) $bbmBulanIni->total_liter;
 
-        $totalAirBulanIni = (float) TagihanAir::whereMonth('periode', $bulan)
-            ->whereYear('periode', $tahun)
-            ->sum('jumlah');
-
+        $totalAirBulanIni = (float) TagihanAir::whereBetween('periode', [$awalBulanIni, $akhirBulanIni])->sum('jumlah');
         $totalOperasionalBulanIni = $totalEtollBulanIni + $totalBbmBulanIni + $totalAirBulanIni;
 
-        // Perbandingan dengan bulan sebelumnya (untuk alert & info)
-        $totalOperasionalBulanLalu =
-            (float) PemakaianEtoll::whereMonth('tanggal', $periodeLalu->month)->whereYear('tanggal', $periodeLalu->year)->sum('nominal')
-            + (float) PemakaianBbm::whereMonth('tanggal', $periodeLalu->month)->whereYear('tanggal', $periodeLalu->year)->sum('jumlah')
-            + (float) TagihanAir::whereMonth('periode', $periodeLalu->month)->whereYear('periode', $periodeLalu->year)->sum('jumlah');
+        // --- BULAN LALU: 3 queries ---
+        $totalEtollLalu = (float) PemakaianEtoll::whereBetween('tanggal', [$awalBulanLalu, $akhirBulanLalu])->sum('nominal');
+        $totalBbmLalu   = (float) PemakaianBbm::whereBetween('tanggal', [$awalBulanLalu, $akhirBulanLalu])->sum('jumlah');
+        $totalAirLalu   = (float) TagihanAir::whereBetween('periode', [$awalBulanLalu, $akhirBulanLalu])->sum('jumlah');
+        $totalOperasionalBulanLalu = $totalEtollLalu + $totalBbmLalu + $totalAirLalu;
 
         $persenPerubahan = $totalOperasionalBulanLalu > 0
             ? round((($totalOperasionalBulanIni - $totalOperasionalBulanLalu) / $totalOperasionalBulanLalu) * 100, 1)
@@ -70,21 +60,14 @@ class DashboardController extends Controller
 
         $jumlahKendaraan = Kendaraan::count();
 
-        // ==============================
-        // 4. KOMPOSISI BIAYA (Donut Chart)
-        // ==============================
         $komposisiBiaya = [
             'labels' => ['E-Toll', 'BBM', 'Tagihan Air'],
             'data'   => [$totalEtollBulanIni, $totalBbmBulanIni, $totalAirBulanIni],
         ];
 
-        // ==============================
-        // 5. PEMAKAIAN BBM PER KENDARAAN
-        // ==============================
         $pemakaianBbmPerKendaraan = DB::table('pemakaian_bbm')
             ->join('kendaraan', 'kendaraan.id', '=', 'pemakaian_bbm.kendaraan_id')
-            ->whereMonth('pemakaian_bbm.tanggal', $bulan)
-            ->whereYear('pemakaian_bbm.tanggal', $tahun)
+            ->whereBetween('pemakaian_bbm.tanggal', [$awalBulanIni, $akhirBulanIni])
             ->select(
                 'kendaraan.id',
                 'kendaraan.plat_nomor',
@@ -97,13 +80,9 @@ class DashboardController extends Controller
             ->orderByDesc('total_rp')
             ->get();
 
-        // ==============================
-        // 6. PEMAKAIAN AIR PER TITIK METER
-        // ==============================
         $pemakaianAirPerTitikMeter = DB::table('tagihan_air')
             ->join('titik_meter', 'titik_meter.id', '=', 'tagihan_air.titik_meter_id')
-            ->whereMonth('tagihan_air.periode', $bulan)
-            ->whereYear('tagihan_air.periode', $tahun)
+            ->whereBetween('tagihan_air.periode', [$awalBulanIni, $akhirBulanIni])
             ->select(
                 'titik_meter.id',
                 'titik_meter.nama',
@@ -115,13 +94,9 @@ class DashboardController extends Controller
             ->orderByDesc('total_rp')
             ->get();
 
-        // ==============================
-        // 6B. PEMAKAIAN E-TOLL PER PEMEGANG KENDARAAN  (BARU)
-        // ==============================
         $pemakaianEtollPerPemegang = DB::table('pemakaian_etoll')
             ->join('pemegang_kendaraan', 'pemegang_kendaraan.id', '=', 'pemakaian_etoll.pemegang_kendaraan_id')
-            ->whereMonth('pemakaian_etoll.tanggal', $bulan)
-            ->whereYear('pemakaian_etoll.tanggal', $tahun)
+            ->whereBetween('pemakaian_etoll.tanggal', [$awalBulanIni, $akhirBulanIni])
             ->select(
                 'pemegang_kendaraan.id',
                 'pemegang_kendaraan.nama',
@@ -132,23 +107,35 @@ class DashboardController extends Controller
             ->orderByDesc('total_rp')
             ->get();
 
-        // ==============================
-        // 7. HARGA BBM TERBARU
-        // ==============================
         $hargaBbmTerbaru = HargaBbm::orderByDesc('tanggal_berlaku')->first();
 
-        // ==============================
-        // 9. TREN BIAYA OPERASIONAL (6 BULAN TERAKHIR)  (BARU)
-        // ==============================
+        // --- TREN 6 BULAN: 3 grouped queries (bukan 18) ---
         $jumlahBulanTren = 6;
-        $trenBulanan = collect();
+        $awalTren = $periodeIni->copy()->subMonths($jumlahBulanTren - 1)->startOfMonth();
+        $akhirTren = $periodeIni->copy()->endOfMonth();
 
+        $etollPerBulan = PemakaianEtoll::whereBetween('tanggal', [$awalTren, $akhirTren])
+            ->selectRaw("DATE_FORMAT(tanggal, '%Y-%m') as bulan, SUM(nominal) as total")
+            ->groupBy('bulan')
+            ->pluck('total', 'bulan');
+
+        $bbmPerBulan = PemakaianBbm::whereBetween('tanggal', [$awalTren, $akhirTren])
+            ->selectRaw("DATE_FORMAT(tanggal, '%Y-%m') as bulan, SUM(jumlah) as total")
+            ->groupBy('bulan')
+            ->pluck('total', 'bulan');
+
+        $airPerBulan = TagihanAir::whereBetween('periode', [$awalTren, $akhirTren])
+            ->selectRaw("DATE_FORMAT(periode, '%Y-%m') as bulan, SUM(jumlah) as total")
+            ->groupBy('bulan')
+            ->pluck('total', 'bulan');
+
+        $trenBulanan = collect();
         for ($i = $jumlahBulanTren - 1; $i >= 0; $i--) {
             $p = $periodeIni->copy()->subMonths($i);
-
-            $etoll = (float) PemakaianEtoll::whereMonth('tanggal', $p->month)->whereYear('tanggal', $p->year)->sum('nominal');
-            $bbm   = (float) PemakaianBbm::whereMonth('tanggal', $p->month)->whereYear('tanggal', $p->year)->sum('jumlah');
-            $air   = (float) TagihanAir::whereMonth('periode', $p->month)->whereYear('periode', $p->year)->sum('jumlah');
+            $key = $p->format('Y-m');
+            $etoll = (float) ($etollPerBulan[$key] ?? 0);
+            $bbm   = (float) ($bbmPerBulan[$key] ?? 0);
+            $air   = (float) ($airPerBulan[$key] ?? 0);
 
             $trenBulanan->push([
                 'label' => $p->translatedFormat('M Y'),
@@ -167,15 +154,11 @@ class DashboardController extends Controller
             'air'    => $trenBulanan->pluck('air'),
         ];
 
-        // ==============================
-        // 8. ALERT / INFORMASI OPERASIONAL
-        // ==============================
+        // --- ALERTS ---
         $alerts = [];
 
-        // a. Kendaraan yang belum mengisi BBM di periode ini
         $kendaraanIdSudahIsi = DB::table('pemakaian_bbm')
-            ->whereMonth('tanggal', $bulan)
-            ->whereYear('tanggal', $tahun)
+            ->whereBetween('tanggal', [$awalBulanIni, $akhirBulanIni])
             ->pluck('kendaraan_id')
             ->unique();
 
@@ -189,10 +172,8 @@ class DashboardController extends Controller
             ];
         }
 
-        // b. Titik meter aktif yang belum dicatat tagihan airnya di periode ini
         $titikMeterIdSudahDicatat = DB::table('tagihan_air')
-            ->whereMonth('periode', $bulan)
-            ->whereYear('periode', $tahun)
+            ->whereBetween('periode', [$awalBulanIni, $akhirBulanIni])
             ->pluck('titik_meter_id')
             ->unique();
 
@@ -208,7 +189,6 @@ class DashboardController extends Controller
             ];
         }
 
-        // c. Harga BBM sudah lama tidak diupdate
         if ($hargaBbmTerbaru) {
             $hariSejakUpdate = Carbon::parse($hargaBbmTerbaru->tanggal_berlaku)->diffInDays(now());
             if ($hariSejakUpdate > 30) {
@@ -226,7 +206,6 @@ class DashboardController extends Controller
             ];
         }
 
-        // d. Kenaikan biaya operasional signifikan dibanding bulan sebelumnya
         if ($persenPerubahan !== null && $persenPerubahan >= 20) {
             $alerts[] = [
                 'type' => 'danger',

@@ -27,6 +27,10 @@ class PemegangKendaraanController extends Controller
 
         PemegangKendaraan::create($validated);
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data pemegang kendaraan berhasil ditambahkan.']);
+        }
+
         return redirect()->route('pemegang-kendaraan.index')
             ->with('success', 'Data pemegang kendaraan berhasil ditambahkan.');
     }
@@ -41,6 +45,10 @@ class PemegangKendaraanController extends Controller
 
         $pemegangKendaraan->update($validated);
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data pemegang kendaraan berhasil diperbarui.']);
+        }
+
         return redirect()->route('pemegang-kendaraan.index')
             ->with('success', 'Data pemegang kendaraan berhasil diperbarui.');
     }
@@ -50,11 +58,18 @@ class PemegangKendaraanController extends Controller
         $pemegangKendaraan = PemegangKendaraan::findOrFail($id);
 
         if ($pemegangKendaraan->pemakaianEtoll()->exists()) {
+            if (request()->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Data tidak dapat dihapus karena sudah digunakan pada pemakaian e-toll.'], 422);
+            }
             return redirect()->route('pemegang-kendaraan.index')
                 ->with('error', 'Data tidak dapat dihapus karena sudah digunakan pada pemakaian e-toll.');
         }
 
         $pemegangKendaraan->delete();
+
+        if (request()->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data pemegang kendaraan berhasil dihapus.']);
+        }
 
         return redirect()->route('pemegang-kendaraan.index')
             ->with('success', 'Data pemegang kendaraan berhasil dihapus.');

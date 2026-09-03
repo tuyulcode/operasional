@@ -3,8 +3,6 @@
    Adapted from Adminty template
    ========================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-
 :root {
   --primary-color: #4099ff;
   --secondary-color: #6c757d;

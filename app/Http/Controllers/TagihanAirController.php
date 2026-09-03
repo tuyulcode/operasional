@@ -25,7 +25,7 @@ class TagihanAirController extends Controller
         }
 
         if ($tab === 'data') {
-            $tagihanAirs = TagihanAir::with(['titikMeter.area', 'fotos'])->latest('periode')->get();
+            $tagihanAirs = TagihanAir::with(['titikMeter.area', 'fotos'])->latest('periode')->paginate(25);
 
             return view('tagihan-air.index', compact('tab', 'tagihanAirs'));
         }
@@ -33,9 +33,10 @@ class TagihanAirController extends Controller
         $areas = Area::latest()->get();
         $titikMeters = TitikMeter::latest()->get();
 
-        // Map side: untuk mengisi Meter Lalu otomatis dari periode sebelumnya
+        // Map side: 24 bulan terakhir saja (bukan SEMUA record)
+        $batasWaktu = now()->subMonths(24)->startOfMonth();
         $meterMap = [];
-        foreach (TagihanAir::orderBy('periode')->get(['titik_meter_id', 'periode', 'meter_ini']) as $t) {
+        foreach (TagihanAir::where('periode', '>=', $batasWaktu)->orderBy('periode')->get(['titik_meter_id', 'periode', 'meter_ini']) as $t) {
             $meterMap[$t->titik_meter_id][$t->periode->format('Y-m')] = (float) $t->meter_ini;
         }
 
@@ -194,6 +195,14 @@ class TagihanAirController extends Controller
 
         $this->saveFotos($request, $tagihan->id);
 
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tagihan air berhasil ditambahkan.',
+                'periode' => $validated['periode'],
+            ]);
+        }
+
         return redirect()->route('tagihan-air.index', request()->only(['tab']))
             ->with('success', 'Tagihan air berhasil ditambahkan.');
     }
@@ -238,28 +247,54 @@ class TagihanAirController extends Controller
 
         $this->saveFotos($request, $tagihan->id);
 
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tagihan air berhasil diperbarui.',
+                'periode' => $validated['periode'],
+            ]);
+        }
+
         return redirect()->route('tagihan-air.index', request()->only(['tab']))
             ->with('success', 'Tagihan air berhasil diperbarui.');
     }
 
-    public function destroyFoto($id)
+    public function destroyFoto(Request $request, $id)
     {
         $foto = TagihanAirFoto::findOrFail($id);
+        $periode = $foto->tagihanAir->periode->format('Y-m');
 
         $this->deleteFotoFile($foto->path_foto);
         $foto->delete();
 
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Foto meter berhasil dihapus.',
+                'periode' => $periode,
+            ]);
+        }
+
         return back()->with('success', 'Foto meter berhasil dihapus.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $tagihan = TagihanAir::findOrFail($id);
+        $periode = $tagihan->periode->format('Y-m');
 
         foreach ($tagihan->fotos as $foto) {
             $this->deleteFotoFile($foto->path_foto);
         }
         $tagihan->delete();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tagihan air berhasil dihapus.',
+                'periode' => $periode,
+            ]);
+        }
 
         return redirect()->route('tagihan-air.index', request()->only(['tab']))
             ->with('success', 'Tagihan air berhasil dihapus.');

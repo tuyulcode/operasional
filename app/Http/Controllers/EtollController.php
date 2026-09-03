@@ -55,6 +55,10 @@ class EtollController extends Controller
 
         PemakaianEtoll::create($validated);
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data pemakaian e-toll berhasil ditambahkan.']);
+        }
+
         return redirect()->route('pemakaian-etoll.index')
             ->with('success', 'Data pemakaian e-toll berhasil ditambahkan.');
     }
@@ -71,14 +75,22 @@ class EtollController extends Controller
 
         $pemakaianEtoll->update($validated);
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data pemakaian e-toll berhasil diperbarui.']);
+        }
+
         return redirect()->route('pemakaian-etoll.index')
             ->with('success', 'Data pemakaian e-toll berhasil diperbarui.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $pemakaianEtoll = PemakaianEtoll::findOrFail($id);
         $pemakaianEtoll->delete();
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data pemakaian e-toll berhasil dihapus.']);
+        }
 
         return redirect()->route('pemakaian-etoll.index')
             ->with('success', 'Data pemakaian e-toll berhasil dihapus.');

@@ -84,7 +84,7 @@
                   <i class="fa-solid fa-pen"></i>
                 </button>
                 <form action="{{ route('titik-meter.destroy', $titikMeter->id) }}" method="POST" style="display: inline;"
-                      onsubmit="return confirm('Yakin ingin menghapus titik meter ini?');">
+                      class="ajax-form">
                   @csrf
                   @method('DELETE')
                   <button type="submit" class="btn btn-icon btn-delete" title="Hapus">
@@ -116,7 +116,7 @@
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <form id="titikMeterForm" method="POST"
+      <form id="titikMeterForm" class="ajax-form" method="POST"
             action="{{ $edit ? route('titik-meter.update', $edit->id) : route('titik-meter.store') }}">
         @csrf
         <input type="hidden" name="_method" id="titikMeterMethod" value="{{ $edit ? 'PUT' : '' }}">

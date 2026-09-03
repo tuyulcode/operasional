@@ -174,8 +174,103 @@ function showToast(message, type) {
 }
 
 /* ==========================================
-   MONTH-YEAR PICKER COMPONENT
+   AJAX FORM SUBMIT SYSTEM
    ========================================== */
+
+document.addEventListener('submit', function(e) {
+  var form = e.target;
+  if (!form.classList.contains('ajax-form')) return;
+  e.preventDefault();
+  submitAjaxForm(form);
+});
+
+function submitAjaxForm(form) {
+  var submitBtn = form.querySelector('[type="submit"]');
+  var originalHtml = submitBtn ? submitBtn.innerHTML : '';
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+  }
+
+  var formData = new FormData(form);
+
+  fetch(form.action, {
+    method: form.method || 'POST',
+    body: formData,
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'Accept': 'application/json'
+    }
+  })
+  .then(function(response) {
+    return response.json().then(function(data) {
+      if (!response.ok) throw data;
+      return data;
+    });
+  })
+  .then(function(data) {
+    if (data.success) {
+      showToast(data.message || 'Berhasil', 'success');
+      closeAllActiveModals();
+      reloadPageContent();
+    } else {
+      showToast(data.message || 'Terjadi kesalahan', 'error');
+    }
+  })
+  .catch(function(err) {
+    if (err && err.errors) {
+      var msgs = [];
+      Object.keys(err.errors).forEach(function(k) {
+        msgs.push(err.errors[k][0]);
+      });
+      showToast(msgs.join('. '), 'error');
+    } else if (err && err.message) {
+      showToast(err.message, 'error');
+    } else {
+      showToast('Terjadi kesalahan jaringan', 'error');
+    }
+  })
+  .finally(function() {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalHtml;
+    }
+  });
+}
+
+function closeAllActiveModals() {
+  document.querySelectorAll('.modal-overlay.show').forEach(function(m) {
+    m.classList.remove('show');
+  });
+}
+
+function reloadPageContent() {
+  fetch(window.location.href, {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(function(r) { return r.text(); })
+  .then(function(html) {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, 'text/html');
+
+    var newTable = doc.querySelector('.table-responsive');
+    var oldTable = document.querySelector('.table-responsive');
+    if (newTable && oldTable) {
+      oldTable.innerHTML = newTable.innerHTML;
+    }
+
+    var newCard = doc.querySelector('.card');
+    var oldCard = document.querySelector('.card');
+    if (newCard && oldCard) {
+      var newBody = newCard.querySelector('.card-body');
+      var oldBody = oldCard.querySelector('.card-body');
+      if (newBody && oldBody) {
+        oldBody.innerHTML = newBody.innerHTML;
+      }
+    }
+  });
+}
 
 var MONTH_NAMES = [
   'Januari','Februari','Maret','April','Mei','Juni',

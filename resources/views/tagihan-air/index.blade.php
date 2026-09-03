@@ -48,7 +48,7 @@
       </div>
     </div>
     <div class="card-body">
-      <form id="tagihanForm" method="POST" enctype="multipart/form-data"
+      <form id="tagihanForm" class="ajax-form" method="POST" enctype="multipart/form-data"
             action="{{ $edit ? route('tagihan-air.update', $edit->id) : route('tagihan-air.store') }}">
         @csrf
         <input type="hidden" name="_method" id="tagihanMethod" value="{{ $edit ? 'PUT' : '' }}">
@@ -142,7 +142,7 @@
                              style="width: 90px; height: 70px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;">
                         <form action="{{ route('tagihan-air.foto.destroy', $f->id) }}" method="POST"
                               style="position: absolute; top: 2px; right: 2px; margin: 0;"
-                              onsubmit="return confirm('Yakin ingin menghapus foto ini?');">
+                              class="ajax-form">
                           @csrf
                           @method('DELETE')
                           <button type="submit" class="btn btn-icon btn-delete"
@@ -285,7 +285,7 @@
                     <i class="fa-solid fa-pen"></i>
                   </a>
                   <form action="{{ route('tagihan-air.destroy', ['id' => $t->id, 'tab' => 'data']) }}"
-                        method="POST" class="delete-tagihan-form" style="display: inline;">
+                        method="POST" class="delete-tagihan-form ajax-form" style="display: inline;">
                     @csrf
                     @method('DELETE')
                     <button type="button" class="btn btn-icon btn-delete btnConfirmDelete" title="Hapus">
@@ -470,6 +470,15 @@
   }
 
   function recalcTotals() {
+    // Jika Meter Bulan Ini kosong, reset semua field kalkulasi
+    if (!meterIniInput.value.trim()) {
+        pemakaianInput.value = '';
+        jumlahSebelumPpnInput.value = '';
+        ppnNominalInput.value = '';
+        jumlahInput.value = '';
+        return;
+    }
+
     const ini = parseIdValue(meterIniInput.value);
     const lalu = parseIdValue(meterLaluInput.value);
     const faktor = parseIdValue(meterFaktorInput.value);
@@ -625,7 +634,7 @@
   document.addEventListener('DOMContentLoaded', function() {
     filterTitikMeter();
 
-    var pickerPeriode = new MonthYearPicker({
+    window.pickerPeriode = new MonthYearPicker({
       hiddenId: 'periode',
       onChange: function(val) {
         periodeInput.dispatchEvent(new Event('change'));
@@ -681,10 +690,85 @@
     });
 
     const form = document.getElementById('tagihanForm');
-    form.addEventListener('submit', function() {
+
+    // Custom AJAX submit handler for Tagihan Air form
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      var submitBtn = form.querySelector('[type="submit"]');
+      var originalHtml = submitBtn ? submitBtn.innerHTML : '';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+      }
+
+      // Sync before submit
       tarifInput.value = String(parseIdValue(tarifInput.value));
       syncFotoInput();
-    });
+
+      var formData = new FormData(form);
+
+      fetch(form.action, {
+        method: form.method || 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+      })
+      .then(function(response) {
+        return response.json().then(function(data) {
+          if (!response.ok) throw data;
+          return data;
+        });
+      })
+      .then(function(data) {
+        if (data.success) {
+          showToast(data.message || 'Berhasil', 'success');
+
+          // Reset form TAPI pertahankan Periode
+          form.reset();
+          document.getElementById('tagihanMethod').value = '';
+
+          // Set periode dari response
+          if (data.periode && window.pickerPeriode) {
+            window.pickerPeriode.setValue(data.periode);
+          }
+
+          // Reset field kalkulasi
+          pemakaianInput.value = '';
+          jumlahSebelumPpnInput.value = '';
+          ppnPersentaseInput.value = '';
+          ppnNominalInput.value = '';
+          jumlahInput.value = '';
+          meterFaktorInput.value = '1';
+          tarifInput.value = '';
+
+          // Reset foto
+          pendingFotos = [];
+          renderPendingFotos();
+          updateFotoCapState();
+
+          // Re-init meter_lalu state
+          updateMeterLaluState(false);
+        }
+      })
+      .catch(function(err) {
+        if (err && err.errors) {
+          var msgs = [];
+          Object.keys(err.errors).forEach(function(k) { msgs.push(err.errors[k][0]); });
+          showToast(msgs.join('. '), 'error');
+        } else if (err && err.message) {
+          showToast(err.message, 'error');
+        } else {
+          showToast('Terjadi kesalahan jaringan', 'error');
+        }
+      })
+      .finally(function() {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalHtml;
+        }
+      });
+    }, true); // useCapture supaya jalan sebelum listener global
 
     updateFotoCapState();
   });

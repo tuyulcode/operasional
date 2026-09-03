@@ -45,6 +45,10 @@ class KendaraanController extends Controller
 
         Kendaraan::create($validated);
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data kendaraan berhasil ditambahkan.']);
+        }
+
         return redirect()->route('kendaraan.index')
             ->with('success', 'Data kendaraan berhasil ditambahkan.');
     }
@@ -72,6 +76,10 @@ class KendaraanController extends Controller
 
         $kendaraan->update($validated);
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data kendaraan berhasil diperbarui.']);
+        }
+
         return redirect()->route('kendaraan.index')
             ->with('success', 'Data kendaraan berhasil diperbarui.');
     }
@@ -83,13 +91,19 @@ class KendaraanController extends Controller
     {
         $kendaraan = Kendaraan::findOrFail($id);
 
-        // Cegah hapus jika masih dipakai di tabel pemakaian_bbm
         if ($kendaraan->pemakaianBbm()->exists()) {
+            if (request()->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Kendaraan tidak dapat dihapus karena masih memiliki riwayat pemakaian BBM.'], 422);
+            }
             return redirect()->route('kendaraan.index')
                 ->with('error', 'Kendaraan tidak dapat dihapus karena masih memiliki riwayat pemakaian BBM.');
         }
 
         $kendaraan->delete();
+
+        if (request()->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data kendaraan berhasil dihapus.']);
+        }
 
         return redirect()->route('kendaraan.index')
             ->with('success', 'Data kendaraan berhasil dihapus.');
