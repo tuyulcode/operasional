@@ -33,6 +33,10 @@ class JenisKendaraanController extends Controller
 
         JenisKendaraan::create($validated);
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Jenis kendaraan berhasil ditambahkan.']);
+        }
+
         return redirect()->route('jenis-kendaraan.index')
             ->with('success', 'Jenis kendaraan berhasil ditambahkan.');
     }
@@ -53,6 +57,10 @@ class JenisKendaraanController extends Controller
 
         $jenisKendaraan->update($validated);
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Jenis kendaraan berhasil diperbarui.']);
+        }
+
         return redirect()->route('jenis-kendaraan.index')
             ->with('success', 'Jenis kendaraan berhasil diperbarui.');
     }
@@ -64,13 +72,19 @@ class JenisKendaraanController extends Controller
     {
         $jenisKendaraan = JenisKendaraan::findOrFail($id);
 
-        // Cegah hapus jika masih dipakai di tabel kendaraan
         if ($jenisKendaraan->kendaraan()->exists()) {
+            if (request()->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Jenis kendaraan tidak dapat dihapus karena masih digunakan pada data kendaraan.'], 422);
+            }
             return redirect()->route('jenis-kendaraan.index')
                 ->with('error', 'Jenis kendaraan tidak dapat dihapus karena masih digunakan pada data kendaraan.');
         }
 
         $jenisKendaraan->delete();
+
+        if (request()->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Jenis kendaraan berhasil dihapus.']);
+        }
 
         return redirect()->route('jenis-kendaraan.index')
             ->with('success', 'Jenis kendaraan berhasil dihapus.');

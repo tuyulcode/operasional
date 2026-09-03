@@ -45,6 +45,10 @@ class TitikMeterController extends Controller
 
         TitikMeter::create($validated);
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data titik meter berhasil ditambahkan.']);
+        }
+
         return redirect()->route('titik-meter.index')
             ->with('success', 'Data titik meter berhasil ditambahkan.');
     }
@@ -57,30 +61,45 @@ class TitikMeterController extends Controller
 
         $titikMeter->update($validated);
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data titik meter berhasil diperbarui.']);
+        }
+
         return redirect()->route('titik-meter.index')
             ->with('success', 'Data titik meter berhasil diperbarui.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $titikMeter = TitikMeter::findOrFail($id);
 
         if ($titikMeter->tagihanAir()->exists()) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Titik meter tidak dapat dihapus karena sudah digunakan pada tagihan air.'], 422);
+            }
             return redirect()->route('titik-meter.index')
                 ->with('error', 'Titik meter tidak dapat dihapus karena sudah digunakan pada tagihan air.');
         }
 
         $titikMeter->delete();
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data titik meter berhasil dihapus.']);
+        }
+
         return redirect()->route('titik-meter.index')
             ->with('success', 'Data titik meter berhasil dihapus.');
     }
 
-    public function toggleStatus($id)
+    public function toggleStatus(Request $request, $id)
     {
         $titikMeter = TitikMeter::findOrFail($id);
         $newStatus = $titikMeter->status === 'aktif' ? 'nonaktif' : 'aktif';
         $titikMeter->update(['status' => $newStatus]);
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => "Titik meter {$titikMeter->nama} berhasil di{$newStatus}."]);
+        }
 
         return redirect()->route('titik-meter.index')
             ->with('success', "Titik meter {$titikMeter->nama} berhasil di{$newStatus}.");

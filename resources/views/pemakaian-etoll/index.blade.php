@@ -124,7 +124,7 @@
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
-        <form id="etollForm" method="POST"
+        <form id="etollForm" class="ajax-form" method="POST"
               action="{{ $edit ? route('pemakaian-etoll.update', $edit->id) : route('pemakaian-etoll.store') }}">
           @csrf
           <input type="hidden" name="_method" id="etollMethod" value="{{ $edit ? 'PUT' : '' }}">
@@ -180,7 +180,7 @@
             Yakin ingin menghapus data pemakaian e-toll ini? Data yang dihapus tidak dapat dikembalikan.
           </p>
         </div>
-        <form id="deleteEtollForm" method="POST" action="">
+        <form id="deleteEtollForm" class="ajax-form" method="POST" action="">
           @csrf
           @method('DELETE')
           <div class="modal-footer modal-confirm-footer">

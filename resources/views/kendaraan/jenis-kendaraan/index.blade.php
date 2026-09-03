@@ -93,7 +93,7 @@
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <form id="jenisKendaraanForm" method="POST"
+      <form id="jenisKendaraanForm" class="ajax-form" method="POST"
             action="{{ $edit ? route('jenis-kendaraan.update', $edit->id) : route('jenis-kendaraan.store') }}">
         @csrf
         <input type="hidden" name="_method" id="jenisKendaraanMethod" value="{{ $edit ? 'PUT' : '' }}">
@@ -133,7 +133,7 @@
           ? Data yang dihapus tidak dapat dikembalikan.
         </p>
       </div>
-      <form id="deleteJenisKendaraanForm" method="POST" action="">
+      <form id="deleteJenisKendaraanForm" class="ajax-form" method="POST" action="">
         @csrf
         @method('DELETE')
         <div class="modal-footer modal-confirm-footer">

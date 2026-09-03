@@ -141,7 +141,7 @@
         </div>
       @endif
 
-      <form id="hargaBbmForm" method="POST" action="{{ route('harga-bbm.store') }}" class="harga-form" novalidate>
+      <form id="hargaBbmForm" class="ajax-form harga-form" method="POST" action="{{ route('harga-bbm.store') }}" novalidate>
         @csrf
         <input type="hidden" name="_method" id="hargaBbmMethod" value="">
 
@@ -213,7 +213,7 @@
           Tindakan ini tidak dapat dibatalkan.
         </p>
       </div>
-      <form id="deleteHargaBbmForm" method="POST" action="">
+      <form id="deleteHargaBbmForm" class="ajax-form" method="POST" action="">
         @csrf
         @method('DELETE')
         <div class="modal-footer modal-confirm-footer">

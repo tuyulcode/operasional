@@ -47,8 +47,13 @@ class HargaBbmController extends Controller
 
         HargaBbm::create($validated);
 
-        return redirect()->route('harga-bbm.index')
-            ->with('success', 'Data harga BBM tanggal ' . \Carbon\Carbon::parse($validated['tanggal_berlaku'])->format('d-m-Y') . ' berhasil ditambahkan.');
+        $msg = 'Data harga BBM tanggal ' . \Carbon\Carbon::parse($validated['tanggal_berlaku'])->format('d-m-Y') . ' berhasil ditambahkan.';
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => $msg]);
+        }
+
+        return redirect()->route('harga-bbm.index')->with('success', $msg);
     }
 
     public function update(Request $request, HargaBbm $hargaBbm)
@@ -71,23 +76,31 @@ class HargaBbmController extends Controller
             'harga_pertamax_turbo.min' => 'Harga Pertamax Turbo tidak boleh 0.',
         ]);
 
-        // Catatan: pembatasan "tidak boleh mundur dari tanggal terakhir" sengaja
-        // tidak diterapkan di update(), karena edit dipakai untuk membetulkan
-        // data lama (misal salah ketik), bukan menambah data baru.
         $hargaBbm->update($validated);
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data harga BBM berhasil diperbarui.']);
+        }
 
         return redirect()->route('harga-bbm.index')
             ->with('success', 'Data harga BBM berhasil diperbarui.');
     }
 
-    public function destroy(HargaBbm $hargaBbm)
+    public function destroy(Request $request, HargaBbm $hargaBbm)
     {
         if ($hargaBbm->isDipakai()) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Data harga BBM tanggal ' . $hargaBbm->tanggal_berlaku->format('d-m-Y') . ' tidak bisa dihapus karena sudah dipakai.'], 422);
+            }
             return redirect()->route('harga-bbm.index')
                 ->with('error', 'Data harga BBM tanggal ' . $hargaBbm->tanggal_berlaku->format('d-m-Y') . ' tidak bisa dihapus karena sudah dipakai.');
         }
 
         $hargaBbm->delete();
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data harga BBM berhasil dihapus.']);
+        }
 
         return redirect()->route('harga-bbm.index')
             ->with('success', 'Data harga BBM berhasil dihapus.');

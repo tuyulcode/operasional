@@ -36,6 +36,10 @@ class UserController extends Controller
             'role' => $validated['role'],
         ]);
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'User berhasil ditambahkan.']);
+        }
+
         return redirect()->route('users.index')
             ->with('success', 'User berhasil ditambahkan.');
     }
@@ -51,6 +55,9 @@ class UserController extends Controller
         ]);
 
         if ($user->role === 'admin' && $validated['role'] !== 'admin' && User::where('role', 'admin')->count() <= 1) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Tidak dapat mengubah role admin terakhir.'], 422);
+            }
             return redirect()->route('users.index')
                 ->with('error', 'Tidak dapat mengubah role admin terakhir.');
         }
@@ -64,25 +71,39 @@ class UserController extends Controller
 
         $user->save();
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'User berhasil diperbarui.']);
+        }
+
         return redirect()->route('users.index')
             ->with('success', 'User berhasil diperbarui.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $user = User::findOrFail($id);
 
         if ($user->id === Auth::id()) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Tidak dapat menghapus akun yang sedang digunakan.'], 422);
+            }
             return redirect()->route('users.index')
                 ->with('error', 'Tidak dapat menghapus akun yang sedang digunakan.');
         }
 
         if ($user->role === 'admin' && User::where('role', 'admin')->count() <= 1) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Tidak dapat menghapus admin terakhir.'], 422);
+            }
             return redirect()->route('users.index')
                 ->with('error', 'Tidak dapat menghapus admin terakhir.');
         }
 
         $user->delete();
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'User berhasil dihapus.']);
+        }
 
         return redirect()->route('users.index')
             ->with('success', 'User berhasil dihapus.');

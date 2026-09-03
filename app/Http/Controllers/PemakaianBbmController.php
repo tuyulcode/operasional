@@ -58,6 +58,10 @@ class PemakaianBbmController extends Controller
 
         PemakaianBbm::create($this->buildPayload($validated));
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data pemakaian BBM berhasil disimpan.']);
+        }
+
         return redirect()->route('pemakaian-bbm.index')
             ->with('success', 'Data pemakaian BBM berhasil disimpan.');
     }
@@ -70,14 +74,22 @@ class PemakaianBbmController extends Controller
 
         $pemakaian->update($this->buildPayload($validated));
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data pemakaian BBM berhasil diperbarui.']);
+        }
+
         return redirect()->route('pemakaian-bbm.index')
             ->with('success', 'Data pemakaian BBM berhasil diperbarui.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $pemakaian = PemakaianBbm::findOrFail($id);
         $pemakaian->delete();
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data pemakaian BBM berhasil dihapus.']);
+        }
 
         return redirect()->route('pemakaian-bbm.index')
             ->with('success', 'Data pemakaian BBM berhasil dihapus.');
@@ -101,6 +113,8 @@ class PemakaianBbmController extends Controller
     {
         $updated = 0;
         $dilewati = 0;
+
+        $this->loadHargaCache();
 
         PemakaianBbm::orderBy('id')->chunkById(200, function ($items) use (&$updated, &$dilewati) {
             foreach ($items as $item) {
@@ -382,6 +396,17 @@ class PemakaianBbmController extends Controller
         ];
     }
 
+    private ?array $hargaCache = null;
+
+    /**
+     * Preload semua HargaBbm ke memory untuk operasi bulk (refreshHarga).
+     * Setelah dipanggil, cariHargaBerlaku() akan pakai cache instead of query.
+     */
+    private function loadHargaCache(): void
+    {
+        $this->hargaCache = HargaBbm::orderByDesc('tanggal_berlaku')->get()->toArray();
+    }
+
     /**
      * Cari baris HargaBbm yang berlaku untuk sebuah tanggal: baris dengan
      * tanggal_berlaku terbaru yang <= tanggal transaksi. Dipakai bareng-bareng
@@ -390,6 +415,15 @@ class PemakaianBbmController extends Controller
      */
     private function cariHargaBerlaku(string $tanggal): ?HargaBbm
     {
+        if ($this->hargaCache !== null) {
+            foreach ($this->hargaCache as $row) {
+                if ($row['tanggal_berlaku'] <= $tanggal) {
+                    return HargaBbm::hydrate([$row])->first();
+                }
+            }
+            return null;
+        }
+
         return HargaBbm::where('tanggal_berlaku', '<=', $tanggal)
             ->orderByDesc('tanggal_berlaku')
             ->first();

@@ -27,11 +27,15 @@ class PpnController extends Controller
             'status' => $status,
         ]);
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data PPN berhasil ditambahkan.']);
+        }
+
         return redirect()->route('ppn.index')
             ->with('success', 'Data PPN berhasil ditambahkan.');
     }
 
-    public function activate($id)
+    public function activate(Request $request, $id)
     {
         $ppn = Ppn::findOrFail($id);
 
@@ -40,11 +44,15 @@ class PpnController extends Controller
             $ppn->update(['status' => 'aktif']);
         });
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => "PPN {$ppn->persentase}% berhasil diaktifkan."]);
+        }
+
         return redirect()->route('ppn.index')
             ->with('success', "PPN {$ppn->persentase}% berhasil diaktifkan.");
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $ppn = Ppn::findOrFail($id);
 
@@ -55,6 +63,10 @@ class PpnController extends Controller
                 Ppn::latest()->first()->update(['status' => 'aktif']);
             }
         });
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Data PPN berhasil dihapus.']);
+        }
 
         return redirect()->route('ppn.index')
             ->with('success', 'Data PPN berhasil dihapus.');

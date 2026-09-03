@@ -102,7 +102,7 @@
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <form id="kendaraanForm" method="POST"
+      <form id="kendaraanForm" class="ajax-form" method="POST"
             action="{{ $edit ? route('kendaraan.update', $edit->id) : route('kendaraan.store') }}">
         @csrf
         <input type="hidden" name="_method" id="kendaraanMethod" value="{{ $edit ? 'PUT' : '' }}">
@@ -192,7 +192,7 @@
           Tindakan ini tidak dapat dibatalkan.
         </p>
       </div>
-      <form id="deleteKendaraanForm" method="POST" action="">
+      <form id="deleteKendaraanForm" class="ajax-form" method="POST" action="">
         @csrf
         @method('DELETE')
         <div class="modal-footer modal-confirm-footer">

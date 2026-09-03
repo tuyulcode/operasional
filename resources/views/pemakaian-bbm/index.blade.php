@@ -164,7 +164,7 @@
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <form id="pemakaianForm" method="POST"
+      <form id="pemakaianForm" class="ajax-form" method="POST"
             action="{{ $edit ? route('pemakaian-bbm.update', $edit->id) : route('pemakaian-bbm.store') }}">
         @csrf
         <input type="hidden" name="_method" id="pemakaianMethod" value="{{ $edit ? 'PUT' : '' }}">
@@ -272,7 +272,7 @@
         <h3 class="modal-confirm-title">Hapus Data Pemakaian?</h3>
         <p class="modal-confirm-text">Tindakan ini tidak dapat dibatalkan.</p>
       </div>
-      <form id="deletePemakaianForm" method="POST" action="">
+      <form id="deletePemakaianForm" class="ajax-form" method="POST" action="">
         @csrf
         @method('DELETE')
         <div class="modal-footer modal-confirm-footer">
