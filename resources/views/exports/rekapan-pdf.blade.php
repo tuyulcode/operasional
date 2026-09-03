@@ -39,8 +39,8 @@
     .foto-empty { margin-top: 10px; color: #555; }
 
     .foto-empty-row { color: #888; text-align: center; }
-    table.foto-group { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: auto; }
-    table.foto-group td { border: 1px solid #333; padding: 4px 6px; }
+    table.foto-group { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }
+    table.foto-group td { border: 1px solid #333; padding: 4px 6px; word-wrap: break-word; overflow-wrap: break-word; }
     table.foto-group td.foto-label-cell { background: #f7f7f7; font-weight: bold; text-align: left; }
     table.foto-group td.foto-cell { text-align: center; vertical-align: middle; }
     table.foto-group td.foto-cell img { height: auto; border: 1px solid #888; }
@@ -74,8 +74,21 @@
 
   @foreach($data as $i => $area)
     <?php
-      $format = $area['area']->format_rekap
-        ?: ((($area['jml_titik'] ?? $area['rows']->count()) === 1) ? 'standar' : 'list');
+      // Format rekap sekarang murni otomatis berdasarkan jumlah titik meter
+      // (opsi format_rekap manual sudah dihapus):
+      // 1 titik meter        -> 'standar'    (tampilan vertikal, 1 kolom)
+      // 2-3 titik meter      -> 'multikolom' (tampilan per-kolom berdampingan)
+      // lebih dari 3 titik   -> 'list'       (tampilan tabel/grid ke bawah)
+      $jmlTitik = $area['jml_titik'] ?? $area['rows']->count();
+
+      if ($jmlTitik === 1) {
+          $format = 'standar';
+      } elseif ($jmlTitik <= 3) {
+          $format = 'multikolom';
+      } else {
+          $format = 'list';
+      }
+
       $namaArea = str_replace('PT.', 'PT', $area['area']->nama);
     ?>
 
@@ -127,20 +140,21 @@
 
       @if($tg && $fotos->count())
         <p style="margin-top: 14px; font-weight: bold;">Foto Meter :</p>
-        <table class="foto-group">
-          <?php $lebarFotoStd = min(40, intdiv(180, $fotos->count())); ?>
-          <tr>
-            @foreach($fotos as $foto)
-              <td class="foto-cell">
-                @if($foto->file_path && is_file($foto->file_path))
-                  <img src="{{ $foto->file_path }}" alt="Foto meter" style="width: {{ $lebarFotoStd }}mm;">
-                @else
-                  <em style="color: #888;">file tidak ditemukan</em>
-                @endif
-              </td>
-            @endforeach
-          </tr>
-        </table>
+        @foreach($fotos->chunk(4) as $chunkFotoStd)
+          <table class="foto-group">
+            <tr>
+              @foreach($chunkFotoStd as $foto)
+                <td class="foto-cell" style="width: 25%;">
+                  @if($foto->file_path && is_file($foto->file_path))
+                    <img src="{{ $foto->file_path }}" alt="Foto meter" style="width: 100%; max-width: 45mm; display: block; margin: 0 auto 4px;">
+                  @else
+                    <em style="color: #888;">file tidak ditemukan</em>
+                  @endif
+                </td>
+              @endforeach
+            </tr>
+          </table>
+        @endforeach
       @elseif($tg && $tg->fotos->isEmpty() && $tg->foto)
         <div class="foto-empty">Foto meter ada di database tetapi file tidak ditemukan.</div>
       @endif
@@ -270,45 +284,29 @@
       <?php
         $barisFotoKol = $area['rows']->filter(function ($r) { return $r['tagihan']; })->values();
         $adaFotoKol = $barisFotoKol->contains(function ($r) { return $r['tagihan']->fotos->count() > 0; });
-        $jmlKolomFotoKol = max($barisFotoKol->count(), 1);
-        $lebarKolomFotoKol = round(100 / $jmlKolomFotoKol, 2);
+        $fotoChunksKol = $barisFotoKol->chunk(4)->values();
       ?>
       @if($adaFotoKol)
         <p style="margin-top: 14px; font-weight: bold;">Foto Meter :</p>
-        @if($jmlKolomFotoKol === 1)
-          <?php $rowFotoTunggalKol = $barisFotoKol->first(); $jmlFotoTunggalKol = $rowFotoTunggalKol['tagihan']->fotos->count(); ?>
+        @foreach($fotoChunksKol as $chunkIdx => $chunk)
+          <?php $chunkArr = $chunk->values(); $chunkCount = $chunkArr->count(); ?>
           <table class="foto-group">
             <tr>
-              <td class="foto-label-cell" colspan="100">1. {{ $rowFotoTunggalKol['titik_meter']->nama }}</td>
-            </tr>
-            <tr>
-              @if($jmlFotoTunggalKol)
-                <?php $lebarFotoTunggalKol = min(40, intdiv(180, $jmlFotoTunggalKol)); ?>
-                @foreach($rowFotoTunggalKol['tagihan']->fotos as $foto)
-                  <td class="foto-cell">
-                    @if($foto->file_path && is_file($foto->file_path))
-                      <img src="{{ $foto->file_path }}" alt="Foto meter" style="width: {{ $lebarFotoTunggalKol }}mm;">
-                    @else
-                      <em style="color: #888;">file tidak ditemukan</em>
-                    @endif
-                  </td>
-                @endforeach
-              @else
-                <td class="foto-empty-row" colspan="100">&mdash; tidak ada foto &mdash;</td>
-              @endif
-            </tr>
-          </table>
-        @else
-          <table class="foto-group">
-            <tr>
-              @foreach($barisFotoKol as $i => $row)
-                <td class="foto-label-cell" style="width: {{ $lebarKolomFotoKol }}%;">{{ $i + 1 }}. {{ $row['titik_meter']->nama }}</td>
+              @foreach($chunkArr as $idx => $row)
+                <?php
+                  $noLabel = $chunkIdx * 4 + $idx + 1;
+                  $span = ($idx === $chunkCount - 1) ? (4 - $chunkCount + 1) : 1;
+                ?>
+                <td class="foto-label-cell" colspan="{{ $span }}" style="width: {{ $span * 25 }}%;">{{ $noLabel }}. {{ $row['titik_meter']->nama }}</td>
               @endforeach
             </tr>
             <tr>
-              @foreach($barisFotoKol as $row)
-                <?php $jmlFoto = $row['tagihan']->fotos->count(); ?>
-                <td class="foto-cell" style="width: {{ $lebarKolomFotoKol }}%;">
+              @foreach($chunkArr as $idx => $row)
+                <?php
+                  $jmlFoto = $row['tagihan']->fotos->count();
+                  $span = ($idx === $chunkCount - 1) ? (4 - $chunkCount + 1) : 1;
+                ?>
+                <td class="foto-cell" colspan="{{ $span }}" style="width: {{ $span * 25 }}%;">
                   @if($jmlFoto)
                     @foreach($row['tagihan']->fotos as $foto)
                       @if($foto->file_path && is_file($foto->file_path))
@@ -324,7 +322,7 @@
               @endforeach
             </tr>
           </table>
-        @endif
+        @endforeach
       @endif
 
     @else
@@ -332,34 +330,33 @@
       <table class="grid">
         <thead>
           <tr>
-            <th style="width: 8%;">No</th>
-            <th style="width: 26%;">Nama Titik Meter</th>
+            <th rowspan="2" style="width: 8%;">No</th>
+            <th rowspan="2" style="width: 26%;">Nama Titik Meter</th>
             <th colspan="2" style="width: 22%;">COUNTER M3</th>
-            <th style="width: 12%;">Jumlah Pengambilan</th>
-            <th style="width: 14%;">Tarif Rp/M3</th>
-            <th style="width: 18%;">Jumlah (Rp)</th>
+            <th rowspan="2" style="width: 12%;">Jumlah Pengambilan</th>
+            <th rowspan="2" style="width: 14%;">Tarif Rp/M3</th>
+            <th rowspan="2" style="width: 18%;">Jumlah (Rp)</th>
           </tr>
           <tr>
-            <th></th>
-            <th></th>
             <th>Bulan Ini</th>
             <th>Bulan Lalu</th>
-            <th></th>
-            <th></th>
-            <th></th>
           </tr>
         </thead>
         <tbody>
-          @foreach($area['rows'] as $i => $row)
-            @continue(!$row['tagihan'])
+          <?php $noUrut = 0; ?>
+          @foreach($area['rows'] as $row)
+            @if(($row['titik_meter']->status ?? 'aktif') !== 'aktif')
+              @continue
+            @endif
+            <?php $tg = $row['tagihan'] ?? null; $noUrut++; ?>
             <tr>
-              <td class="c">{{ $i + 1 }}</td>
+              <td class="c">{{ $noUrut }}</td>
               <td>{{ $row['titik_meter']->nama }}</td>
-              <td class="c">{{ (int) round((float) $row['tagihan']->meter_ini) }}</td>
-              <td class="c">{{ (int) round((float) $row['tagihan']->meter_lalu) }}</td>
-              <td class="c">{{ (int) round((float) $row['tagihan']->pemakaian) }}</td>
-              <td class="c">{{ number_format($row['tagihan']->tarif, 2, ',', '.') }}</td>
-              <td class="c bold">{{ number_format($row['tagihan']->jumlah, 0, ',', '.') }}</td>
+              <td class="c">{{ $tg ? (int) round((float) $tg->meter_ini) : '' }}</td>
+              <td class="c">{{ $tg ? (int) round((float) $tg->meter_lalu) : '' }}</td>
+              <td class="c">{{ $tg ? (int) round((float) $tg->pemakaian) : '' }}</td>
+              <td class="c">{{ $tg ? number_format($tg->tarif, 2, ',', '.') : number_format($row['titik_meter']->tarif_harga, 2, ',', '.') }}</td>
+              <td class="c bold">{{ $tg ? number_format($tg->jumlah, 0, ',', '.') : '' }}</td>
             </tr>
           @endforeach
           <tr class="subtotal-bg bold">
@@ -385,45 +382,29 @@
       <?php
         $barisFoto = $area['rows']->filter(function ($r) { return $r['tagihan']; })->values();
         $adaFoto = $barisFoto->contains(function ($r) { return $r['tagihan']->fotos->count() > 0; });
-        $jmlKolomFoto = max($barisFoto->count(), 1);
-        $lebarKolomFoto = round(100 / $jmlKolomFoto, 2);
+        $fotoChunksList = $barisFoto->chunk(4)->values();
       ?>
       @if($adaFoto)
         <p style="margin-top: 14px; font-weight: bold;">Foto Meter :</p>
-        @if($jmlKolomFoto === 1)
-          <?php $rowFotoTunggal = $barisFoto->first(); $jmlFotoTunggal = $rowFotoTunggal['tagihan']->fotos->count(); ?>
+        @foreach($fotoChunksList as $chunkIdx => $chunk)
+          <?php $chunkArr = $chunk->values(); $chunkCount = $chunkArr->count(); ?>
           <table class="foto-group">
             <tr>
-              <td class="foto-label-cell" colspan="100">1. {{ $rowFotoTunggal['titik_meter']->nama }}</td>
-            </tr>
-            <tr>
-              @if($jmlFotoTunggal)
-                <?php $lebarFotoTunggal = min(40, intdiv(180, $jmlFotoTunggal)); ?>
-                @foreach($rowFotoTunggal['tagihan']->fotos as $foto)
-                  <td class="foto-cell">
-                    @if($foto->file_path && is_file($foto->file_path))
-                      <img src="{{ $foto->file_path }}" alt="Foto meter" style="width: {{ $lebarFotoTunggal }}mm;">
-                    @else
-                      <em style="color: #888;">file tidak ditemukan</em>
-                    @endif
-                  </td>
-                @endforeach
-              @else
-                <td class="foto-empty-row" colspan="100">&mdash; tidak ada foto &mdash;</td>
-              @endif
-            </tr>
-          </table>
-        @else
-          <table class="foto-group">
-            <tr>
-              @foreach($barisFoto as $i => $row)
-                <td class="foto-label-cell" style="width: {{ $lebarKolomFoto }}%;">{{ $i + 1 }}. {{ $row['titik_meter']->nama }}</td>
+              @foreach($chunkArr as $idx => $row)
+                <?php
+                  $noLabel = $chunkIdx * 4 + $idx + 1;
+                  $span = ($idx === $chunkCount - 1) ? (4 - $chunkCount + 1) : 1;
+                ?>
+                <td class="foto-label-cell" colspan="{{ $span }}" style="width: {{ $span * 25 }}%;">{{ $noLabel }}. {{ $row['titik_meter']->nama }}</td>
               @endforeach
             </tr>
             <tr>
-              @foreach($barisFoto as $row)
-                <?php $jmlFoto = $row['tagihan']->fotos->count(); ?>
-                <td class="foto-cell" style="width: {{ $lebarKolomFoto }}%;">
+              @foreach($chunkArr as $idx => $row)
+                <?php
+                  $jmlFoto = $row['tagihan']->fotos->count();
+                  $span = ($idx === $chunkCount - 1) ? (4 - $chunkCount + 1) : 1;
+                ?>
+                <td class="foto-cell" colspan="{{ $span }}" style="width: {{ $span * 25 }}%;">
                   @if($jmlFoto)
                     @foreach($row['tagihan']->fotos as $foto)
                       @if($foto->file_path && is_file($foto->file_path))
@@ -439,7 +420,7 @@
               @endforeach
             </tr>
           </table>
-        @endif
+        @endforeach
       @endif
 
     @endif
