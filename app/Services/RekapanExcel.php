@@ -57,12 +57,23 @@ class RekapanExcel
         return $title;
     }
 
+    /**
+     * Format rekap sekarang murni otomatis berdasarkan jumlah titik meter,
+     * sama seperti logika di PDF (rekap.blade.php):
+     * 1 titik meter        -> 'standar'    (vertical(), 1 kolom)
+     * 2-3 titik meter      -> 'multikolom' (horizontal(), pivot per kolom)
+     * lebih dari 3 titik   -> 'list'       (list(), tabel/grid ke bawah)
+     */
     private static function fill(Worksheet $sheet, array $area, string $periodeLabel, $penandatangan): void
     {
-        if (($area['jml_titik'] ?? $area['rows']->count()) === 1) {
+        $jmlTitik = $area['jml_titik'] ?? $area['rows']->count();
+
+        if ($jmlTitik === 1) {
             self::vertical($sheet, $area, $periodeLabel, $penandatangan);
-        } else {
+        } elseif ($jmlTitik <= 3) {
             self::horizontal($sheet, $area, $periodeLabel, $penandatangan);
+        } else {
+            self::list($sheet, $area, $periodeLabel, $penandatangan);
         }
     }
 
@@ -195,9 +206,10 @@ class RekapanExcel
     }
 
     /**
-     * Layout multi-titik: tabel "pivot" — baris = langkah perhitungan
-     * (Bulan ini, Bulan lalu, dst), kolom = tiap titik meter + kolom
-     * "Jumlah" (total gabungan) di ujung kanan, dan kolom satuan paling kanan.
+     * Layout multi-titik (2-3 titik meter): tabel "pivot" — baris = langkah
+     * perhitungan (Bulan ini, Bulan lalu, dst), kolom = tiap titik meter +
+     * kolom "Jumlah" (total gabungan) di ujung kanan, dan kolom satuan
+     * paling kanan. Setara "multikolom" di PDF.
      */
     private static function horizontal(Worksheet $sheet, array $area, string $periodeLabel, $penandatangan): void
     {
@@ -323,6 +335,219 @@ class RekapanExcel
 
         $r += 2;
         self::ttdBlock($sheet, $r, $penandatangan, $lastCol);
+    }
+
+    /**
+     * Layout untuk lebih dari 3 titik meter: tabel grid ke bawah — satu baris
+     * per titik meter (No, Nama, Counter M3 Bulan Ini/Lalu, Jumlah Pengambilan,
+     * Tarif, Jumlah). Setara "list" di PDF: SEMUA titik meter aktif tetap
+     * tampil walau belum ada tagihan bulan ini (kolom dikosongkan), header
+     * kolom tanpa sub-header di-merge vertikal, dan foto meter digrid 4 kolom
+     * per baris (bukan satu baris memanjang).
+     */
+    private static function list(Worksheet $sheet, array $area, string $periodeLabel, $penandatangan): void
+    {
+        $rows = $area['rows']
+            ->filter(fn ($row) => ($row['titik_meter']->status ?? 'aktif') === 'aktif')
+            ->values();
+
+        $lastCol = 'G';
+        $sheet->getColumnDimension('A')->setWidth(6);   // No
+        $sheet->getColumnDimension('B')->setWidth(26);  // Nama Titik Meter
+        $sheet->getColumnDimension('C')->setWidth(12);  // Bulan Ini
+        $sheet->getColumnDimension('D')->setWidth(12);  // Bulan Lalu
+        $sheet->getColumnDimension('E')->setWidth(15);  // Jumlah Pengambilan
+        $sheet->getColumnDimension('F')->setWidth(13);  // Tarif Rp/M3
+        $sheet->getColumnDimension('G')->setWidth(16);  // Jumlah (Rp)
+
+        // List di PDF tidak menampilkan blok NAMA/ALAMAT/LOKASI FLOW METER,
+        // langsung ke judul + tabel — disamakan di sini.
+        $r = self::headerBlock($sheet, $periodeLabel, $lastCol, 'BIAYA PEMAKAIAN AIR');
+        $dataStart = $r;
+
+        // Header 2 baris: kolom tanpa sub-header di-merge vertikal (rowspan),
+        // cuma "COUNTER M3" yang pecah jadi Bulan Ini / Bulan Lalu.
+        $headRow1 = $r;
+        $headRow2 = $r + 1;
+
+        $sheet->mergeCells('A'.$headRow1.':A'.$headRow2);
+        $sheet->setCellValue('A'.$headRow1, 'No');
+
+        $sheet->mergeCells('B'.$headRow1.':B'.$headRow2);
+        $sheet->setCellValue('B'.$headRow1, 'Nama Titik Meter');
+
+        $sheet->mergeCells('C'.$headRow1.':D'.$headRow1);
+        $sheet->setCellValue('C'.$headRow1, 'COUNTER M3');
+        $sheet->setCellValue('C'.$headRow2, 'Bulan Ini');
+        $sheet->setCellValue('D'.$headRow2, 'Bulan Lalu');
+
+        $sheet->mergeCells('E'.$headRow1.':E'.$headRow2);
+        $sheet->setCellValue('E'.$headRow1, 'Jumlah Pengambilan');
+
+        $sheet->mergeCells('F'.$headRow1.':F'.$headRow2);
+        $sheet->setCellValue('F'.$headRow1, 'Tarif Rp/M3');
+
+        $sheet->mergeCells('G'.$headRow1.':G'.$headRow2);
+        $sheet->setCellValue('G'.$headRow1, 'Jumlah (Rp)');
+
+        foreach (range('A', $lastCol) as $col) {
+            $range = $col.$headRow1.':'.$col.$headRow2;
+            $sheet->getStyle($range)->getFont()->setName('Calibri')->setBold(true);
+            $sheet->getStyle($range)->getAlignment()->setHorizontal('center')->setVertical('center')->setWrapText(true);
+            $sheet->getStyle($range)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::HEADER_FILL);
+        }
+        $sheet->getRowDimension($headRow2)->setRowHeight(16);
+        $r = $headRow2 + 1;
+
+        // Baris data: SEMUA titik meter aktif tetap tampil, walau belum ada
+        // tagihan bulan ini (kolom counter/pengambilan/jumlah dikosongkan).
+        $no = 0;
+        foreach ($rows as $row) {
+            $tg = $row['tagihan'] ?? null;
+            $no++;
+
+            $sheet->setCellValue('A'.$r, $no);
+            $sheet->setCellValue('B'.$r, $row['titik_meter']->nama);
+            $sheet->setCellValue('C'.$r, $tg ? (int) round((float) $tg->meter_ini) : null);
+            $sheet->setCellValue('D'.$r, $tg ? (int) round((float) $tg->meter_lalu) : null);
+            $sheet->setCellValue('E'.$r, $tg ? (int) round((float) $tg->pemakaian) : null);
+            $sheet->setCellValue('F'.$r, $tg ? (float) $tg->tarif : (float) ($row['titik_meter']->tarif_harga ?? 0));
+            $sheet->setCellValue('G'.$r, $tg ? (float) $tg->jumlah : null);
+
+            foreach (range('A', $lastCol) as $col) {
+                $sheet->getStyle($col.$r)->getFont()->setName('Calibri');
+            }
+            $sheet->getStyle('A'.$r)->getAlignment()->setHorizontal('center');
+            $sheet->getStyle('C'.$r.':E'.$r)->getAlignment()->setHorizontal('center');
+            $sheet->getStyle('F'.$r)->getAlignment()->setHorizontal('center');
+            $sheet->getStyle('F'.$r)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('G'.$r)->getAlignment()->setHorizontal('center');
+            $sheet->getStyle('G'.$r)->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle('G'.$r)->getFont()->setBold(true);
+
+            $r++;
+        }
+
+        // Subtotal / PPN / Total — label merge A:E, nilai di kolom G (sama posisi seperti PDF)
+        $sheet->mergeCells('A'.$r.':E'.$r);
+        $sheet->setCellValue('A'.$r, 'Subtotal');
+        $sheet->getStyle('A'.$r)->getFont()->setName('Calibri')->setBold(true);
+        $sheet->setCellValue('G'.$r, (float) $area['subtotal']);
+        $sheet->getStyle('G'.$r)->getFont()->setName('Calibri')->setBold(true);
+        $sheet->getStyle('G'.$r)->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle('G'.$r)->getAlignment()->setHorizontal('center');
+        $sheet->getStyle('A'.$r.':'.$lastCol.$r)
+            ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::GRAND_FILL);
+        $r++;
+
+        if ($area['kena_ppn']) {
+            $sheet->mergeCells('A'.$r.':E'.$r);
+            $sheet->setCellValue('A'.$r, 'PPN '.number_format($area['persen_ppn'], 0, ',', '.').'%');
+            $sheet->getStyle('A'.$r)->getFont()->setName('Calibri');
+            $sheet->setCellValue('G'.$r, (float) $area['ppn']);
+            $sheet->getStyle('G'.$r)->getFont()->setName('Calibri');
+            $sheet->getStyle('G'.$r)->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle('G'.$r)->getAlignment()->setHorizontal('center');
+            $sheet->getStyle('A'.$r.':'.$lastCol.$r)
+                ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::PPN_FILL);
+            $r++;
+
+            $sheet->mergeCells('A'.$r.':E'.$r);
+            $sheet->setCellValue('A'.$r, 'Total');
+            $sheet->getStyle('A'.$r)->getFont()->setName('Calibri')->setBold(true);
+            $sheet->setCellValue('G'.$r, (float) $area['total']);
+            $sheet->getStyle('G'.$r)->getFont()->setName('Calibri')->setBold(true);
+            $sheet->getStyle('G'.$r)->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle('G'.$r)->getAlignment()->setHorizontal('center');
+            $sheet->getStyle('A'.$r.':'.$lastCol.$r)
+                ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::GRAND_FILL);
+            $r++;
+        }
+
+        self::borders($sheet, 'A'.$dataStart.':'.$lastCol.($r - 1));
+        $r++;
+
+        // Foto meter: grid 4 "kolom foto" per baris (bukan satu baris memanjang
+        // sepanjang jumlah titik meter), sisa slot yang nggak ada titiknya lagi
+        // otomatis nggak ikut ke-render (nggak nyisain kolom kosong).
+        $barisFoto = $rows->filter(fn ($row) => $row['tagihan'])->values();
+        $anyFoto = $barisFoto->contains(fn ($row) => self::resolveFotoPath($row['tagihan']) !== null);
+
+        if ($barisFoto->isNotEmpty() && $anyFoto) {
+            $sheet->setCellValue('A'.$r, 'Foto Meter :');
+            $sheet->getStyle('A'.$r)->getFont()->setName('Calibri')->setBold(true);
+            $r += 2;
+
+            $fotoSlots = self::fotoGridColumns($lastCol, 4);
+
+            foreach ($barisFoto->chunk(4) as $chunk) {
+                $chunkArr = $chunk->values();
+                $labelRow = $r;
+                $photoRow = $r + 1;
+
+                foreach ($chunkArr as $i => $row) {
+                    $slot = $fotoSlots[$i];
+                    [$startCol, $endCol] = [reset($slot), end($slot)];
+
+                    $sheet->mergeCells($startCol.$labelRow.':'.$endCol.$labelRow);
+                    $sheet->setCellValue($startCol.$labelRow, $row['titik_meter']->nama);
+                    $sheet->getStyle($startCol.$labelRow)->getFont()->setName('Calibri')->setBold(true);
+                    $sheet->getStyle($startCol.$labelRow)->getAlignment()->setHorizontal('center');
+                    $sheet->getStyle($startCol.$labelRow.':'.$endCol.$labelRow)
+                        ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::HEADER_FILL);
+
+                    $sheet->mergeCells($startCol.$photoRow.':'.$endCol.$photoRow);
+
+                    $fotoPath = self::resolveFotoPath($row['tagihan']);
+                    if ($fotoPath) {
+                        $drawing = new Drawing;
+                        $drawing->setName('foto-list-'.$labelRow.'-'.$i);
+                        $drawing->setPath($fotoPath);
+                        $drawing->setResizeProportional(true);
+                        $drawing->setHeight(100);
+
+                        $slotWidthPx = array_sum(array_map(
+                            fn ($col) => $sheet->getColumnDimension($col)->getWidth() * 7,
+                            $slot
+                        ));
+                        $offsetX = max(2, (int) (($slotWidthPx - $drawing->getWidth()) / 2));
+
+                        $drawing->setCoordinates($startCol.$photoRow);
+                        $drawing->setOffsetX($offsetX);
+                        $drawing->setOffsetY(5);
+                        $drawing->setWorksheet($sheet);
+                    } else {
+                        $sheet->setCellValue($startCol.$photoRow, 'file tidak ditemukan');
+                        $sheet->getStyle($startCol.$photoRow)->getFont()->setName('Calibri')->setItalic(true);
+                        $sheet->getStyle($startCol.$photoRow)->getAlignment()->setHorizontal('center')->setVertical('center');
+                    }
+                }
+
+                $sheet->getRowDimension($photoRow)->setRowHeight(105);
+                $r = $photoRow + 1;
+            }
+        }
+
+        $r += 1;
+        self::ttdBlock($sheet, $r, $penandatangan, $lastCol);
+    }
+
+    /**
+     * Bagi rentang kolom A..$lastCol jadi $n grup kolom yang kira-kira sama
+     * rata (dipakai buat nge-grid foto meter 4 "slot" per baris). Sama
+     * pendekatannya kayak chunking kolom di ttdBlock().
+     */
+    private static function fotoGridColumns(string $lastCol, int $n = 4): array
+    {
+        $cols = range('A', $lastCol);
+        $groupSize = (int) max(1, ceil(count($cols) / $n));
+        $chunks = array_values(array_chunk($cols, $groupSize));
+
+        while (count($chunks) < $n) {
+            $chunks[] = [end($cols)];
+        }
+
+        return array_slice($chunks, 0, $n);
     }
 
     private static function titleRow(Worksheet $sheet, int &$r, string $label, string $lastCol = 'D'): void
@@ -494,9 +719,10 @@ class RekapanExcel
     }
 
     /**
-     * Blok tanda tangan. Tanggal & tempat ditaruh SEJAJAR (satu baris) dengan
-     * judul "Mengetahui/Menyetujui ;", rata kiri, dan diposisikan di atas
-     * kolom penandatangan paling kanan (biasanya Asman) — sesuai contoh asli.
+     * Blok tanda tangan — disamakan urutannya dengan PDF (signature-table):
+     * baris 1 "Mengetahui / Menyetujui" full-width, baris 2 tempat & tanggal
+     * full-width, baru baris 3 jabatan per kolom, baris spasi tanda tangan,
+     * lalu baris nama per kolom.
      */
     private static function ttdBlock(Worksheet $sheet, int &$r, $penandatangan, string $lastCol = 'D'): void
     {
@@ -508,32 +734,24 @@ class RekapanExcel
         $chunks = array_chunk($cols, (int) max(1, ceil(count($cols) / $penandatangan->count())));
         $lastChunk = end($chunks);
 
-        // Kolom buat tanggal = grup kolom penandatangan terakhir.
-        // Kolom buat judul "Mengetahui/Menyetujui ;" = sisa kolom sebelum itu
-        // (kalau cuma ada 1 grup kolom total, bagi dua grup itu sendiri).
-        $titleCols = array_diff($cols, $lastChunk);
-        if (empty($titleCols)) {
-            $half = (int) ceil(count($lastChunk) / 2);
-            $titleCols = array_slice($lastChunk, 0, $half);
-            $dateCols = array_slice($lastChunk, $half) ?: $lastChunk;
-        } else {
-            $dateCols = $lastChunk;
-        }
-
         $first = $penandatangan->first();
         $tempat = $first->tempat ?? '';
         $tanggal = Carbon::now()->locale('id')->translatedFormat('d F Y');
 
+        // Baris 1: judul "Mengetahui / Menyetujui" nutup semua kolom
         $titleRow = $r;
-        $sheet->mergeCells(reset($titleCols).$titleRow.':'.end($titleCols).$titleRow);
-        $sheet->setCellValue(reset($titleCols).$titleRow, 'Mengetahui/Menyetujui ;');
-        $sheet->getStyle(reset($titleCols).$titleRow)->getFont()->setName('Calibri')->setBold(true);
-        $sheet->getStyle(reset($titleCols).$titleRow)->getAlignment()->setHorizontal('center');
+        $sheet->mergeCells('A'.$titleRow.':'.$lastCol.$titleRow);
+        $sheet->setCellValue('A'.$titleRow, 'Mengetahui / Menyetujui');
+        $sheet->getStyle('A'.$titleRow)->getFont()->setName('Calibri')->setBold(true);
+        $sheet->getStyle('A'.$titleRow)->getAlignment()->setHorizontal('center');
+        $r++;
 
-        $sheet->mergeCells(reset($dateCols).$titleRow.':'.end($dateCols).$titleRow);
-        $sheet->setCellValue(reset($dateCols).$titleRow, ($tempat ? $tempat.', ' : '').$tanggal);
-        $sheet->getStyle(reset($dateCols).$titleRow)->getFont()->setName('Calibri');
-        $sheet->getStyle(reset($dateCols).$titleRow)->getAlignment()->setHorizontal('center');
+        // Baris 2: tempat & tanggal, juga nutup semua kolom (bukan cuma di kolom kanan)
+        $dateRow = $r;
+        $sheet->mergeCells('A'.$dateRow.':'.$lastCol.$dateRow);
+        $sheet->setCellValue('A'.$dateRow, ($tempat ? $tempat.', ' : '').$tanggal);
+        $sheet->getStyle('A'.$dateRow)->getFont()->setName('Calibri');
+        $sheet->getStyle('A'.$dateRow)->getAlignment()->setHorizontal('center');
         $r++;
 
         $jabatanRow = $r;
