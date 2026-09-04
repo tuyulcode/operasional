@@ -18,7 +18,11 @@
   @if($errors->any())
     <div class="alert-custom alert-danger">
       <i class="fa-solid fa-circle-exclamation"></i>
-      <span>{{ $errors->first() }}</span>
+      <span>
+        @foreach($errors->all() as $error)
+          {{ $error }}@if(!$loop->last)<br>@endif
+        @endforeach
+      </span>
     </div>
   @endif
 
@@ -327,6 +331,7 @@
           <p style="margin: 0; color: #475569; line-height: 1.6;">
             Yakin ingin menghapus data tagihan air ini? Tindakan ini tidak dapat dibatalkan.
           </p>
+          <p id="hapusModalInfo" style="margin: 8px 0 0; padding: 8px; background: #fef2f2; border-radius: 6px; color: #991b1b; font-size: 13px; line-height: 1.6;"></p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="tutupHapusModal()">
@@ -484,10 +489,14 @@
     const faktor = parseIdValue(meterFaktorInput.value);
     const tarif = parseIdValue(tarifInput.value);
 
+    if (lalu > 0 && ini < lalu) {
+      showToast('Peringatan: Meter Bulan Ini (' + formatNumber(ini, 0) + ') kurang dari Meter Bulan Lalu (' + formatNumber(lalu, 0) + ')', 'error');
+    }
+
     const pemakaian = (ini - lalu) * faktor;
     const jumlahSebelumPpn = pemakaian * tarif;
     const ppnPersen = parseIdValue(ppnPersentaseInput.value);
-    const ppnNominal = Math.round(jumlahSebelumPpn * ppnPersen / 100);
+    const ppnNominal = Math.round(jumlahSebelumPpn * ppnPersen / 100 * 100) / 100;
     const jumlah = jumlahSebelumPpn + ppnNominal;
 
     pemakaianInput.value = formatNumber(pemakaian, 2);
@@ -829,6 +838,18 @@
     document.querySelectorAll('.btnConfirmDelete').forEach(function(btn) {
       btn.addEventListener('click', function() {
         hapusForm = btn.closest('form.delete-tagihan-form');
+        var tr = btn.closest('tr');
+        var info = '';
+        if (tr) {
+          var cells = tr.querySelectorAll('td');
+          if (cells.length >= 4) {
+            var periode = cells[1] ? cells[1].textContent.trim() : '';
+            var area = cells[2] ? cells[2].textContent.trim() : '';
+            var titikMeter = cells[3] ? cells[3].textContent.trim() : '';
+            info = 'Periode: ' + periode + '<br>Nama Pengguna: ' + area + '<br>Titik Meter: ' + titikMeter;
+          }
+        }
+        document.getElementById('hapusModalInfo').innerHTML = info;
         hapusModal.classList.add('show');
       });
     });
