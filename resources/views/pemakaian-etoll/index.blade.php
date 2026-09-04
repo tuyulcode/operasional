@@ -144,7 +144,7 @@
 
             <div class="form-group">
               <label for="tanggal">Tanggal Pengisian</label>
-              <input type="date" id="tanggal" name="tanggal" class="form-control"
+              <input type="text" id="tanggal" name="tanggal" class="form-control"
                      value="{{ old('tanggal', isset($edit) ? \Carbon\Carbon::parse($edit->tanggal)->format('Y-m-d') : now()->format('Y-m-d')) }}" required>
             </div>
 
@@ -200,6 +200,7 @@
 @endsection
 
 @push('styles')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
 <style>
   .tab-nav {
     display: flex;
@@ -308,8 +309,19 @@
 
 @if($tab === 'input')
 @push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
 <script>
+  let tanggalPicker;
+
   document.addEventListener('DOMContentLoaded', function() {
+    tanggalPicker = flatpickr('#tanggal', {
+      dateFormat: 'Y-m-d',
+      altInput: true,
+      altFormat: 'd/m/Y',
+      altInputClass: 'form-control',
+      allowInput: false,
+    });
+
     const overlay = document.getElementById('etollModal');
     const deleteOverlay = document.getElementById('deleteEtollModal');
 
@@ -355,19 +367,13 @@
     input.value = digits ? Number(digits).toLocaleString('id-ID') : '';
   }
 
-  function todayStr() {
-    const d = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  }
-
   function openAddEtoll() {
     const form = document.getElementById('etollForm');
     form.reset();
     form.action = '{{ route('pemakaian-etoll.store') }}';
     document.getElementById('etollMethod').value = '';
     document.getElementById('etollModalTitle').textContent = 'Tambah Pemakaian E-Toll';
-    document.getElementById('tanggal').value = todayStr();
+    tanggalPicker.setDate('today', true);
     document.getElementById('nominal').value = '';
     document.getElementById('etollModal').classList.add('show');
     document.getElementById('pemegang_kendaraan_id').focus();
@@ -379,7 +385,7 @@
     form.action = '{{ route('pemakaian-etoll.update', '__ID__') }}'.replace('__ID__', btn.dataset.id);
     document.getElementById('etollMethod').value = 'PUT';
     document.getElementById('pemegang_kendaraan_id').value = btn.dataset.pemegangKendaraanId;
-    document.getElementById('tanggal').value = btn.dataset.tanggal;
+    tanggalPicker.setDate(btn.dataset.tanggal, true);
     const nominalInput = document.getElementById('nominal');
     nominalInput.value = btn.dataset.nominal ? Number(btn.dataset.nominal).toLocaleString('id-ID') : '';
     document.getElementById('etollModalTitle').textContent = 'Edit Pemakaian E-Toll';
