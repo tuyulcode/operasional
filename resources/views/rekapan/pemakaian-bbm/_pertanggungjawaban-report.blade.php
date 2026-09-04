@@ -28,13 +28,18 @@
 
     <td style="width:40%; vertical-align:top; text-align:center; border:none;">
       @php
-        $tempat = $penandatangan->tempat ?? '';
+        // $penandatangan sendiri bisa null (belum ada baris ASMAN di tabel),
+        // makanya semua akses propertinya pakai null-safe operator (?->).
+        $tempat = $penandatangan?->tempat ?? '';
         $tanggalCetakLabel = now()->locale('id')->translatedFormat('d F Y');
       @endphp
       {{ ($tempat ? $tempat . ', ' : '') . $tanggalCetakLabel }}<br>
-      <strong>{{ strtoupper($penandatangan->jabatan ?? 'ASMAN SDM UMUM & CSR') }}</strong>
+      {{-- TTD murni dari tabel penandatangan. Kalau datanya belum diisi di
+           tabel, tampilkan placeholder titik-titik - JANGAN diam-diam
+           diganti ke jabatan tertentu yang di-hardcode/di-tebak. --}}
+      <strong>{{ $penandatangan?->jabatan ? strtoupper($penandatangan->jabatan) : '...................................' }}</strong>
       <div style="height:70px;"></div>
-      <strong style="text-decoration:underline;">{{ $penandatangan->nama ?? '...................................' }}</strong>
+      <strong style="text-decoration:underline;">{{ $penandatangan?->nama ?? '...................................' }}</strong>
     </td>
   </tr>
 </table>

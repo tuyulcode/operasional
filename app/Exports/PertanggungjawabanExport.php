@@ -259,11 +259,21 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         return $row;
     }
 
+    /**
+     * TTD ambil murni dari data penandatangan yang dikirim ke export ini
+     * ($this->data['penandatangan'], instance \App\Models\Penandatangan|null).
+     * $p sendiri bisa null (belum ada baris ASMAN di tabel), makanya semua
+     * akses propertinya pakai null-safe operator (?->) - bukan cuma "??" saja,
+     * karena "??" tidak menyelamatkan dari warning "read property on null"
+     * ketika $p itu sendiri null. Kalau datanya kosong, tampilkan placeholder
+     * titik-titik biar jelas kelihatan belum di-setting, bukan diem-diem
+     * ganti ke jabatan tertentu yang di-tebak.
+     */
     private function writeSignature(Worksheet $sheet, int $row): void
     {
-        $p = $this->data['penandatangan'];
+        $p = $this->data['penandatangan'] ?? null;
 
-        $tempat       = $p->tempat ?? '';
+        $tempat       = $p?->tempat ?? '';
         $tanggalLabel = now()->locale('id')->translatedFormat('d F Y');
 
         $sheet->mergeCells("C{$row}:D{$row}");
@@ -272,7 +282,7 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         $row++;
 
         $sheet->mergeCells("C{$row}:D{$row}");
-        $sheet->setCellValue("C{$row}", strtoupper($p->jabatan ?? 'ASMAN SDM UMUM & CSR'));
+        $sheet->setCellValue("C{$row}", $p?->jabatan ? strtoupper($p->jabatan) : '...................................');
         $sheet->getStyle("C{$row}")->applyFromArray([
             'font'      => ['bold' => true],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -280,7 +290,7 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         $row += 4;
 
         $sheet->mergeCells("C{$row}:D{$row}");
-        $sheet->setCellValue("C{$row}", $p->nama ?? '...................................');
+        $sheet->setCellValue("C{$row}", $p?->nama ?? '...................................');
         $sheet->getStyle("C{$row}")->applyFromArray([
             'font'      => ['bold' => true, 'underline' => true],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
