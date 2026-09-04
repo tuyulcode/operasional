@@ -238,8 +238,9 @@
             <div class="form-group">
               <label for="liter">Liter</label>
               <input type="text" inputmode="decimal" id="liter" name="liter" class="form-control"
-                     placeholder="0,000" value="{{ old('liter', isset($edit->liter) ? str_replace('.', ',', (string) $edit->liter) : '') }}">
-              <small class="form-hint">Input 0, jika tidak ada data (maks. 3 angka di belakang koma)</small>
+                     placeholder="00,000" value="{{ old('liter', isset($edit->liter) ? str_replace('.', ',', (string) $edit->liter) : '') }}">
+              <small class="form-hint" id="literHint">Input 0, jika tidak ada data (maks. 2 angka di depan koma, 3 angka di belakang koma)</small>
+              <small class="form-hint form-error" id="literError" style="display:none;">Inputan didepan koma maksimal harus 2 angka, dan 3 angka untuk dibelakang koma</small>
             </div>
           </div>
 
@@ -324,6 +325,10 @@
   }
   .form-hint-spacer {
     color: transparent;
+  }
+  .form-hint.form-error {
+    color: #dc2626;
+    font-weight: 600;
   }
   #pemakaianForm .form-grid {
     row-gap: 14px;
@@ -516,18 +521,29 @@
 
     document.getElementById('jenis_bbm').addEventListener('change', updateHargaPerLiterDisplay);
 
-    // Liter: pakai KOMA sebagai pemisah desimal, maksimal 3 angka di belakang koma
+    // Liter: pakai KOMA sebagai pemisah desimal.
+    // Aturan: maksimal 2 angka di DEPAN koma, maksimal 3 angka di BELAKANG koma.
+    // Kalau user coba ketik lebih dari itu, karakter yang bikin melanggar DITOLAK
+    // (input balik ke value terakhir yang masih valid) dan muncul pesan error.
     document.getElementById('liter').addEventListener('input', function() {
+      const prevValid = this.dataset.prevValid || '';
       let v = this.value.replace(/[^0-9,]/g, '');
+
+      const commaCount = (v.match(/,/g) || []).length;
       const firstComma = v.indexOf(',');
-      if (firstComma !== -1) {
-        v = v.slice(0, firstComma + 1) + v.slice(firstComma + 1).replace(/,/g, '');
-        const decimals = v.slice(firstComma + 1);
-        if (decimals.length > 3) {
-          v = v.slice(0, firstComma + 1) + decimals.slice(0, 3);
-        }
+      const integerPart = firstComma === -1 ? v : v.slice(0, firstComma);
+      const decimalPart = firstComma === -1 ? '' : v.slice(firstComma + 1);
+
+      const valid = commaCount <= 1 && integerPart.length <= 2 && decimalPart.length <= 3;
+
+      if (!valid) {
+        this.value = prevValid;
+        showLiterError();
+      } else {
+        hideLiterError();
+        this.dataset.prevValid = v;
+        this.value = v;
       }
-      this.value = v;
     });
 
     const kendaraanSearch = document.getElementById('kendaraan_search');
@@ -558,6 +574,7 @@
       formatRupiah(jasaInput);
       updateHargaPerLiterDisplay();
       setKendaraanById(document.getElementById('kendaraan_id').value);
+      document.getElementById('liter').dataset.prevValid = document.getElementById('liter').value;
     @endif
   });
 
@@ -574,6 +591,16 @@
     } else {
       display.value = '';
     }
+  }
+
+  function showLiterError() {
+    document.getElementById('literError').style.display = 'block';
+    document.getElementById('literHint').style.display = 'none';
+  }
+
+  function hideLiterError() {
+    document.getElementById('literError').style.display = 'none';
+    document.getElementById('literHint').style.display = 'block';
   }
 
   function formatRupiah(input) {
@@ -600,6 +627,11 @@
     setKendaraanById('');
     updateHargaPerLiterDisplay();
 
+    const literInputAdd = document.getElementById('liter');
+    literInputAdd.value = '';
+    literInputAdd.dataset.prevValid = '';
+    hideLiterError();
+
     document.getElementById('service_oli').value = '0';
     document.getElementById('jasa').value = '0';
     formatRupiah(document.getElementById('service_oli'));
@@ -621,7 +653,11 @@
     if (lokasiRadio) lokasiRadio.checked = true;
 
     // dataset.liter datang dari DB pakai titik (mis. "12.500") - tampilkan pakai koma
-    document.getElementById('liter').value = String(btn.dataset.liter || '').replace('.', ',');
+    const literInputEdit = document.getElementById('liter');
+    const literValueEdit = String(btn.dataset.liter || '').replace('.', ',');
+    literInputEdit.value = literValueEdit;
+    literInputEdit.dataset.prevValid = literValueEdit;
+    hideLiterError();
     document.getElementById('service_oli').value = btn.dataset.serviceOli;
     document.getElementById('jasa').value = btn.dataset.jasa;
     formatRupiah(document.getElementById('service_oli'));
@@ -633,6 +669,7 @@
 
   function closePemakaianModal() {
     document.getElementById('pemakaianModal').classList.remove('show');
+    hideLiterError();
   }
 
   function openDeletePemakaian(btn) {
