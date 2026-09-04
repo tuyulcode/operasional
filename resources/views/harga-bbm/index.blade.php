@@ -141,15 +141,23 @@
         </div>
       @endif
 
-      <form id="hargaBbmForm" class="ajax-form harga-form" method="POST" action="{{ route('harga-bbm.store') }}" novalidate>
+      <form id="hargaBbmForm" class="harga-form" method="POST" action="{{ route('harga-bbm.store') }}" novalidate>
         @csrf
         <input type="hidden" name="_method" id="hargaBbmMethod" value="">
 
         <div class="modal-body">
           <div class="form-group">
-            <label for="tanggal_berlaku">Tanggal Berlaku</label>
-            <input type="date" id="tanggal_berlaku" name="tanggal_berlaku" class="form-control"
-                   value="{{ old('tanggal_berlaku') }}" required>
+            <label for="tanggal_berlaku_display">Tanggal Berlaku</label>
+            <div class="date-input-group">
+              <input type="text" id="tanggal_berlaku_display" class="form-control"
+                     inputmode="numeric" placeholder="tanggal/bulan/tahun" maxlength="10"
+                     autocomplete="off" required>
+              <button type="button" class="date-picker-btn" id="tanggalBerlakuPickerBtn" tabindex="-1" aria-label="Pilih tanggal">
+                <i class="fa-solid fa-calendar-days"></i>
+              </button>
+              <input type="date" id="tanggal_berlaku_native" class="date-picker-native" tabindex="-1" aria-hidden="true">
+            </div>
+            <input type="hidden" id="tanggal_berlaku" name="tanggal_berlaku" value="{{ old('tanggal_berlaku') }}">
             <small class="form-hint" id="tanggalBerlakuHint"></small>
             <small class="field-error" id="err_tanggal_berlaku"></small>
           </div>
@@ -388,6 +396,52 @@
     padding: 4px 10px;
     font-size: 0.75rem;
   }
+
+  /* Input tanggal (dd/mm/yyyy) + tombol kalender */
+  .date-input-group {
+    position: relative;
+  }
+
+  .date-input-group .form-control {
+    padding-right: 42px;
+  }
+
+  .date-picker-btn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+
+  .date-picker-btn:hover {
+    color: #374151;
+    background: #f3f4f6;
+  }
+
+  /* Native date input disembunyikan secara visual, tapi tetap "tampil" (bukan display:none)
+     supaya showPicker()/click() tetap bisa memunculkan kalender bawaan browser. */
+  .date-picker-native {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
 </style>
 @endpush
 
@@ -407,6 +461,7 @@
 
   let isEditMode = false;
   let pendingSubmit = false;
+  let minTanggalIso = null; // batas tanggal minimal saat mode tambah, format Y-m-d
 
   // Definisi field harga: id input -> label untuk pesan error
   const HARGA_FIELDS = [
@@ -448,9 +503,52 @@
       });
     });
 
-    document.getElementById('tanggal_berlaku').addEventListener('change', function() {
+    const tanggalDisplay = document.getElementById('tanggal_berlaku_display');
+    const tanggalHidden = document.getElementById('tanggal_berlaku');
+    const tanggalNative = document.getElementById('tanggal_berlaku_native');
+    const tanggalPickerBtn = document.getElementById('tanggalBerlakuPickerBtn');
+
+    // User ngetik manual di text input -> auto format dd/mm/yyyy & sinkron ke hidden (Y-m-d)
+    tanggalDisplay.addEventListener('input', function() {
+      formatTanggalLive(this);
       clearFieldError('tanggal_berlaku');
+      const iso = dmyToIso(this.value.trim());
+      tanggalHidden.value = iso;
+      if (iso) tanggalNative.value = iso;
     });
+
+    // Tombol kalender -> buka native date picker bawaan browser
+    tanggalPickerBtn.addEventListener('click', function() {
+      const currentIso = dmyToIso(tanggalDisplay.value.trim());
+      if (currentIso) tanggalNative.value = currentIso;
+
+      if (typeof tanggalNative.showPicker === 'function') {
+        try {
+          tanggalNative.showPicker();
+          return;
+        } catch (err) {
+          // fallback di bawah
+        }
+      }
+      tanggalNative.focus();
+      tanggalNative.click();
+    });
+
+    // User pilih tanggal dari kalender -> update text display & hidden input
+    tanggalNative.addEventListener('change', function() {
+      if (this.value) {
+        tanggalDisplay.value = isoToDmy(this.value);
+        tanggalHidden.value = this.value;
+        clearFieldError('tanggal_berlaku');
+      }
+    });
+
+    // Kalau ada old('tanggal_berlaku') dari validasi gagal sebelumnya, tampilkan di display
+    const initialIso = tanggalHidden.value;
+    if (initialIso) {
+      tanggalDisplay.value = isoToDmy(initialIso);
+      tanggalNative.value = initialIso;
+    }
 
     document.getElementById('hargaBbmForm').addEventListener('submit', function(e) {
       // Kalau ini submit lanjutan setelah user konfirmasi "Tetap Simpan", lolos langsung
@@ -496,15 +594,63 @@
   });
 
   /**
+   * Ubah tanggal format Y-m-d (ISO, dari native date input) jadi dd/mm/yyyy untuk ditampilkan.
+   */
+  function isoToDmy(iso) {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    if (!y || !m || !d) return '';
+    return d + '/' + m + '/' + y;
+  }
+
+  /**
+   * Ubah tanggal format dd/mm/yyyy (dari ketikan user) jadi Y-m-d (ISO) untuk dikirim ke server.
+   * Return '' kalau formatnya belum lengkap atau tanggalnya tidak masuk akal (mis. 31/02).
+   */
+  function dmyToIso(dmy) {
+    const match = String(dmy).trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return '';
+    const [, d, m, y] = match;
+    const day = parseInt(d, 10), month = parseInt(m, 10), year = parseInt(y, 10);
+    if (month < 1 || month > 12) return '';
+    const daysInMonth = new Date(year, month, 0).getDate();
+    if (day < 1 || day > daysInMonth) return '';
+    return y + '-' + m + '-' + d;
+  }
+
+  /**
+   * Auto-format input tanggal saat user mengetik angka: 01092026 -> 01/09/2026
+   */
+  function formatTanggalLive(input) {
+    const digits = input.value.replace(/\D/g, '').slice(0, 8);
+    let out = '';
+    if (digits.length > 0) out += digits.slice(0, 2);
+    if (digits.length >= 3) out += '/' + digits.slice(2, 4);
+    if (digits.length >= 5) out += '/' + digits.slice(4, 8);
+    input.value = out;
+  }
+
+  /**
    * Validasi: tanggal & semua harga wajib diisi dan harga tidak boleh 0.
    * Return true kalau lolos, false kalau ada error (sekaligus menampilkan pesannya).
    */
   function validateHargaForm() {
     let isValid = true;
 
-    const tanggalInput = document.getElementById('tanggal_berlaku');
-    if (!tanggalInput.value) {
+    const tanggalDisplay = document.getElementById('tanggal_berlaku_display');
+    const tanggalHidden = document.getElementById('tanggal_berlaku');
+    const rawTanggal = tanggalDisplay.value.trim();
+    const isoTanggal = dmyToIso(rawTanggal);
+    tanggalHidden.value = isoTanggal;
+
+    if (!rawTanggal) {
       showFieldError('tanggal_berlaku', 'Tanggal berlaku wajib diisi.');
+      isValid = false;
+    } else if (!isoTanggal) {
+      showFieldError('tanggal_berlaku', 'Format tanggal tidak valid.');
+      isValid = false;
+    } else if (minTanggalIso && isoTanggal < minTanggalIso) {
+      showFieldError('tanggal_berlaku', 'Tanggal tidak boleh sama atau sebelum ' + TERAKHIR.tanggal_berlaku.split('-').reverse().join('-') + '.');
       isValid = false;
     }
 
@@ -534,7 +680,9 @@
   }
 
   function showFieldError(fieldId, message) {
-    const input = document.getElementById(fieldId);
+    const input = fieldId === 'tanggal_berlaku'
+      ? document.getElementById('tanggal_berlaku_display')
+      : document.getElementById(fieldId);
     const errorEl = document.getElementById('err_' + fieldId);
     if (input) input.classList.add('is-invalid');
     if (errorEl) {
@@ -544,7 +692,9 @@
   }
 
   function clearFieldError(fieldId) {
-    const input = document.getElementById(fieldId);
+    const input = fieldId === 'tanggal_berlaku'
+      ? document.getElementById('tanggal_berlaku_display')
+      : document.getElementById(fieldId);
     const errorEl = document.getElementById('err_' + fieldId);
     if (input) input.classList.remove('is-invalid');
     if (errorEl) {
@@ -628,7 +778,9 @@
     document.getElementById('hargaBbmMethod').value = '';
     document.getElementById('hargaBbmModalTitle').textContent = 'Tambah Data Harga BBM';
 
-    const dateInput = document.getElementById('tanggal_berlaku');
+    const tanggalDisplay = document.getElementById('tanggal_berlaku_display');
+    const tanggalHidden = document.getElementById('tanggal_berlaku');
+    const tanggalNative = document.getElementById('tanggal_berlaku_native');
     const hint = document.getElementById('tanggalBerlakuHint');
 
     if (TERAKHIR) {
@@ -636,11 +788,18 @@
       const minDate = new Date(TERAKHIR.tanggal_berlaku);
       minDate.setDate(minDate.getDate() + 1);
       const minStr = minDate.toISOString().slice(0, 10);
-      dateInput.min = minStr;
-      dateInput.value = minStr;
+      minTanggalIso = minStr;
+      tanggalNative.min = minStr;
+      tanggalNative.value = minStr;
+      tanggalHidden.value = minStr;
+      tanggalDisplay.value = isoToDmy(minStr);
       hint.textContent = 'Tidak boleh sama atau sebelum ' + TERAKHIR.tanggal_berlaku.split('-').reverse().join('-');
     } else {
-      dateInput.removeAttribute('min');
+      minTanggalIso = null;
+      tanggalNative.removeAttribute('min');
+      tanggalNative.value = '';
+      tanggalHidden.value = '';
+      tanggalDisplay.value = '';
       hint.textContent = '';
     }
 
@@ -661,9 +820,12 @@
     document.getElementById('hargaBbmMethod').value = 'PUT';
     document.getElementById('hargaBbmModalTitle').textContent = 'Edit Data Harga BBM';
 
-    const dateInput = document.getElementById('tanggal_berlaku');
-    dateInput.removeAttribute('min'); // edit boleh betulkan tanggal lama
-    dateInput.value = btn.dataset.tanggalBerlaku;
+    minTanggalIso = null; // mode edit boleh betulkan tanggal lama bebas
+    const tanggalNative = document.getElementById('tanggal_berlaku_native');
+    tanggalNative.removeAttribute('min');
+    tanggalNative.value = btn.dataset.tanggalBerlaku;
+    document.getElementById('tanggal_berlaku').value = btn.dataset.tanggalBerlaku;
+    document.getElementById('tanggal_berlaku_display').value = isoToDmy(btn.dataset.tanggalBerlaku);
     document.getElementById('tanggalBerlakuHint').textContent = '';
 
     document.getElementById('harga_pertamax').value = formatRupiahValue(btn.dataset.hargaPertamax);
