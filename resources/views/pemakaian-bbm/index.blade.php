@@ -84,19 +84,31 @@
     </div>
     <div class="card-body" style="padding: 0;">
       <div class="table-responsive">
-        <table class="app-sales-table">
+        <table class="app-sales-table" style="width:100%;">
+          <colgroup>
+            <col style="width:4%">
+            <col style="width:13%">
+            <col style="width:12%">
+            <col style="width:9%">
+            <col style="width:9%">
+            <col style="width:7%">
+            <col style="width:9%">
+            <col style="width:8%">
+            <col style="width:10%">
+            <col style="width:9%">
+          </colgroup>
           <thead>
             <tr>
               <th>No</th>
-              <th>Tanggal Pengisian</th>
+              <th style="white-space:nowrap;">Tanggal Pengisian</th>
               <th>Kendaraan</th>
               <th>Jenis BBM</th>
               <th>Lokasi</th>
               <th>Liter</th>
               <th style="text-align:center;">Sparepart</th>
-              <th>Jasa</th>
+              <th style="text-align:center;">Jasa</th>
               <th>Jumlah</th>
-              <th>Aksi</th>
+              <th style="text-align:center;">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -116,9 +128,9 @@
               <td>{{ $item->lokasi_pembelian === 'luar_paiton' ? 'Luar Paiton' : 'Paiton' }}</td>
               <td>{{ $literDisplay }}</td>
               <td style="text-align:center;">{{ $item->service_oli ? number_format($item->service_oli, 0, ',', '.') : '-' }}</td>
-              <td>{{ $item->jasa ? number_format($item->jasa, 0, ',', '.') : '-' }}</td>
+              <td style="text-align:center;">{{ $item->jasa ? number_format($item->jasa, 0, ',', '.') : '-' }}</td>
               <td>{{ number_format($item->jumlah, 0, ',', '.') }}</td>
-              <td>
+              <td style="text-align:center;">
                 <button type="button" class="btn btn-icon btn-edit" title="Edit"
                         data-id="{{ $item->id }}"
                         data-tanggal="{{ \Carbon\Carbon::parse($item->tanggal)->format('Y-m-d') }}"
@@ -175,7 +187,7 @@
           <div class="form-grid">
             <div class="form-group">
               <label for="tanggal">Tanggal Pengisian</label>
-              <input type="date" id="tanggal" name="tanggal" class="form-control"
+              <input type="text" id="tanggal" name="tanggal" class="form-control"
                      value="{{ old('tanggal', $edit->tanggal ?? '') }}" required>
               <small class="form-hint form-hint-spacer">&nbsp;</small>
             </div>
@@ -288,6 +300,7 @@
 @endsection
 
 @push('styles')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
 <style>
   #pemakaianModal .modal { max-width: 640px; }
   .modal-confirm { max-width: 380px; }
@@ -387,10 +400,27 @@
     font-size: 0.85rem;
     color: #9ca3af;
   }
+
+  /* Samakan padding tiap sel tabel Input Data, termasuk jarak tepi kolom
+     pertama (No) & terakhir (Aksi) ke garis tabel. */
+  .app-sales-table th,
+  .app-sales-table td {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .app-sales-table th:first-child,
+  .app-sales-table td:first-child {
+    padding-left: 20px !important;
+  }
+  .app-sales-table th:last-child,
+  .app-sales-table td:last-child {
+    padding-right: 20px !important;
+  }
 </style>
 @endpush
 
 @push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
 <script>
   // Riwayat harga BBM (urut tanggal_berlaku terbaru dulu). Harga sekarang tergantung
   // TANGGAL TRANSAKSI + JENIS BBM (bukan cuma jenis doang seperti dulu).
@@ -441,7 +471,22 @@
     document.getElementById('kendaraan_search').value = found ? found.label : '';
   }
 
+  let tanggalPicker;
+
   document.addEventListener('DOMContentLoaded', function() {
+    // Tanggal Pengisian: user lihat DD/MM/YYYY, tapi value asli yang dikirim
+    // ke server tetap YYYY-MM-DD (dateFormat) biar validasi backend gak berubah.
+    tanggalPicker = flatpickr('#tanggal', {
+      dateFormat: 'Y-m-d',
+      altInput: true,
+      altFormat: 'd/m/Y',
+      altInputClass: 'form-control',
+      allowInput: false,
+      onChange: function() {
+        updateHargaPerLiterDisplay();
+      },
+    });
+
     const overlay = document.getElementById('pemakaianModal');
     const deleteOverlay = document.getElementById('deletePemakaianModal');
 
@@ -470,7 +515,6 @@
     jasaInput.addEventListener('input', function() { formatRupiah(jasaInput); });
 
     document.getElementById('jenis_bbm').addEventListener('change', updateHargaPerLiterDisplay);
-    document.getElementById('tanggal').addEventListener('change', updateHargaPerLiterDisplay);
 
     // Liter: pakai KOMA sebagai pemisah desimal, maksimal 3 angka di belakang koma
     document.getElementById('liter').addEventListener('input', function() {
@@ -552,7 +596,7 @@
     document.getElementById('pemakaianMethod').value = '';
     document.getElementById('pemakaianModalTitle').textContent = 'Tambah Pemakaian BBM';
 
-    document.getElementById('tanggal').value = pfTodayDateString();
+    tanggalPicker.setDate(pfTodayDateString(), true);
     setKendaraanById('');
     updateHargaPerLiterDisplay();
 
@@ -569,7 +613,7 @@
     form.reset();
     form.action = '{{ route('pemakaian-bbm.update', '__ID__') }}'.replace('__ID__', btn.dataset.id);
     document.getElementById('pemakaianMethod').value = 'PUT';
-    document.getElementById('tanggal').value = btn.dataset.tanggal;
+    tanggalPicker.setDate(btn.dataset.tanggal, true);
     setKendaraanById(btn.dataset.kendaraanId);
     document.getElementById('jenis_bbm').value = btn.dataset.jenisBbm;
 
