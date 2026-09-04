@@ -18,6 +18,10 @@ class RekapanExcel
 
     private const PPN_FILL = 'FFE2EFDA';
 
+    // Lebar kolom titik meter maksimum (dalam unit lebar Excel) biar kolom
+    // gak kebablasan lebar kalau ada foto landscape yang ekstrim rasionya.
+    private const MAX_TITIK_COL_WIDTH = 45;
+
     public static function generate(array $report): Spreadsheet
     {
         $spreadsheet = new Spreadsheet;
@@ -185,8 +189,18 @@ class RekapanExcel
             $drawing->setResizeProportional(true);
             $drawing->setHeight(110);
 
-            // Foto ditaruh di tengah lebar tabel (kolom A-D), bukan mepet kiri
+            // Kalau fotonya landscape / lebih lebar dari tabel (A-D), lebarin
+            // kolom D biar tabelnya ikut melebar nyesuain foto — bukan foto
+            // yang numpuk/kepotong keluar tabel.
             $tableWidthPx = array_sum($colWidthsPx) * 7;
+            if ($drawing->getWidth() + 10 > $tableWidthPx) {
+                $extraPx = $drawing->getWidth() + 10 - $tableWidthPx;
+                $colWidthsPx['D'] += (int) ceil($extraPx / 7);
+                $sheet->getColumnDimension('D')->setWidth($colWidthsPx['D']);
+                $tableWidthPx = array_sum($colWidthsPx) * 7;
+            }
+
+            // Foto ditaruh di tengah lebar tabel (kolom A-D), bukan mepet kiri
             $offsetX = max(5, (int) (($tableWidthPx - $drawing->getWidth()) / 2));
 
             $drawing->setCoordinates('A'.$r);
@@ -298,21 +312,43 @@ class RekapanExcel
 
         // Foto meter per titik, ditaruh sejajar di bawah kolom masing-masing titik
         // (kayak di layout "standar"/vertical), bukan cuma satu foto gabungan.
+        //
+        // FIX: siapin objek Drawing dulu buat tiap titik biar tau LEBAR ASLI
+        // fotonya (setelah di-scale ke tinggi 100px) SEBELUM foto ditempatkan.
+        // Kalau lebar foto lebih besar dari lebar kolom default (13 unit),
+        // kolom titik itu dilebarin nyesuain foto — jadi foto landscape gak
+        // numpuk/nutupin kolom foto di sebelahnya (yang bikin keliatan "blok").
         $photoRow = $r;
-        $anyFoto = false;
+        $drawings = [];
         $missingFoto = false;
+
         foreach ($titikRows as $i => $row) {
             $tg = $row['tagihan'];
             $fotoPath = self::resolveFotoPath($tg);
+
             if ($fotoPath) {
-                $anyFoto = true;
                 $drawing = new Drawing;
                 $drawing->setName('foto-'.$i);
                 $drawing->setPath($fotoPath);
                 $drawing->setResizeProportional(true);
                 $drawing->setHeight(100);
+                $drawings[$i] = $drawing;
 
-                // Posisikan foto di tengah lebar kolom titik meter yang bersangkutan
+                $neededWidthPx = $drawing->getWidth() + 10; // + padding kiri-kanan
+                $currentWidthPx = $sheet->getColumnDimension($titikCols[$i])->getWidth() * 7;
+                if ($neededWidthPx > $currentWidthPx) {
+                    $newWidthUnit = min(self::MAX_TITIK_COL_WIDTH, $neededWidthPx / 7);
+                    $sheet->getColumnDimension($titikCols[$i])->setWidth($newWidthUnit);
+                }
+            } elseif ($tg && $tg->fotos->isNotEmpty()) {
+                $missingFoto = true;
+            }
+        }
+
+        $anyFoto = ! empty($drawings);
+        if ($anyFoto) {
+            foreach ($drawings as $i => $drawing) {
+                // Ambil ulang lebar kolom (udah final/sudah dilebarin di atas)
                 $colWidthPx = $sheet->getColumnDimension($titikCols[$i])->getWidth() * 7;
                 $offsetX = max(2, (int) (($colWidthPx - $drawing->getWidth()) / 2));
 
@@ -320,12 +356,7 @@ class RekapanExcel
                 $drawing->setOffsetX($offsetX);
                 $drawing->setOffsetY(5);
                 $drawing->setWorksheet($sheet);
-            } elseif ($tg && $tg->fotos->isNotEmpty()) {
-                $missingFoto = true;
             }
-        }
-
-        if ($anyFoto) {
             $sheet->getRowDimension($photoRow)->setRowHeight(110);
             $r = $photoRow + 1;
         } elseif ($missingFoto) {
@@ -470,6 +501,13 @@ class RekapanExcel
         // Foto meter: grid 4 "kolom foto" per baris (bukan satu baris memanjang
         // sepanjang jumlah titik meter), sisa slot yang nggak ada titiknya lagi
         // otomatis nggak ikut ke-render (nggak nyisain kolom kosong).
+        //
+        // FIX: di layout ini kolom A-G dipakai bareng sama tabel data utama,
+        // jadi kalau ada foto landscape kita GAK lebarin kolomnya (nanti tabel
+        // atasnya ikut melar & jadi aneh). Sebagai gantinya, kalau lebar foto
+        // (setelah di-scale ke tinggi 100px) lebih lebar dari slotnya, lebar
+        // fotonya yang dikecilin dikit (resizeProportional otomatis nyesuain
+        // tingginya) biar tetep muat rapi di slot & gak numpuk ke slot sebelah.
         $barisFoto = $rows->filter(fn ($row) => $row['tagihan'])->values();
         $anyFoto = $barisFoto->contains(fn ($row) => self::resolveFotoPath($row['tagihan']) !== null);
 
@@ -510,6 +548,14 @@ class RekapanExcel
                             fn ($col) => $sheet->getColumnDimension($col)->getWidth() * 7,
                             $slot
                         ));
+
+                        // Foto landscape lebih lebar dari slot -> kecilin
+                        // lebarnya biar pas (tingginya otomatis ikut turun
+                        // karena resizeProportional true).
+                        if ($drawing->getWidth() + 10 > $slotWidthPx) {
+                            $drawing->setWidth((int) floor($slotWidthPx - 10));
+                        }
+
                         $offsetX = max(2, (int) (($slotWidthPx - $drawing->getWidth()) / 2));
 
                         $drawing->setCoordinates($startCol.$photoRow);
@@ -731,7 +777,50 @@ class RekapanExcel
         }
 
         $cols = range('A', $lastCol);
-        $chunks = array_chunk($cols, (int) max(1, ceil(count($cols) / $penandatangan->count())));
+        $n = $penandatangan->count();
+
+        // FIX: pembagian kolom buat tiap blok ttd sekarang berdasarkan LEBAR
+        // PIKSEL kolom yang sebenarnya (bukan cuma dihitung per huruf kolom).
+        // Soalnya kolom titik meter bisa melebar banyak kalau ada foto
+        // landscape, jadi kalau pembagiannya masih per jumlah kolom, blok ttd
+        // jadi nggak seimbang / berantakan secara visual (ada blok yang
+        // kebagian kolom-kolom super lebar, ada yang kebagian kolom sempit).
+        $colWidths = [];
+        foreach ($cols as $col) {
+            $colWidths[$col] = max(1, $sheet->getColumnDimension($col)->getWidth());
+        }
+        $totalWidth = array_sum($colWidths);
+
+        $chunks = [];
+        $current = [];
+        $currentWidth = 0;
+        $colsLeft = count($cols);
+        $groupsLeft = $n;
+
+        foreach ($cols as $col) {
+            $current[] = $col;
+            $currentWidth += $colWidths[$col];
+            $colsLeft--;
+
+            $targetWidth = $totalWidth * (count($chunks) + 1) / $n;
+            $shouldBreak = $groupsLeft > 1
+                && $currentWidth >= $targetWidth
+                && $colsLeft >= ($groupsLeft - 1); // jaga sisa kolom cukup buat grup berikutnya
+
+            if ($shouldBreak) {
+                $chunks[] = $current;
+                $current = [];
+                $currentWidth = 0;
+                $groupsLeft--;
+            }
+        }
+        if (! empty($current)) {
+            $chunks[] = $current;
+        }
+        while (count($chunks) < $n) {
+            $chunks[] = [end($cols)];
+        }
+
         $lastChunk = end($chunks);
 
         $first = $penandatangan->first();
