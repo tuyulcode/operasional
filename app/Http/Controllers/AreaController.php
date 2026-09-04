@@ -9,7 +9,7 @@ class AreaController extends Controller
 {
     public function index(Request $request)
     {
-        $areas = Area::latest()->get();
+        $areas = Area::latest()->paginate(15);
 
         $edit = null;
         if ($request->has('edit')) {

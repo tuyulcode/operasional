@@ -75,7 +75,7 @@
             <tbody>
               @forelse($pemakaianEtolls as $i => $item)
               <tr>
-                <td>{{ $i + 1 }}</td>
+                <td>{{ $pemakaianEtolls->firstItem() + $i }}</td>
                 <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d-m-Y') }}</td>
                 <td>
                   <div class="app-info">
@@ -112,6 +112,7 @@
             </tbody>
           </table>
         </div>
+        @include('partials.pagination', ['paginator' => $pemakaianEtolls])
       </div>
     </div>
 

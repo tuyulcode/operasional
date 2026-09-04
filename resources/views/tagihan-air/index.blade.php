@@ -249,7 +249,7 @@
             <tbody id="tbData">
               @forelse($tagihanAirs as $i => $t)
               <tr>
-                <td>{{ $i + 1 }}</td>
+                <td>{{ $tagihanAirs->firstItem() + $i }}</td>
                 <td>{{ $t->periode->format('m-Y') }}</td>
                 <td>{{ $t->titikMeter->area->nama ?? '-' }}</td>
                 <td>
@@ -313,6 +313,7 @@
             </tbody>
           </table>
         </div>
+        @include('partials.pagination', ['paginator' => $tagihanAirs])
       </div>
     </div>
 

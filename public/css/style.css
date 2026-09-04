@@ -2149,3 +2149,84 @@ body.dark-mode .toast-close:hover {
   background: var(--primary-color);
   color: #fff;
 }
+
+/* ==========================================
+   PAGINATION
+   ========================================== */
+
+.pagination-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pagination-info {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.pagination-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-main);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.pagination-btn:hover:not(.pagination-active):not(.pagination-disabled) {
+  background: #f0f4ff;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.pagination-btn.pagination-active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+  font-weight: 600;
+  cursor: default;
+}
+
+.pagination-btn.pagination-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagination-btn i {
+  font-size: 0.7rem;
+}
+
+.pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 6px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+@media (max-width: 600px) {
+  .pagination-wrapper {
+    flex-direction: column;
+    align-items: center;
+  }
+}

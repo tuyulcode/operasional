@@ -10,7 +10,7 @@ class PpnController extends Controller
 {
     public function index()
     {
-        $ppns = Ppn::latest()->get();
+        $ppns = Ppn::latest()->paginate(15);
         return view('ppn.index', compact('ppns'));
     }
 

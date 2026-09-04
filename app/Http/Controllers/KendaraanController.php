@@ -13,7 +13,7 @@ class KendaraanController extends Controller
      */
     public function index(Request $request)
     {
-        $kendaraans = Kendaraan::with('jenisKendaraan')->orderBy('plat_nomor')->get();
+        $kendaraans = Kendaraan::with('jenisKendaraan')->orderBy('plat_nomor')->paginate(15);
         $jenisKendaraans = JenisKendaraan::orderBy('nama_merek')->get();
 
         $edit = null;

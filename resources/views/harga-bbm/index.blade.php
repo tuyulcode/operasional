@@ -110,9 +110,7 @@
         </table>
       </div>
       @if($riwayat->hasPages())
-        <div style="padding: 16px;">
-          {{ $riwayat->links() }}
-        </div>
+        @include('partials.pagination', ['paginator' => $riwayat])
       @endif
     </div>
   </div>

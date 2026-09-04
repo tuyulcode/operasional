@@ -166,9 +166,7 @@
           </tbody>
         </table>
       </div>
-      <div style="padding: 16px;">
-        {{ $pemakaianBbms->links() }}
-      </div>
+      @include('partials.pagination', ['paginator' => $pemakaianBbms])
     </div>
   </div>
 

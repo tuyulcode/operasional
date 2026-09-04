@@ -9,7 +9,7 @@ class JenisKendaraanController extends Controller
 {
     public function index(Request $request)
     {
-        $jenisKendaraans = JenisKendaraan::orderBy('nama_merek')->get();
+        $jenisKendaraans = JenisKendaraan::orderBy('nama_merek')->paginate(15);
 
         $edit = null;
         if ($request->has('edit')) {

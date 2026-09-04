@@ -12,7 +12,7 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $users = User::latest()->get();
+        $users = User::latest()->paginate(15);
 
         $edit = null;
         if ($request->has('edit')) {
