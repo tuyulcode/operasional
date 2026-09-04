@@ -22,7 +22,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ filemtime(public_path('css/style.css')) }}">
 
   @stack('styles')
 </head>
@@ -51,7 +51,7 @@
 </div>
 
 <!-- Custom JS -->
-<script src="{{ asset('js/app.js') }}"></script>
+<script src="{{ asset('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}"></script>
 
 <div id="toastContainer"></div>
 @if(session('success'))

@@ -106,7 +106,7 @@
                 <div class="rv-meta">Bulan : {{ $periodeLabel }}</div>
                 <div class="rv-meta">NAMA: {{ $area['area']->nama }}</div>
                 <div class="rv-meta">ALAMAT: {{ $area['area']->alamat ?: '-' }}</div>
-                <div class="rv-meta">LOKASI FLOW METER: {{ $row1['titik_meter']->nama }}</div>
+                <div class="rv-meta">LOKASI FLOW METER: {{ $row1['titik_meter']->lokasi_flow_meter ?: $row1['titik_meter']->nama }}</div>
                 <div class="rv-section">PERHITUNGAN PEMAKAIAN</div>
                 <div class="rv-row">
                   <span class="rv-label">Bulan ini</span>
@@ -161,10 +161,12 @@
                 </tr>
               </thead>
               <tbody>
+                @php($noUrut = 0)
                 @foreach($area['rows'] as $i => $row)
                   @continue(!$row['tagihan'])
+                  @php($noUrut++)
                   <tr>
-                    <td>{{ $i + 1 }}</td>
+                    <td>{{ $noUrut }}</td>
                     <td>
                       <div class="app-info">
                         <div>
