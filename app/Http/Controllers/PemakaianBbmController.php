@@ -222,7 +222,7 @@ class PemakaianBbmController extends Controller
 
         $weeks         = [];
         $keterangan    = null;
-        $penandatangan = Penandatangan::where('jabatan', Penandatangan::ASMAN)->first();
+        $penandatangan = $this->getPenandatanganLaporan();
 
         if ($bulanLabel && $periodes->isNotEmpty()) {
             $weeks      = $this->buildWeeks($periodes);
@@ -518,6 +518,22 @@ class PemakaianBbmController extends Controller
     }
 
     /**
+     * Satu-satunya tempat query penandatangan untuk laporan Pertanggungjawaban.
+     * Dipakai oleh halaman preview (pertanggungjawaban()) dan oleh
+     * buildPertanggungjawabanData() (export Excel & PDF), supaya ketiganya
+     * selalu ambil baris yang sama persis dari tabel `penandatangan` - tidak
+     * ada lagi query yang diduplikasi/berpotensi beda antara satu output
+     * dengan output lainnya.
+     *
+     * Kalau baris ASMAN belum ada di tabel, hasilnya null - blade/export yang
+     * urus fallback placeholder titik-titik, bukan di sini.
+     */
+    private function getPenandatanganLaporan(): ?Penandatangan
+    {
+        return Penandatangan::where('jabatan', Penandatangan::ASMAN)->first();
+    }
+
+    /**
      * Kumpulkan semua data yang dibutuhkan export Excel/PDF Pertanggungjawaban,
      * berdasarkan bulan_label yang dipilih.
      */
@@ -535,7 +551,7 @@ class PemakaianBbmController extends Controller
 
         $weeks         = $this->buildWeeks($periodes);
         $keterangan    = $this->buildKeterangan($weeks);
-        $penandatangan = Penandatangan::where('jabatan', Penandatangan::ASMAN)->first();
+        $penandatangan = $this->getPenandatanganLaporan();
 
         return [
             'bulanLabel'    => $validated['bulan_label'],

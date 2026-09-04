@@ -6,9 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Penandatangan extends Model
 {
-    public const MANAJER = 'Manajer Bisnis Support';
+    public const MANAJER = 'Manager Business Support';
 
-    public const ASMAN = 'Asman SDM Umum & CSR';
+    public const ASMAN = 'Asman SDM, Umum & CSR';
 
     protected $table = 'penandatangan';
 
