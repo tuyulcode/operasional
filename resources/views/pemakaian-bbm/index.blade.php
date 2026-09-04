@@ -84,19 +84,31 @@
     </div>
     <div class="card-body" style="padding: 0;">
       <div class="table-responsive">
-        <table class="app-sales-table">
+        <table class="app-sales-table" style="width:100%;">
+          <colgroup>
+            <col style="width:4%">
+            <col style="width:13%">
+            <col style="width:12%">
+            <col style="width:9%">
+            <col style="width:9%">
+            <col style="width:7%">
+            <col style="width:9%">
+            <col style="width:8%">
+            <col style="width:10%">
+            <col style="width:9%">
+          </colgroup>
           <thead>
             <tr>
               <th>No</th>
-              <th>Tanggal Pengisian</th>
+              <th style="white-space:nowrap;">Tanggal Pengisian</th>
               <th>Kendaraan</th>
               <th>Jenis BBM</th>
               <th>Lokasi</th>
               <th>Liter</th>
               <th style="text-align:center;">Sparepart</th>
-              <th>Jasa</th>
+              <th style="text-align:center;">Jasa</th>
               <th>Jumlah</th>
-              <th>Aksi</th>
+              <th style="text-align:center;">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -116,9 +128,9 @@
               <td>{{ $item->lokasi_pembelian === 'luar_paiton' ? 'Luar Paiton' : 'Paiton' }}</td>
               <td>{{ $literDisplay }}</td>
               <td style="text-align:center;">{{ $item->service_oli ? number_format($item->service_oli, 0, ',', '.') : '-' }}</td>
-              <td>{{ $item->jasa ? number_format($item->jasa, 0, ',', '.') : '-' }}</td>
+              <td style="text-align:center;">{{ $item->jasa ? number_format($item->jasa, 0, ',', '.') : '-' }}</td>
               <td>{{ number_format($item->jumlah, 0, ',', '.') }}</td>
-              <td>
+              <td style="text-align:center;">
                 <button type="button" class="btn btn-icon btn-edit" title="Edit"
                         data-id="{{ $item->id }}"
                         data-tanggal="{{ \Carbon\Carbon::parse($item->tanggal)->format('Y-m-d') }}"
@@ -175,7 +187,7 @@
           <div class="form-grid">
             <div class="form-group">
               <label for="tanggal">Tanggal Pengisian</label>
-              <input type="date" id="tanggal" name="tanggal" class="form-control"
+              <input type="text" id="tanggal" name="tanggal" class="form-control"
                      value="{{ old('tanggal', $edit->tanggal ?? '') }}" required>
               <small class="form-hint form-hint-spacer">&nbsp;</small>
             </div>
@@ -226,8 +238,9 @@
             <div class="form-group">
               <label for="liter">Liter</label>
               <input type="text" inputmode="decimal" id="liter" name="liter" class="form-control"
-                     placeholder="0,000" value="{{ old('liter', isset($edit->liter) ? str_replace('.', ',', (string) $edit->liter) : '') }}">
-              <small class="form-hint">Input 0, jika tidak ada data (maks. 3 angka di belakang koma)</small>
+                     placeholder="00,000" value="{{ old('liter', isset($edit->liter) ? str_replace('.', ',', (string) $edit->liter) : '') }}">
+              <small class="form-hint" id="literHint">Input 0, jika tidak ada data (maks. 2 angka di depan koma, 3 angka di belakang koma)</small>
+              <small class="form-hint form-error" id="literError" style="display:none;">Inputan didepan koma maksimal harus 2 angka, dan 3 angka untuk dibelakang koma</small>
             </div>
           </div>
 
@@ -288,6 +301,7 @@
 @endsection
 
 @push('styles')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
 <style>
   #pemakaianModal .modal { max-width: 640px; }
   .modal-confirm { max-width: 380px; }
@@ -311,6 +325,10 @@
   }
   .form-hint-spacer {
     color: transparent;
+  }
+  .form-hint.form-error {
+    color: #dc2626;
+    font-weight: 600;
   }
   #pemakaianForm .form-grid {
     row-gap: 14px;
@@ -387,10 +405,27 @@
     font-size: 0.85rem;
     color: #9ca3af;
   }
+
+  /* Samakan padding tiap sel tabel Input Data, termasuk jarak tepi kolom
+     pertama (No) & terakhir (Aksi) ke garis tabel. */
+  .app-sales-table th,
+  .app-sales-table td {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .app-sales-table th:first-child,
+  .app-sales-table td:first-child {
+    padding-left: 20px !important;
+  }
+  .app-sales-table th:last-child,
+  .app-sales-table td:last-child {
+    padding-right: 20px !important;
+  }
 </style>
 @endpush
 
 @push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
 <script>
   // Riwayat harga BBM (urut tanggal_berlaku terbaru dulu). Harga sekarang tergantung
   // TANGGAL TRANSAKSI + JENIS BBM (bukan cuma jenis doang seperti dulu).
@@ -441,7 +476,22 @@
     document.getElementById('kendaraan_search').value = found ? found.label : '';
   }
 
+  let tanggalPicker;
+
   document.addEventListener('DOMContentLoaded', function() {
+    // Tanggal Pengisian: user lihat DD/MM/YYYY, tapi value asli yang dikirim
+    // ke server tetap YYYY-MM-DD (dateFormat) biar validasi backend gak berubah.
+    tanggalPicker = flatpickr('#tanggal', {
+      dateFormat: 'Y-m-d',
+      altInput: true,
+      altFormat: 'd/m/Y',
+      altInputClass: 'form-control',
+      allowInput: false,
+      onChange: function() {
+        updateHargaPerLiterDisplay();
+      },
+    });
+
     const overlay = document.getElementById('pemakaianModal');
     const deleteOverlay = document.getElementById('deletePemakaianModal');
 
@@ -470,20 +520,30 @@
     jasaInput.addEventListener('input', function() { formatRupiah(jasaInput); });
 
     document.getElementById('jenis_bbm').addEventListener('change', updateHargaPerLiterDisplay);
-    document.getElementById('tanggal').addEventListener('change', updateHargaPerLiterDisplay);
 
-    // Liter: pakai KOMA sebagai pemisah desimal, maksimal 3 angka di belakang koma
+    // Liter: pakai KOMA sebagai pemisah desimal.
+    // Aturan: maksimal 2 angka di DEPAN koma, maksimal 3 angka di BELAKANG koma.
+    // Kalau user coba ketik lebih dari itu, karakter yang bikin melanggar DITOLAK
+    // (input balik ke value terakhir yang masih valid) dan muncul pesan error.
     document.getElementById('liter').addEventListener('input', function() {
+      const prevValid = this.dataset.prevValid || '';
       let v = this.value.replace(/[^0-9,]/g, '');
+
+      const commaCount = (v.match(/,/g) || []).length;
       const firstComma = v.indexOf(',');
-      if (firstComma !== -1) {
-        v = v.slice(0, firstComma + 1) + v.slice(firstComma + 1).replace(/,/g, '');
-        const decimals = v.slice(firstComma + 1);
-        if (decimals.length > 3) {
-          v = v.slice(0, firstComma + 1) + decimals.slice(0, 3);
-        }
+      const integerPart = firstComma === -1 ? v : v.slice(0, firstComma);
+      const decimalPart = firstComma === -1 ? '' : v.slice(firstComma + 1);
+
+      const valid = commaCount <= 1 && integerPart.length <= 2 && decimalPart.length <= 3;
+
+      if (!valid) {
+        this.value = prevValid;
+        showLiterError();
+      } else {
+        hideLiterError();
+        this.dataset.prevValid = v;
+        this.value = v;
       }
-      this.value = v;
     });
 
     const kendaraanSearch = document.getElementById('kendaraan_search');
@@ -514,6 +574,7 @@
       formatRupiah(jasaInput);
       updateHargaPerLiterDisplay();
       setKendaraanById(document.getElementById('kendaraan_id').value);
+      document.getElementById('liter').dataset.prevValid = document.getElementById('liter').value;
     @endif
   });
 
@@ -530,6 +591,16 @@
     } else {
       display.value = '';
     }
+  }
+
+  function showLiterError() {
+    document.getElementById('literError').style.display = 'block';
+    document.getElementById('literHint').style.display = 'none';
+  }
+
+  function hideLiterError() {
+    document.getElementById('literError').style.display = 'none';
+    document.getElementById('literHint').style.display = 'block';
   }
 
   function formatRupiah(input) {
@@ -552,9 +623,14 @@
     document.getElementById('pemakaianMethod').value = '';
     document.getElementById('pemakaianModalTitle').textContent = 'Tambah Pemakaian BBM';
 
-    document.getElementById('tanggal').value = pfTodayDateString();
+    tanggalPicker.setDate(pfTodayDateString(), true);
     setKendaraanById('');
     updateHargaPerLiterDisplay();
+
+    const literInputAdd = document.getElementById('liter');
+    literInputAdd.value = '';
+    literInputAdd.dataset.prevValid = '';
+    hideLiterError();
 
     document.getElementById('service_oli').value = '0';
     document.getElementById('jasa').value = '0';
@@ -569,7 +645,7 @@
     form.reset();
     form.action = '{{ route('pemakaian-bbm.update', '__ID__') }}'.replace('__ID__', btn.dataset.id);
     document.getElementById('pemakaianMethod').value = 'PUT';
-    document.getElementById('tanggal').value = btn.dataset.tanggal;
+    tanggalPicker.setDate(btn.dataset.tanggal, true);
     setKendaraanById(btn.dataset.kendaraanId);
     document.getElementById('jenis_bbm').value = btn.dataset.jenisBbm;
 
@@ -577,7 +653,11 @@
     if (lokasiRadio) lokasiRadio.checked = true;
 
     // dataset.liter datang dari DB pakai titik (mis. "12.500") - tampilkan pakai koma
-    document.getElementById('liter').value = String(btn.dataset.liter || '').replace('.', ',');
+    const literInputEdit = document.getElementById('liter');
+    const literValueEdit = String(btn.dataset.liter || '').replace('.', ',');
+    literInputEdit.value = literValueEdit;
+    literInputEdit.dataset.prevValid = literValueEdit;
+    hideLiterError();
     document.getElementById('service_oli').value = btn.dataset.serviceOli;
     document.getElementById('jasa').value = btn.dataset.jasa;
     formatRupiah(document.getElementById('service_oli'));
@@ -589,6 +669,7 @@
 
   function closePemakaianModal() {
     document.getElementById('pemakaianModal').classList.remove('show');
+    hideLiterError();
   }
 
   function openDeletePemakaian(btn) {
