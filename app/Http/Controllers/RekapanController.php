@@ -15,8 +15,6 @@ class RekapanController extends Controller
 {
     public function buildReport(Request $request)
     {
-        Carbon::setLocale('id');
-
         $bulan = $request->query('bulan');
         $areaId = $request->query('area_id');
 
@@ -64,7 +62,7 @@ class RekapanController extends Controller
             'bulan' => $bulan,
             'areaId' => $areaId,
             'areas' => Area::orderBy('nama')->get(),
-            'periodeLabel' => $year ? Carbon::parse("{$year}-{$month}-01")->translatedFormat('F Y') : '',
+            'periodeLabel' => $year ? Carbon::parse("{$year}-{$month}-01")->locale('id')->translatedFormat('F Y') : '',
             'data' => $data,
             'grandTotal' => $data->sum('total'),
             'grandPemakaian' => $data->sum('total_pemakaian'),

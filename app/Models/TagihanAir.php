@@ -14,7 +14,6 @@ class TagihanAir extends Model
         'meter_faktor', 'tarif',
         'ppn_persentase', 'ppn_nominal',
         'pemakaian', 'jumlah',
-        'foto',
     ];
 
     protected $casts = [

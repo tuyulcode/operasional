@@ -168,6 +168,8 @@
                 continue;
             }
             $t = $row['tagihan'] ?? null;
+            $jml = $t ? (float) $t->jumlah : 0;
+            $ppn = $t ? (float) $t->ppn_nominal : 0;
             $cols[] = [
                 'nama' => $row['titik_meter']->nama,
                 'ini' => $t ? (int) round((float) $t->meter_ini) : 0,
@@ -175,16 +177,16 @@
                 'faktor' => $t ? (float) $t->meter_faktor : 0,
                 'pemakaian' => $t ? (int) round((float) $t->pemakaian) : 0,
                 'tarif' => $t ? (float) $t->tarif : 0,
-                'jumlah' => $t ? (float) $t->jumlah : 0,
+                'jumlah' => max(0, $jml - $ppn),
             ];
         }
 
         $sumIni = array_sum(array_column($cols, 'ini'));
         $sumLalu = array_sum(array_column($cols, 'lalu'));
         $sumPengambilan = array_sum(array_column($cols, 'pemakaian'));
-        $sumJumlah = array_sum(array_column($cols, 'jumlah'));
-        $sumPpn = $area['kena_ppn'] ? round($sumJumlah * $area['persen_ppn'] / 100, 2) : 0;
-        $sumTotal = $sumJumlah + $sumPpn;
+        $sumJumlah = $area['subtotal'];
+        $sumPpn = $area['ppn'];
+        $sumTotal = $area['total'];
 
         $lokasiList = collect($area['rows'])
             ->where('titik_meter.status', 'aktif')

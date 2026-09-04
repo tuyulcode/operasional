@@ -18,7 +18,11 @@
   @if($errors->any())
     <div class="alert-custom alert-danger">
       <i class="fa-solid fa-circle-exclamation"></i>
-      <span>{{ $errors->first() }}</span>
+      <span>
+        @foreach($errors->all() as $error)
+          {{ $error }}@if(!$loop->last)<br>@endif
+        @endforeach
+      </span>
     </div>
   @endif
 
@@ -132,6 +136,8 @@
               <small style="color: #999;">Pilih foto (jpg/jpeg/png, maks 5 MB per file).</small>
               <div id="pendingFotoPreview" style="display: none; margin-top: 8px; flex-wrap: wrap; gap: 8px;"></div>
 
+              <div id="fotoError" style="color: #dc3545; font-size: 12px; margin-top: 4px;"></div>
+
               @if($edit && $edit->fotos->count())
                 <div id="oldFotoSection" style="margin-top: 8px;">
                   <small style="color: #999;">Foto tersimpan (klik hapus untuk menghapus):</small>
@@ -140,23 +146,18 @@
                       <div style="position: relative; display: inline-block;">
                         <img src="{{ $f->url }}" alt="Foto meter"
                              style="width: 90px; height: 70px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;">
-                        <form action="{{ route('tagihan-air.foto.destroy', $f->id) }}" method="POST"
-                              style="position: absolute; top: 2px; right: 2px; margin: 0;"
-                              class="ajax-form">
-                          @csrf
-                          @method('DELETE')
-                          <button type="submit" class="btn btn-icon btn-delete"
-                                  title="Hapus foto ini" style="padding: 2px 5px; font-size: 11px;">
-                            <i class="fa-solid fa-trash-can"></i>
-                          </button>
-                        </form>
+                        <button type="button" class="btn btn-icon btn-delete btn-delete-foto"
+                                data-url="{{ route('tagihan-air.foto.destroy', $f->id) }}"
+                                data-token="{{ csrf_token() }}"
+                                title="Hapus foto ini"
+                                style="position: absolute; top: 2px; right: 2px; margin: 0; padding: 2px 5px; font-size: 11px;">
+                          <i class="fa-solid fa-trash-can"></i>
+                        </button>
                       </div>
                     @endforeach
                   </div>
                 </div>
               @endif
-
-              <div id="fotoError" style="color: #dc3545; font-size: 12px; margin-top: 4px;"></div>
             </div>
 
             <div class="form-group">
@@ -207,6 +208,7 @@
           @endif
         </div>
       </form>
+
     </div>
   </div>
 
@@ -327,6 +329,7 @@
           <p style="margin: 0; color: #475569; line-height: 1.6;">
             Yakin ingin menghapus data tagihan air ini? Tindakan ini tidak dapat dibatalkan.
           </p>
+          <p id="hapusModalInfo" style="margin: 8px 0 0; padding: 8px; background: #fef2f2; border-radius: 6px; color: #991b1b; font-size: 13px; line-height: 1.6;"></p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="tutupHapusModal()">
@@ -351,7 +354,7 @@
 @push('scripts')
 <script>
   const meterMap = @json($meterMap);
-  const oldFotoCount = {{ $edit ? $edit->fotos->count() : 0 }};
+  let oldFotoCount = {{ $edit ? $edit->fotos->count() : 0 }};
   const MAX_FOTO = 10;
 
   const areaSelect = document.getElementById('area_id');
@@ -484,10 +487,14 @@
     const faktor = parseIdValue(meterFaktorInput.value);
     const tarif = parseIdValue(tarifInput.value);
 
+    if (lalu > 0 && ini < lalu) {
+      showToast('Peringatan: Meter Bulan Ini (' + formatNumber(ini, 0) + ') kurang dari Meter Bulan Lalu (' + formatNumber(lalu, 0) + ')', 'error');
+    }
+
     const pemakaian = (ini - lalu) * faktor;
     const jumlahSebelumPpn = pemakaian * tarif;
     const ppnPersen = parseIdValue(ppnPersentaseInput.value);
-    const ppnNominal = Math.round(jumlahSebelumPpn * ppnPersen / 100);
+    const ppnNominal = Math.round(jumlahSebelumPpn * ppnPersen / 100 * 100) / 100;
     const jumlah = jumlahSebelumPpn + ppnNominal;
 
     pemakaianInput.value = formatNumber(pemakaian, 2);
@@ -770,6 +777,42 @@
       });
     }, true); // useCapture supaya jalan sebelum listener global
 
+    // Dedicated foto delete handler — click-based, bukan submit (nested form invalid HTML)
+    document.querySelectorAll('.btn-delete-foto').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (btn.disabled) return;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        fetch(btn.dataset.url, {
+          method: 'DELETE',
+          headers: {
+            'X-CSRF-TOKEN': btn.dataset.token,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) {
+            showToast(data.message || 'Foto berhasil dihapus', 'success');
+            var wrapper = btn.closest('div[style]');
+            if (wrapper) wrapper.remove();
+            oldFotoCount--;
+          } else {
+            showToast(data.message || 'Gagal menghapus foto', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+          }
+        })
+        .catch(function() {
+          showToast('Gagal menghapus foto', 'error');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+        });
+      });
+    });
+
     updateFotoCapState();
   });
 </script>
@@ -829,6 +872,18 @@
     document.querySelectorAll('.btnConfirmDelete').forEach(function(btn) {
       btn.addEventListener('click', function() {
         hapusForm = btn.closest('form.delete-tagihan-form');
+        var tr = btn.closest('tr');
+        var info = '';
+        if (tr) {
+          var cells = tr.querySelectorAll('td');
+          if (cells.length >= 4) {
+            var periode = cells[1] ? cells[1].textContent.trim() : '';
+            var area = cells[2] ? cells[2].textContent.trim() : '';
+            var titikMeter = cells[3] ? cells[3].textContent.trim() : '';
+            info = 'Periode: ' + periode + '<br>Nama Pengguna: ' + area + '<br>Titik Meter: ' + titikMeter;
+          }
+        }
+        document.getElementById('hapusModalInfo').innerHTML = info;
         hapusModal.classList.add('show');
       });
     });

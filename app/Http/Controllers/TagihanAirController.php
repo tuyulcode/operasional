@@ -170,6 +170,12 @@ class TagihanAirController extends Controller
             ]);
         }
 
+        if ($validated['meter_ini'] < $meterLalu) {
+            return back()->withInput()->withErrors([
+                'meter_ini' => 'Meter Bulan Ini ('.number_format($validated['meter_ini'], 2, ',', '.').') tidak boleh kurang dari Meter Bulan Lalu ('.number_format($meterLalu, 2, ',', '.').').',
+            ]);
+        }
+
         $titikMeter = TitikMeter::with('area')->find($validated['titik_meter_id']);
         $area = $titikMeter->area;
         $ppnAktif = Ppn::where('status', 'aktif')->first();
@@ -218,6 +224,12 @@ class TagihanAirController extends Controller
 
         if ($meterLalu === null) {
             $meterLalu = NumberFormatter::parseId($tagihan->meter_lalu) ?? 0;
+        }
+
+        if ($validated['meter_ini'] < $meterLalu) {
+            return back()->withInput()->withErrors([
+                'meter_ini' => 'Meter Bulan Ini ('.number_format($validated['meter_ini'], 2, ',', '.').') tidak boleh kurang dari Meter Bulan Lalu ('.number_format($meterLalu, 2, ',', '.').').',
+            ]);
         }
 
         $titikMeter = TitikMeter::with('area')->find($validated['titik_meter_id']);
