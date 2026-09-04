@@ -136,6 +136,8 @@
               <small style="color: #999;">Pilih foto (jpg/jpeg/png, maks 5 MB per file).</small>
               <div id="pendingFotoPreview" style="display: none; margin-top: 8px; flex-wrap: wrap; gap: 8px;"></div>
 
+              <div id="fotoError" style="color: #dc3545; font-size: 12px; margin-top: 4px;"></div>
+
               @if($edit && $edit->fotos->count())
                 <div id="oldFotoSection" style="margin-top: 8px;">
                   <small style="color: #999;">Foto tersimpan (klik hapus untuk menghapus):</small>
@@ -144,23 +146,18 @@
                       <div style="position: relative; display: inline-block;">
                         <img src="{{ $f->url }}" alt="Foto meter"
                              style="width: 90px; height: 70px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;">
-                        <form action="{{ route('tagihan-air.foto.destroy', $f->id) }}" method="POST"
-                              style="position: absolute; top: 2px; right: 2px; margin: 0;"
-                              class="ajax-form">
-                          @csrf
-                          @method('DELETE')
-                          <button type="submit" class="btn btn-icon btn-delete"
-                                  title="Hapus foto ini" style="padding: 2px 5px; font-size: 11px;">
-                            <i class="fa-solid fa-trash-can"></i>
-                          </button>
-                        </form>
+                        <button type="button" class="btn btn-icon btn-delete btn-delete-foto"
+                                data-url="{{ route('tagihan-air.foto.destroy', $f->id) }}"
+                                data-token="{{ csrf_token() }}"
+                                title="Hapus foto ini"
+                                style="position: absolute; top: 2px; right: 2px; margin: 0; padding: 2px 5px; font-size: 11px;">
+                          <i class="fa-solid fa-trash-can"></i>
+                        </button>
                       </div>
                     @endforeach
                   </div>
                 </div>
               @endif
-
-              <div id="fotoError" style="color: #dc3545; font-size: 12px; margin-top: 4px;"></div>
             </div>
 
             <div class="form-group">
@@ -211,6 +208,7 @@
           @endif
         </div>
       </form>
+
     </div>
   </div>
 
@@ -356,7 +354,7 @@
 @push('scripts')
 <script>
   const meterMap = @json($meterMap);
-  const oldFotoCount = {{ $edit ? $edit->fotos->count() : 0 }};
+  let oldFotoCount = {{ $edit ? $edit->fotos->count() : 0 }};
   const MAX_FOTO = 10;
 
   const areaSelect = document.getElementById('area_id');
@@ -778,6 +776,42 @@
         }
       });
     }, true); // useCapture supaya jalan sebelum listener global
+
+    // Dedicated foto delete handler — click-based, bukan submit (nested form invalid HTML)
+    document.querySelectorAll('.btn-delete-foto').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (btn.disabled) return;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        fetch(btn.dataset.url, {
+          method: 'DELETE',
+          headers: {
+            'X-CSRF-TOKEN': btn.dataset.token,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) {
+            showToast(data.message || 'Foto berhasil dihapus', 'success');
+            var wrapper = btn.closest('div[style]');
+            if (wrapper) wrapper.remove();
+            oldFotoCount--;
+          } else {
+            showToast(data.message || 'Gagal menghapus foto', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+          }
+        })
+        .catch(function() {
+          showToast('Gagal menghapus foto', 'error');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+        });
+      });
+    });
 
     updateFotoCapState();
   });
