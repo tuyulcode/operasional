@@ -48,7 +48,7 @@
           <tbody>
             @forelse($users as $i => $u)
             <tr>
-              <td>{{ $i + 1 }}</td>
+              <td>{{ $users->firstItem() + $i }}</td>
               <td>
                 <div class="app-info">
                   <div>
@@ -88,10 +88,11 @@
             </tr>
             @endforelse
           </tbody>
-        </table>
+          </table>
+        </div>
+        @include('partials.pagination', ['paginator' => $users])
       </div>
     </div>
-  </div>
 
   {{-- MODAL TAMBAH / EDIT USER --}}
   <div class="modal-overlay" id="userModal">

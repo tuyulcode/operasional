@@ -9,7 +9,7 @@ class PemegangKendaraanController extends Controller
 {
     public function index(Request $request)
     {
-        $pemegangKendaraans = PemegangKendaraan::orderBy('nama')->get();
+        $pemegangKendaraans = PemegangKendaraan::orderBy('nama')->paginate(15);
 
         $edit = null;
         if ($request->has('edit')) {

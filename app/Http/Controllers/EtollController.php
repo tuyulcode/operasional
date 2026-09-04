@@ -27,7 +27,7 @@ class EtollController extends Controller
             ]);
         }
 
-        $pemakaianEtolls = PemakaianEtoll::with('pemegangKendaraan')->latest('tanggal')->latest('id')->get();
+        $pemakaianEtolls = PemakaianEtoll::with('pemegangKendaraan')->latest('tanggal')->latest('id')->paginate(20);
         $pemegangKendaraans = PemegangKendaraan::orderBy('nama')->get();
 
         $edit = null;

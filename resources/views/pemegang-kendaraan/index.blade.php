@@ -47,7 +47,7 @@
           <tbody>
             @forelse($pemegangKendaraans as $i => $item)
             <tr>
-              <td>{{ $i + 1 }}</td>
+              <td>{{ $pemegangKendaraans->firstItem() + $i }}</td>
               <td>{{ $item->nama }}</td>
               <td>
                 <button type="button" class="btn btn-icon btn-edit" title="Edit"
@@ -75,6 +75,7 @@
           </tbody>
         </table>
       </div>
+      @include('partials.pagination', ['paginator' => $pemegangKendaraans])
     </div>
   </div>
 

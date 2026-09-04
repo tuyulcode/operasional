@@ -76,7 +76,7 @@
             <tbody>
               @forelse($ppns as $i => $ppn)
               <tr>
-                <td>{{ $i + 1 }}</td>
+                <td>{{ $ppns->firstItem() + $i }}</td>
                 <td>
                   <span class="badge-status {{ $ppn->status == 'aktif' ? 'badge-aktif' : 'badge-nonaktif' }}">
                     {{ $ppn->persentase }}%
@@ -119,6 +119,7 @@
             </tbody>
           </table>
         </div>
+        @include('partials.pagination', ['paginator' => $ppns])
       </div>
     </div>
 

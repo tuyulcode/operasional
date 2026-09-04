@@ -27,7 +27,7 @@ class TitikMeterController extends Controller
 
     public function index(Request $request)
     {
-        $titikMeters = TitikMeter::with('area')->latest()->get();
+        $titikMeters = TitikMeter::with('area')->latest()->paginate(15);
         $areas = Area::latest()->get();
 
         $edit = null;

@@ -50,7 +50,7 @@
           <tbody>
             @forelse($kendaraans as $i => $kendaraan)
             <tr>
-              <td>{{ $i + 1 }}</td>
+              <td>{{ $kendaraans->firstItem() + $i }}</td>
               <td>{{ $kendaraan->jenisKendaraan->nama_merek ?? '-' }}</td>
               <td>
                 <div class="app-info">
@@ -88,12 +88,13 @@
             </tr>
             @endforelse
           </tbody>
-        </table>
+          </table>
+        </div>
+        @include('partials.pagination', ['paginator' => $kendaraans])
       </div>
     </div>
-  </div>
 
-  {{-- MODAL TAMBAH / EDIT KENDARAAN --}}
+    {{-- MODAL TAMBAH / EDIT KENDARAAN --}}
   <div class="modal-overlay" id="kendaraanModal">
     <div class="modal">
       <div class="modal-header">

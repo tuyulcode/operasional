@@ -51,7 +51,7 @@
           <tbody>
             @forelse($titikMeters as $i => $titikMeter)
             <tr>
-              <td>{{ $i + 1 }}</td>
+              <td>{{ $titikMeters->firstItem() + $i }}</td>
               <td>{{ $titikMeter->area->nama ?? '-' }}</td>
               <td>
                 <div class="app-info">
@@ -104,6 +104,7 @@
           </tbody>
         </table>
       </div>
+      @include('partials.pagination', ['paginator' => $titikMeters])
     </div>
   </div>
 

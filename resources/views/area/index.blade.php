@@ -122,7 +122,7 @@
           <tbody>
             @forelse($areas as $i => $area)
             <tr>
-              <td>{{ $i + 1 }}</td>
+              <td>{{ $areas->firstItem() + $i }}</td>
               <td>
                 <div class="app-info">
                   <div>
@@ -168,12 +168,13 @@
             </tr>
             @endforelse
           </tbody>
-        </table>
+          </table>
+        </div>
+        @include('partials.pagination', ['paginator' => $areas])
       </div>
     </div>
-  </div>
 
-  {{-- MODAL TAMBAH / EDIT AREA --}}
+    {{-- MODAL TAMBAH / EDIT AREA --}}
   <div class="modal-overlay" id="areaModal">
     <div class="modal">
       <div class="modal-header">
