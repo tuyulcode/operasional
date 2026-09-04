@@ -114,10 +114,15 @@
           <tbody>
             @forelse($pemakaianBbms as $i => $item)
             @php
-              // Tampilkan liter sesuai jumlah desimal yang diinput (maks 3), tanpa nol berlebih di belakang
+              // Tampilkan liter minimal 2 angka di belakang koma. Digit ketiga (milli)
+              // cuma dibuang kalau nol, tapi 2 digit pertama di belakang koma tetap
+              // selalu tampil (mis. 2 -> 2,00 ; 18,2 -> 18,20 ; 14,01 tetap 14,01).
               $literDisplay = '-';
               if ($item->liter) {
-                $literDisplay = rtrim(rtrim(number_format($item->liter, 3, ',', '.'), '0'), ',');
+                $literDisplay = number_format($item->liter, 3, ',', '.');
+                if (substr($literDisplay, -1) === '0') {
+                  $literDisplay = substr($literDisplay, 0, -1);
+                }
               }
             @endphp
             <tr>
