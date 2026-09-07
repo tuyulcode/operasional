@@ -48,7 +48,8 @@
     .sign { margin-top: 60px; }
     .signature-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .signature-table td { width: 50%; vertical-align: top; text-align: center; padding: 0; }
-    .sign-title { font-weight: bold; text-align: center; }
+    .sign-title { font-weight: bold; text-align: left; }
+    .sign-date { text-align: right; }
     .sign-jabatan { font-weight: bold; text-align: center; }
     .sign-nama { text-align: center; }
     .signature-space { height: 65px; }
@@ -439,10 +440,8 @@
     <div class="sign">
       <table class="signature-table">
         <tr>
-          <td class="sign-title" colspan="2">Mengetahui / Menyetujui</td>
-        </tr>
-        <tr>
-          <td colspan="2" style="text-align: center;">{{ ($tempatTtd ? $tempatTtd . ', ' : '') . $tanggalTtd }}</td>
+          <td class="sign-title">Mengetahui / Menyetujui</td>
+          <td class="sign-date">{{ ($tempatTtd ? $tempatTtd . ', ' : '') . $tanggalTtd }}</td>
         </tr>
         <tr>
           <td class="sign-jabatan">{{ $ttdKiri ? $ttdKiri->jabatan : '' }}</td>

@@ -194,9 +194,7 @@ class RekapanPdf
             $cells[] = [
                 'col' => $i,
                 'value' => (string) $v,
-                // Bulan Ini, Bulan Lalu, Pengambilan -> rata tengah
                 'center' => $i >= 2 && $i <= 4,
-                // Tarif, Jumlah -> tetap rata kanan (nominal uang)
                 'right' => $i >= 5,
             ];
         }
@@ -205,7 +203,7 @@ class RekapanPdf
 
     private function fmtRp($value, int $decimals = 0): string
     {
-        return 'Rp '.number_format((float) $value, $decimals, ',', '.');
+        return 'Rp ' . number_format((float) $value, $decimals, ',', '.');
     }
 
     public static function generate(array $report): string
@@ -213,7 +211,7 @@ class RekapanPdf
         $pdf = new self;
 
         $pdf->text($report['title'] ?? 'Rekapan Tagihan Air', 14, self::M, true);
-        $pdf->text('Periode: '.($report['periodeLabel'] ?? '-'), 10);
+        $pdf->text('Periode: ' . ($report['periodeLabel'] ?? '-'), 10);
         $pdf->y -= 4;
 
         foreach ($report['data'] as $area) {
@@ -224,7 +222,7 @@ class RekapanPdf
             }
 
             $pdf->ensure(4);
-            $pdf->text('Area: '.$pdf->displayName($area['area']->nama), 10, self::M, true);
+            $pdf->text('Area: ' . $pdf->displayName($area['area']->nama), 10, self::M, true);
             $pdf->y -= 2;
             $pdf->drawHeader();
 
@@ -242,18 +240,18 @@ class RekapanPdf
             }
 
             $pdf->gridRow(11, [
-                ['col' => 0, 'value' => 'Subtotal '.$pdf->displayName($area['area']->nama), 'span' => 4, 'bold' => true],
+                ['col' => 0, 'value' => 'Subtotal ' . $pdf->displayName($area['area']->nama), 'span' => 4, 'bold' => true],
                 ['col' => 4, 'value' => $area['total_pemakaian'] ? (int) round($area['total_pemakaian']) : '-', 'center' => true],
                 ['col' => 6, 'value' => $pdf->fmtRp($area['subtotal']), 'right' => true, 'bold' => true],
             ]);
 
             if ($area['kena_ppn']) {
                 $pdf->gridRow(11, [
-                    ['col' => 0, 'value' => 'PPN '.number_format($area['persen_ppn'], 0, ',', '.').'%', 'span' => 4, 'bold' => true],
+                    ['col' => 0, 'value' => 'PPN ' . number_format($area['persen_ppn'], 0, ',', '.') . '%', 'span' => 4, 'bold' => true],
                     ['col' => 6, 'value' => $pdf->fmtRp($area['ppn']), 'right' => true],
                 ]);
                 $pdf->gridRow(11, [
-                    ['col' => 0, 'value' => 'TOTAL '.$pdf->displayName($area['area']->nama), 'span' => 4, 'bold' => true],
+                    ['col' => 0, 'value' => 'TOTAL ' . $pdf->displayName($area['area']->nama), 'span' => 4, 'bold' => true],
                     ['col' => 6, 'value' => $pdf->fmtRp($area['total']), 'right' => true, 'bold' => true],
                 ]);
             }
@@ -282,12 +280,14 @@ class RekapanPdf
         $ini = $tg ? (int) round((float) $tg->meter_ini) : 0;
         $lalu = $tg ? (int) round((float) $tg->meter_lalu) : 0;
 
-        foreach ([
-            ['Bulan', $periodeLabel],
-            ['NAMA', $this->displayName($area['area']->nama)],
-            ['ALAMAT', $area['area']->alamat ?: '-'],
-            ['LOKASI FLOW METER', $row1['titik_meter']->nama],
-        ] as [$label, $value]) {
+        foreach (
+            [
+                ['Bulan', $periodeLabel],
+                ['NAMA', $this->displayName($area['area']->nama)],
+                ['ALAMAT', $area['area']->alamat ?: '-'],
+                ['LOKASI FLOW METER', $row1['titik_meter']->nama],
+            ] as [$label, $value]
+        ) {
             $this->gridRow(11, [
                 ['col' => 0, 'value' => $label],
                 ['col' => 1, 'value' => ':'],
@@ -299,15 +299,17 @@ class RekapanPdf
             ['col' => 0, 'value' => 'PERHITUNGAN PEMAKAIAN', 'span' => 3, 'bold' => true],
         ]);
 
-        foreach ([
-            ['Bulan ini', $ini],
-            ['Bulan lalu', $lalu],
-            ['Jumlah Pengambilan', $ini - $lalu],
-            ['Meter Faktor', $tg ? number_format((float) $tg->meter_faktor, 0, ',', '.') : '0'],
-            ['Jumlah Pengambilan', $tg ? (int) round((float) $tg->pemakaian) : 0],
-            ['Tarif / M3', $this->fmtRp($tg->tarif ?? 0)],
-            ['Subtotal (Rp)', $this->fmtRp($area['subtotal']), true],
-        ] as $r) {
+        foreach (
+            [
+                ['Bulan ini', $ini],
+                ['Bulan lalu', $lalu],
+                ['Jumlah Pengambilan', $ini - $lalu],
+                ['Meter Faktor', $tg ? number_format((float) $tg->meter_faktor, 0, ',', '.') : '0'],
+                ['Jumlah Pengambilan', $tg ? (int) round((float) $tg->pemakaian) : 0],
+                ['Tarif / M3', $this->fmtRp($tg->tarif ?? 0)],
+                ['Subtotal (Rp)', $this->fmtRp($area['subtotal']), true],
+            ] as $r
+        ) {
             $this->gridRow(11, [
                 ['col' => 0, 'value' => $r[0], 'bold' => $r[2] ?? false],
                 ['col' => 1, 'value' => ':'],
@@ -317,7 +319,7 @@ class RekapanPdf
 
         if ($area['kena_ppn']) {
             $this->gridRow(11, [
-                ['col' => 0, 'value' => 'PPN '.number_format($area['persen_ppn'], 0, ',', '.').'%'],
+                ['col' => 0, 'value' => 'PPN ' . number_format($area['persen_ppn'], 0, ',', '.') . '%'],
                 ['col' => 1, 'value' => ':'],
                 ['col' => 2, 'value' => $this->fmtRp($area['ppn'])],
             ]);
@@ -353,6 +355,11 @@ class RekapanPdf
         return $colX + ($colW - strlen($s) * $charW) / 2;
     }
 
+    /**
+     * Blok tanda tangan — judul "Mengetahui / Menyetujui" (kiri) sejajar
+     * dengan tempat & tanggal (kanan) di baris atas yang sama, baru di
+     * bawahnya jabatan per kolom, spasi tanda tangan, lalu nama per kolom.
+     */
     private function signatureBlock(iterable $penandatangan): void
     {
         if (empty($penandatangan)) {
@@ -363,14 +370,23 @@ class RekapanPdf
         $this->y -= 6;
 
         $title = 'Mengetahui / Menyetujui';
-        $this->text($title, 10, (self::W - strlen($title) * 5) / 2, true);
-        $titleBase = $this->y;
+        $tempat = $penandatangan[0]->tempat ?? '';
+        $tanggal = Carbon::now()->locale('id')->translatedFormat('d F Y');
+        $dateLine = ($tempat ? $tempat . ', ' : '') . $tanggal;
 
-        $baseY = $titleBase - 6;
-        $colW = (self::W - 2 * self::M) / 2;
-        $xLeft = self::M;
+        $colW  = (self::W - 2 * self::M) / 2;
+        $xLeft  = self::M;
         $xRight = self::M + $colW;
+        $fullW  = self::W - 2 * self::M; // lebar gabungan dua kolom
 
+        // Judul & tanggal: SATU blok, center terhadap lebar penuh, ditumpuk vertikal
+        $this->place($title, 10, $this->centerX($title, $xLeft, $fullW, 5.0), $this->y, true);
+        $this->y -= 10 * 1.35;
+
+        $this->place($dateLine, 9, $this->centerX($dateLine, $xLeft, $fullW, 4.5), $this->y);
+        $this->y -= 9 * 1.35;
+
+        $baseY = $this->y - 6;
         $lineY = $baseY - 80;
         $nameY = $lineY - 18;
         $lineWidth = 150;
@@ -387,13 +403,7 @@ class RekapanPdf
             $this->hline($lineX, $lineY, $lineWidth);
         }
 
-        $this->y = $nameY - 22;
-
-        $tempat = $penandatangan[0]->tempat ?? '';
-        $tanggal = Carbon::now()->locale('id')->translatedFormat('d F Y');
-        $dateLine = ($tempat ? $tempat.', ' : '').$tanggal;
-        $this->text($dateLine, 9, (self::W - strlen($dateLine) * 4.5) / 2);
-        $this->y -= 6;
+        $this->y = $nameY - 10;
     }
 
     private function output(): string
@@ -409,15 +419,15 @@ class RekapanPdf
         $objects = [];
         $objects[] = '<< /Type /Catalog /Pages 2 0 R >>';
 
-        $kids = implode(' ', array_map(fn ($i) => (4 + $i * 2).' 0 R', range(0, $n - 1)));
+        $kids = implode(' ', array_map(fn($i) => (4 + $i * 2) . ' 0 R', range(0, $n - 1)));
         $objects[] = "<< /Type /Pages /Kids [ $kids ] /Count $n >>";
 
         for ($i = 0; $i < $n; $i++) {
             $stream = $this->pages[$i];
-            $objects[] = '<< /Length '.strlen($stream)." >>\nstream\n".$stream.'endstream';
-            $objects[] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '.self::W.' '.self::H.'] '.
-                '/Resources << /Font << /F1 '.$fontRegular.' 0 R /F2 '.$fontBold.' 0 R >> >> '.
-                '/Contents '.(3 + $i * 2).' 0 R >>';
+            $objects[] = '<< /Length ' . strlen($stream) . " >>\nstream\n" . $stream . 'endstream';
+            $objects[] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' . self::W . ' ' . self::H . '] ' .
+                '/Resources << /Font << /F1 ' . $fontRegular . ' 0 R /F2 ' . $fontBold . ' 0 R >> >> ' .
+                '/Contents ' . (3 + $i * 2) . ' 0 R >>';
         }
 
         $objects[] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
@@ -427,16 +437,16 @@ class RekapanPdf
         $offsets = [];
         foreach ($objects as $i => $obj) {
             $offsets[] = strlen($output);
-            $output .= ($i + 1)." 0 obj\n".$obj."\nendobj\n";
+            $output .= ($i + 1) . " 0 obj\n" . $obj . "\nendobj\n";
         }
 
         $xrefPos = strlen($output);
-        $output .= "xref\n0 ".(count($objects) + 1)."\n0000000000 65535 f \n";
+        $output .= "xref\n0 " . (count($objects) + 1) . "\n0000000000 65535 f \n";
         foreach ($offsets as $offset) {
             $output .= sprintf("%010d 00000 n \n", $offset);
         }
-        $output .= "trailer\n<< /Size ".(count($objects) + 1)." /Root 1 0 R >>\n";
-        $output .= "startxref\n".$xrefPos."\n%%EOF\n";
+        $output .= "trailer\n<< /Size " . (count($objects) + 1) . " /Root 1 0 R >>\n";
+        $output .= "startxref\n" . $xrefPos . "\n%%EOF\n";
 
         return $output;
     }

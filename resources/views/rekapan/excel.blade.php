@@ -1,131 +1,169 @@
-<html>
+<!DOCTYPE html>
+<html lang="id">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <title>Rekapan Tagihan Air {{ $periodeLabel }}</title>
+  <meta charset="utf-8">
+  <title>Rekapan Tagihan Air</title>
   <style>
-    body { font-family: Calibri, sans-serif; }
-    h2 { margin-bottom: 4px; }
-    h4 { margin: 18px 0 6px 0; }
-    table { border-collapse: collapse; width: 100%; }
-    table, th, td { border: 1px solid #555; }
-    th, td { padding: 5px 8px; text-align: left; }
-    th { background-color: #d9e2f3; }
-    .right { text-align: right; }
-    .grand { font-weight: bold; background-color: #e2efda; }
+    @page { margin: 24px 24px; }
+    body { font-family: Arial, sans-serif; font-size: 10px; color: #111; }
 
-    .doc-header { width: 100%; margin-bottom: 6px; }
-    .doc-header td { border: none; padding: 0; }
-    .doc-header .logo-cell { width: 70px; }
-    .doc-header .logo-cell img { height: 55px; }
-    .doc-header .company-name { font-size: 15px; font-weight: bold; }
-    .doc-header .company-unit { font-size: 13px; }
+    .doc-header table { width: 100%; border-collapse: collapse; }
+    .doc-header .logo-cell { width: 22%; text-align: left; vertical-align: middle; }
+    .doc-header .logo-cell img { width: 140px; height: auto; }
+    .doc-header .org-cell { text-align: left; vertical-align: middle; }
+    .doc-header .org-name { font-size: 16px; font-weight: bold; }
+    .doc-header .org-sub { font-size: 12px; margin-top: 3px; }
 
-    .ttd-table { width: 100%; margin-top: 14px; border: none; }
-    .ttd-table td { border: none; padding: 4px 8px; vertical-align: top; }
-    .ttd-space { height: 60px; }
-    .ttd-title { font-weight: bold; margin-bottom: 4px; }
+    .area-title { text-align: center; font-weight: bold; font-size: 13px; margin: 12px 0 2px; }
+    .area-bulan { text-align: center; font-size: 11px; margin-bottom: 8px; }
 
-    .center { text-align: center; }
-    .foto-table { margin-top: 10px; width: auto; }
-    .foto-table td { border: 1px solid #555; text-align: center; vertical-align: middle; padding: 4px 6px; word-wrap: break-word; }
-    .foto-table td.foto-label { background-color: #d9e2f3; font-weight: bold; text-align: left; }
-    .foto-table img { width: 100%; max-width: 45mm; display: block; margin: 0 auto 4px; }
+    .area-name { font-weight: bold; font-size: 11px; margin: 12px 0 5px; }
+
+    table.grid { width: 100%; border-collapse: collapse; }
+    table.grid th, table.grid td { border: 1px solid #333; padding: 3px 5px; font-size: 10px; }
+    table.grid thead th { background: #e9ecf5; text-align: center; font-weight: bold; }
+    .r { text-align: right; }
+    .c { text-align: center; }
+    .bold { font-weight: bold; }
+    .subtotal-bg { background: #eef5ec; }
+
+    table.vbox { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    table.vbox td { border: 1px solid #333; padding: 4px 6px; font-size: 10px; }
+    table.vbox .v-title { text-align: center; font-weight: bold; background: #e9ecf5; }
+
+    table.infobox { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    table.infobox td { border: 1px solid #333; padding: 4px 6px; font-size: 10px; }
+
+    td.m3 { width: 8%; text-align: center; background: #f7f7f7; }
+
+    .foto-empty { margin-top: 10px; color: #555; }
+
+    .foto-empty-row { color: #888; text-align: center; }
+    table.foto-group { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: auto; }
+    table.foto-group td { border: 1px solid #333; padding: 4px 6px; }
+    table.foto-group td.foto-label-cell { background: #f7f7f7; font-weight: bold; text-align: left; }
+    table.foto-group td.foto-cell { text-align: center; vertical-align: middle; }
+    table.foto-group td.foto-cell img { height: auto; border: 1px solid #888; }
+
+    .sign { margin-top: 60px; }
+    .signature-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .signature-table td { width: 50%; vertical-align: top; text-align: center; padding: 0; }
+    .sign-title { font-weight: bold; text-align: center; }
+    .sign-date { text-align: center; }
+    .sign-jabatan { font-weight: bold; text-align: center; }
+    .sign-nama { text-align: center; }
+    .signature-space { height: 65px; }
   </style>
 </head>
 <body>
-  <h2>Rekapan Tagihan Air</h2>
-  <p>Periode: <b>{{ $periodeLabel }}</b> &nbsp; ({!! request('area_id') ? 'Area: ' . ($data->firstWhere('area.id', request('area_id'))['area']->nama ?? '-') : 'Semua Area' !!})</p>
 
-  @foreach($data as $area)
-
-    <?php
-      // Format sama seperti PDF (rekap.blade.php):
-      // 1 titik meter        -> 'standar'
-      // 2-3 titik meter      -> 'multikolom'
-      // lebih dari 3 titik   -> 'list'
-      $jmlTitikExcel = $area['jml_titik'] ?? $area['rows']->count();
-
-      if ($jmlTitikExcel === 1) {
-          $formatExcel = 'standar';
-      } elseif ($jmlTitikExcel <= 3) {
-          $formatExcel = 'multikolom';
-      } else {
-          $formatExcel = 'list';
-      }
-    ?>
-
-    {{-- HEADER LOGO + NAMA PERUSAHAAN --}}
-    <table class="doc-header">
+  <div class="doc-header">
+    <table>
       <tr>
         <td class="logo-cell">
-          <img src="{{ asset('images/logo-pln2.png') }}" alt="Logo">
+          @if(file_exists(public_path('images/logo.png')))
+            <img src="{{ public_path('images/logo.png') }}" alt="Logo">
+          @endif
         </td>
-        <td>
-          <div class="company-name">PT. PLN NUSANTARA POWER</div>
-          <div class="company-unit">UNIT PEMBANGKITAN PAITON</div>
+        <td class="org-cell">
+          <div class="org-name">PT PLN NUSANTARA POWER</div>
+          <div class="org-sub">UNIT PEMBANGKITAN PAITON</div>
         </td>
       </tr>
     </table>
+  </div>
 
-    <h4>{{ $area['area']->nama }}</h4>
+  @foreach($data as $i => $area)
+    <?php
+      $jmlTitik = $area['jml_titik'] ?? $area['rows']->count();
 
-    @if($formatExcel === 'standar')
-      @php($row1 = $area['rows']->first())
-      @php($tg = $row1['tagihan'] ?? null)
-      @php($ini = $tg ? (int) round((float) $tg->meter_ini) : 0)
-      @php($lalu = $tg ? (int) round((float) $tg->meter_lalu) : 0)
-      @php($faktor = $tg ? (float) $tg->meter_faktor : 0)
-      <table>
+      // Default otomatis berdasarkan jumlah titik meter:
+      // 1 titik      -> standar
+      // 2-3 titik    -> multikolom
+      // lebih dari 3 -> list
+      // format_rekap di data area tetap jadi override manual kalau di-set.
+      $format = $area['area']->format_rekap
+        ?: ($jmlTitik === 1 ? 'standar' : ($jmlTitik <= 3 ? 'multikolom' : 'list'));
+
+      $namaArea = str_replace('PT.', 'PT', $area['area']->nama);
+    ?>
+
+    @if($i > 0)
+      <div style="page-break-before: always;"></div>
+    @endif
+
+    <div class="area-title">BIAYA PEMAKAIAN AIR</div>
+    <div class="area-bulan">Bulan : {{ $periodeLabel }}</div>
+
+    @if($format === 'standar')
+
+      <?php
+        $row1 = $area['rows']->first();
+        $tg = $row1['tagihan'] ?? null;
+        $ini = $tg ? (int) round((float) $tg->meter_ini) : 0;
+        $lalu = $tg ? (int) round((float) $tg->meter_lalu) : 0;
+        $faktor = $tg ? (float) $tg->meter_faktor : 0;
+        $fotos = $tg ? $tg->fotos : collect();
+        $lokasiFm = $row1['titik_meter']->lokasi_flow_meter ?:
+          $row1['titik_meter']->nama;
+      ?>
+
+      <table class="infobox">
         <tr>
-          <td colspan="4"><b>BIAYA PEMAKAIAN AIR</b></td>
+          <td>NAMA : {{ $namaArea }}</td>
+          <td>LOKASI FLOW METER : {{ $lokasiFm }}</td>
         </tr>
-        <tr><td>Bulan</td><td>:</td><td colspan="2">{{ $periodeLabel }}</td></tr>
-        <tr><td>NAMA</td><td>:</td><td colspan="2">{{ $area['area']->nama }}</td></tr>
-        <tr><td>ALAMAT</td><td>:</td><td colspan="2">{{ $area['area']->alamat ?: '-' }}</td></tr>
-        <tr><td>LOKASI FLOW METER</td><td>:</td><td colspan="2">{{ $row1['titik_meter']->nama }}</td></tr>
-        <tr><td colspan="4"><b>PERHITUNGAN PEMAKAIAN</b></td></tr>
-        <tr><td>Bulan ini</td><td>:</td><td class="center">{{ $ini }}</td><td>M3</td></tr>
-        <tr><td>Bulan lalu</td><td>:</td><td class="center">{{ $lalu }}</td><td>M3</td></tr>
-        <tr><td>Jumlah Pengambilan</td><td>:</td><td class="center">{{ $ini - $lalu }}</td><td>M3</td></tr>
-        <tr><td>Meter Faktor</td><td>:</td><td class="center">{{ $tg ? number_format($faktor, 0, ',', '.') : '0' }}</td><td></td></tr>
-        <tr><td>Jumlah Pengambilan</td><td>:</td><td class="center">{{ $tg ? (int) round((float) $tg->pemakaian) : 0 }}</td><td>M3</td></tr>
-        <tr><td>Tarif / M3</td><td>:</td><td class="center">Rp {{ number_format($tg->tarif ?? 0, 0, ',', '.') }}</td><td></td></tr>
-        <tr><td><b>Jumlah (Rp)</b></td><td>:</td><td class="center"><b>Rp {{ number_format($area['subtotal'], 0, ',', '.') }}</b></td><td></td></tr>
+        <tr>
+          <td>ALAMAT : {{ $area['area']->alamat ?: '-' }}</td>
+          <td></td>
+        </tr>
+      </table>
+
+      <table class="vbox">
+        <tr><td colspan="3" class="v-title">PERHITUNGAN PEMAKAIAN</td></tr>
+        <tr><td>Bulan ini ( a )</td><td class="c">{{ $ini }}</td><td class="m3">M&sup3;</td></tr>
+        <tr><td>Bulan lalu ( b )</td><td class="c">{{ $lalu }}</td><td class="m3">M&sup3;</td></tr>
+        <tr><td>Jumlah Pengambilan ( c = a - b )</td><td class="c">{{ $ini - $lalu }}</td><td class="m3">M&sup3;</td></tr>
+        <tr><td>Meter Faktor ( d )</td><td class="c">{{ $tg ? number_format($faktor, 0, ',', '.') : '0' }}</td><td class="m3"></td></tr>
+        <tr><td>Jumlah Pengambilan ( e = c x d )</td><td class="c">{{ $tg ? (int) round((float) $tg->pemakaian) : 0 }}</td><td class="m3">M&sup3;</td></tr>
+        <tr><td>Tarif / M3</td><td class="c">Rp {{ number_format($tg->tarif ?? 0, 2, ',', '.') }}</td><td class="m3"></td></tr>
+        <tr><td class="bold">Subtotal (Rp)</td><td class="c bold">Rp {{ number_format($area['subtotal'], 0, ',', '.') }}</td><td class="m3"></td></tr>
         @if($area['kena_ppn'])
-          <tr><td>PPN {{ number_format($area['persen_ppn'], 0, ',', '.') }}%</td><td>:</td><td class="center">Rp {{ number_format($area['ppn'], 0, ',', '.') }}</td><td></td></tr>
-          <tr><td><b>Jumlah (Rp)</b></td><td>:</td><td class="center"><b>Rp {{ number_format($area['total'], 0, ',', '.') }}</b></td><td></td></tr>
+          <tr><td>PPN {{ number_format($area['persen_ppn'], 0, ',', '.') }}%</td><td class="c">Rp {{ number_format($area['ppn'], 0, ',', '.') }}</td><td class="m3"></td></tr>
+          <tr><td class="bold">Total (Rp)</td><td class="c bold">Rp {{ number_format($area['total'], 0, ',', '.') }}</td><td class="m3"></td></tr>
         @endif
       </table>
 
-      {{-- FOTO METER --}}
-      @php
-        $fotoPath = null;
-        if ($tg && $tg->fotos->isNotEmpty()) {
-            $rawPath = $tg->fotos->first()->path_foto;
-            $fotoPath = str_starts_with($rawPath, 'uploads/')
-                ? public_path($rawPath)
-                : storage_path('app/public/' . $rawPath);
-        }
-      @endphp
-      @if($fotoPath && file_exists($fotoPath))
-        <table class="foto-table">
+      @if($tg && $fotos->count())
+        <p style="margin-top: 14px; font-weight: bold;">Foto Meter :</p>
+        <table class="foto-group">
+          <?php $lebarFotoStd = min(40, intdiv(180, $fotos->count())); ?>
           <tr>
-            <td><img src="{{ $fotoPath }}" style="max-height: 220px; max-width: none; width: auto;"></td>
+            @foreach($fotos as $foto)
+              <td class="foto-cell">
+                @if($foto->file_path && is_file($foto->file_path))
+                  <img src="{{ $foto->file_path }}" alt="Foto meter" style="width: {{ $lebarFotoStd }}mm;">
+                @else
+                  <em style="color: #888;">file tidak ditemukan</em>
+                @endif
+              </td>
+            @endforeach
           </tr>
         </table>
+      @elseif($tg && $tg->fotos->isEmpty() && $tg->foto)
+        <div class="foto-empty">Foto meter ada di database tetapi file tidak ditemukan.</div>
       @endif
 
-    @elseif($formatExcel === 'multikolom')
+    @elseif($format === 'multikolom')
+
       <?php
-        $colsMulti = [];
+        $cols = [];
         foreach ($area['rows'] as $row) {
             if (($row['titik_meter']->status ?? '') !== 'aktif') {
                 continue;
             }
             $t = $row['tagihan'] ?? null;
-            $colsMulti[] = [
-                'titik_meter' => $row['titik_meter'],
-                'tagihan' => $t,
+            $cols[] = [
                 'nama' => $row['titik_meter']->nama,
                 'ini' => $t ? (int) round((float) $t->meter_ini) : 0,
                 'lalu' => $t ? (int) round((float) $t->meter_lalu) : 0,
@@ -135,226 +173,316 @@
                 'jumlah' => $t ? (float) $t->jumlah : 0,
             ];
         }
-        $sumIniM = array_sum(array_column($colsMulti, 'ini'));
-        $sumLaluM = array_sum(array_column($colsMulti, 'lalu'));
-        $sumPengambilanM = array_sum(array_column($colsMulti, 'pemakaian'));
-        $sumJumlahM = array_sum(array_column($colsMulti, 'jumlah'));
-      ?>
-      <table>
-        <tr>
-          <td colspan="{{ count($colsMulti) + 2 }}"><b>BIAYA PEMAKAIAN AIR</b></td>
-        </tr>
-        <tr><td>Bulan</td><td>:</td><td colspan="{{ count($colsMulti) }}">{{ $periodeLabel }}</td></tr>
-        <tr><td>NAMA</td><td>:</td><td colspan="{{ count($colsMulti) }}">{{ $area['area']->nama }}</td></tr>
-        <tr><td>ALAMAT</td><td>:</td><td colspan="{{ count($colsMulti) }}">{{ $area['area']->alamat ?: '-' }}</td></tr>
-        <tr>
-          <th colspan="2">PERHITUNGAN PEMAKAIAN</th>
-          @foreach($colsMulti as $col)
-            <th class="center">{{ $col['nama'] }}</th>
-          @endforeach
-        </tr>
-        <tr>
-          <td colspan="2">Bulan ini ( a )</td>
-          @foreach($colsMulti as $col)<td class="center">{{ $col['ini'] }}</td>@endforeach
-        </tr>
-        <tr>
-          <td colspan="2">Bulan lalu ( b )</td>
-          @foreach($colsMulti as $col)<td class="center">{{ $col['lalu'] }}</td>@endforeach
-        </tr>
-        <tr>
-          <td colspan="2">Jumlah Pengambilan ( c = a - b )</td>
-          @foreach($colsMulti as $col)<td class="center">{{ $col['ini'] - $col['lalu'] }}</td>@endforeach
-        </tr>
-        <tr>
-          <td colspan="2">Meter Faktor ( d )</td>
-          @foreach($colsMulti as $col)<td class="center">{{ number_format($col['faktor'], 0, ',', '.') }}</td>@endforeach
-        </tr>
-        <tr>
-          <td colspan="2">Jumlah Pengambilan ( e = c x d )</td>
-          @foreach($colsMulti as $col)<td class="center">{{ $col['pemakaian'] }}</td>@endforeach
-        </tr>
-        <tr>
-          <td colspan="2">Tarif / M3</td>
-          @foreach($colsMulti as $col)<td class="center">Rp {{ number_format($col['tarif'], 0, ',', '.') }}</td>@endforeach
-        </tr>
-        <tr>
-          <td colspan="2"><b>Jumlah (Rp)</b></td>
-          @foreach($colsMulti as $col)<td class="center"><b>Rp {{ number_format($col['jumlah'], 0, ',', '.') }}</b></td>@endforeach
-        </tr>
-        <tr class="grand">
-          <td colspan="2"><b>Subtotal {{ $area['area']->nama }}</b></td>
-          <td colspan="{{ count($colsMulti) }}" class="center"><b>Rp {{ number_format($area['subtotal'], 0, ',', '.') }}</b></td>
-        </tr>
-        @if($area['kena_ppn'])
-          <tr>
-            <td colspan="2"><b>PPN {{ number_format($area['persen_ppn'], 0, ',', '.') }}%</b></td>
-            <td colspan="{{ count($colsMulti) }}" class="center">Rp {{ number_format($area['ppn'], 0, ',', '.') }}</td>
-          </tr>
-          <tr class="grand">
-            <td colspan="2"><b>Total {{ $area['area']->nama }}</b></td>
-            <td colspan="{{ count($colsMulti) }}" class="center"><b>Rp {{ number_format($area['total'], 0, ',', '.') }}</b></td>
-          </tr>
-        @endif
-      </table>
 
-      {{-- FOTO METER: satu foto per titik, sejajar per kolom titik meter --}}
-      <?php
-        $barisFotoMulti = collect($colsMulti)->filter(fn ($c) => $c['tagihan'])->values();
-        $adaFotoMulti = $barisFotoMulti->contains(fn ($c) => $c['tagihan']->fotos->isNotEmpty());
-      ?>
-      @if($adaFotoMulti)
-        <table class="foto-table">
-          <tr>
-            @foreach($barisFotoMulti as $col)
-              <td class="foto-label">{{ $col['nama'] }}</td>
-            @endforeach
-          </tr>
-          <tr>
-            @foreach($barisFotoMulti as $col)
-              <?php
-                $fotoPathMulti = null;
-                if ($col['tagihan']->fotos->isNotEmpty()) {
-                    $rawPathMulti = $col['tagihan']->fotos->first()->path_foto;
-                    $fotoPathMulti = str_starts_with($rawPathMulti, 'uploads/')
-                        ? public_path($rawPathMulti)
-                        : storage_path('app/public/' . $rawPathMulti);
-                }
-              ?>
-              <td>
-                @if($fotoPathMulti && file_exists($fotoPathMulti))
-                  <img src="{{ $fotoPathMulti }}">
-                @else
-                  <em>tidak ada foto</em>
-                @endif
-              </td>
-            @endforeach
-          </tr>
-        </table>
-      @endif
+        $sumIni = array_sum(array_column($cols, 'ini'));
+        $sumLalu = array_sum(array_column($cols, 'lalu'));
+        $sumPengambilan = array_sum(array_column($cols, 'pemakaian'));
+        $sumJumlah = array_sum(array_column($cols, 'jumlah'));
+        $sumPpn = $area['kena_ppn'] ? round($sumJumlah * $area['persen_ppn'] / 100, 2) : 0;
+        $sumTotal = $sumJumlah + $sumPpn;
 
-    @else
-      {{-- FORMAT LIST: lebih dari 3 titik meter --}}
-      <table>
+        $lokasiList = collect($area['rows'])
+            ->where('titik_meter.status', 'aktif')
+            ->pluck('titik_meter.lokasi_flow_meter')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+      ?>
+
+      <table class="infobox">
         <tr>
-          <th rowspan="2">No. Urut</th>
-          <th rowspan="2">Nama Titik Meter</th>
-          <th colspan="2">COUNTER M3</th>
-          <th rowspan="2">Pengambilan</th>
-          <th rowspan="2">Tarif (Rp/M3)</th>
-          <th rowspan="2">Jumlah (Rp)</th>
+          <td>NAMA : {{ $namaArea }}</td>
+          <td>ALAMAT : {{ $area['area']->alamat ?: '-' }}</td>
         </tr>
         <tr>
-          <th>Bulan Ini</th>
-          <th>Bulan Lalu</th>
-        </tr>
-        <?php $noUrutExcel = 0; ?>
-        @foreach($area['rows'] as $row)
-          @if(($row['titik_meter']->status ?? 'aktif') !== 'aktif')
-            @continue
-          @endif
-          <?php $tgList = $row['tagihan'] ?? null; $noUrutExcel++; ?>
-          <tr>
-            <td>{{ $noUrutExcel }}</td>
-            <td>{{ $row['titik_meter']->nama }}</td>
-            <td class="center">{{ $tgList ? (int) round((float) $tgList->meter_ini) : '' }}</td>
-            <td class="center">{{ $tgList ? (int) round((float) $tgList->meter_lalu) : '' }}</td>
-            <td class="center">{{ $tgList ? (int) round((float) $tgList->pemakaian) : '' }}</td>
-            <td class="center">{{ $tgList ? 'Rp ' . number_format($tgList->tarif, 0, ',', '.') : 'Rp ' . number_format($row['titik_meter']->tarif_harga ?? 0, 0, ',', '.') }}</td>
-            <td class="center"><b>{{ $tgList ? 'Rp ' . number_format($tgList->jumlah, 0, ',', '.') : '' }}</b></td>
-          </tr>
-        @endforeach
-        <tr class="grand">
-          <td colspan="5"><b>Subtotal {{ $area['area']->nama }}</b></td>
+          <td>LOKASI FLOW METER : {{ $lokasiList ? implode(', ', $lokasiList) : '-' }}</td>
           <td></td>
-          <td class="center"><b>Rp {{ number_format($area['subtotal'], 0, ',', '.') }}</b></td>
+        </tr>
+      </table>
+
+      <table class="vbox">
+        <tr>
+          <td class="v-title" style="width: 26%;">KETERANGAN</td>
+          @foreach($cols as $col)
+            <td class="v-title">{{ $col['nama'] }}</td>
+          @endforeach
+          <td class="v-title">Jumlah</td>
+        </tr>
+        <tr>
+          <td>Bulan ini ( a )</td>
+          @foreach($cols as $col)
+            <td class="c">{{ $col['ini'] }}</td>
+          @endforeach
+          <td class="c bold">{{ $sumIni }}</td>
+        </tr>
+        <tr>
+          <td>Bulan lalu ( b )</td>
+          @foreach($cols as $col)
+            <td class="c">{{ $col['lalu'] }}</td>
+          @endforeach
+          <td class="c bold">{{ $sumLalu }}</td>
+        </tr>
+        <tr>
+          <td>Jumlah Pengambilan ( c = a - b )</td>
+          @foreach($cols as $col)
+            <td class="c">{{ $col['ini'] - $col['lalu'] }}</td>
+          @endforeach
+          <td class="c bold">{{ $sumIni - $sumLalu }}</td>
+        </tr>
+        <tr>
+          <td>Meter Faktor ( d )</td>
+          @foreach($cols as $col)
+            <td class="c">{{ number_format($col['faktor'], 0, ',', '.') }}</td>
+          @endforeach
+          <td class="c bold"></td>
+        </tr>
+        <tr>
+          <td>Jumlah Pengambilan ( e = c x d )</td>
+          @foreach($cols as $col)
+            <td class="c">{{ $col['pemakaian'] }}</td>
+          @endforeach
+          <td class="c bold">{{ $sumPengambilan }}</td>
+        </tr>
+        <tr>
+          <td>Tarif / M3</td>
+          @foreach($cols as $col)
+            <td class="c">Rp {{ number_format($col['tarif'], 2, ',', '.') }}</td>
+          @endforeach
+          <td class="c bold"></td>
+        </tr>
+        <tr>
+          <td class="bold">Subtotal (Rp)</td>
+          @foreach($cols as $col)
+            <td class="c bold">Rp {{ number_format($col['jumlah'], 0, ',', '.') }}</td>
+          @endforeach
+          <td class="c bold">Rp {{ number_format($sumJumlah, 0, ',', '.') }}</td>
         </tr>
         @if($area['kena_ppn'])
           <tr>
-            <td colspan="5"><b>PPN {{ number_format($area['persen_ppn'], 0, ',', '.') }}%</b></td>
-            <td></td>
-            <td class="center">Rp {{ number_format($area['ppn'], 0, ',', '.') }}</td>
+            <td>PPN {{ number_format($area['persen_ppn'], 0, ',', '.') }}%</td>
+            @foreach($cols as $col)
+              <td class="c"></td>
+            @endforeach
+            <td class="c">Rp {{ number_format($sumPpn, 0, ',', '.') }}</td>
           </tr>
-          <tr class="grand">
-            <td colspan="5"><b>Total {{ $area['area']->nama }}</b></td>
-            <td></td>
-            <td class="center"><b>Rp {{ number_format($area['total'], 0, ',', '.') }}</b></td>
+          <tr>
+            <td class="bold">Total (Rp)</td>
+            @foreach($cols as $col)
+              <td class="c"></td>
+            @endforeach
+            <td class="c bold">Rp {{ number_format($sumTotal, 0, ',', '.') }}</td>
           </tr>
         @endif
       </table>
 
-      {{-- FOTO METER: grid 4 kolom per baris, sisa kolom tanpa titik di-merge --}}
       <?php
-        $barisFotoList = $area['rows']->filter(fn ($row) => $row['tagihan'])->values();
-        $adaFotoList = $barisFotoList->contains(fn ($row) => $row['tagihan']->fotos->isNotEmpty());
-        $fotoChunksList = $barisFotoList->chunk(4)->values();
+        $barisFotoKol = $area['rows']->filter(function ($r) { return $r['tagihan']; })->values();
+        $adaFotoKol = $barisFotoKol->contains(function ($r) { return $r['tagihan']->fotos->count() > 0; });
+        $jmlKolomFotoKol = max($barisFotoKol->count(), 1);
+        $lebarKolomFotoKol = round(100 / $jmlKolomFotoKol, 2);
       ?>
-      @if($adaFotoList)
-        @foreach($fotoChunksList as $chunkIdxL => $chunkL)
-          <?php $chunkArrL = $chunkL->values(); $chunkCountL = $chunkArrL->count(); ?>
-          <table class="foto-table">
+      @if($adaFotoKol)
+        <p style="margin-top: 14px; font-weight: bold;">Foto Meter :</p>
+        @if($jmlKolomFotoKol === 1)
+          <?php $rowFotoTunggalKol = $barisFotoKol->first(); $jmlFotoTunggalKol = $rowFotoTunggalKol['tagihan']->fotos->count(); ?>
+          <table class="foto-group">
             <tr>
-              @foreach($chunkArrL as $idxL => $rowL)
-                <?php
-                  $noLabelL = $chunkIdxL * 4 + $idxL + 1;
-                  $spanL = ($idxL === $chunkCountL - 1) ? (4 - $chunkCountL + 1) : 1;
-                ?>
-                <td class="foto-label" colspan="{{ $spanL }}" style="width: {{ $spanL * 25 }}%;">{{ $noLabelL }}. {{ $rowL['titik_meter']->nama }}</td>
+              <td class="foto-label-cell" colspan="100">1. {{ $rowFotoTunggalKol['titik_meter']->nama }}</td>
+            </tr>
+            <tr>
+              @if($jmlFotoTunggalKol)
+                <?php $lebarFotoTunggalKol = min(40, intdiv(180, $jmlFotoTunggalKol)); ?>
+                @foreach($rowFotoTunggalKol['tagihan']->fotos as $foto)
+                  <td class="foto-cell">
+                    @if($foto->file_path && is_file($foto->file_path))
+                      <img src="{{ $foto->file_path }}" alt="Foto meter" style="width: {{ $lebarFotoTunggalKol }}mm;">
+                    @else
+                      <em style="color: #888;">file tidak ditemukan</em>
+                    @endif
+                  </td>
+                @endforeach
+              @else
+                <td class="foto-empty-row" colspan="100">&mdash; tidak ada foto &mdash;</td>
+              @endif
+            </tr>
+          </table>
+        @else
+          <table class="foto-group">
+            <tr>
+              @foreach($barisFotoKol as $i => $row)
+                <td class="foto-label-cell" style="width: {{ $lebarKolomFotoKol }}%;">{{ $i + 1 }}. {{ $row['titik_meter']->nama }}</td>
               @endforeach
             </tr>
             <tr>
-              @foreach($chunkArrL as $idxL => $rowL)
-                <?php
-                  $spanL = ($idxL === $chunkCountL - 1) ? (4 - $chunkCountL + 1) : 1;
-                  $fotoPathL = null;
-                  if ($rowL['tagihan']->fotos->isNotEmpty()) {
-                      $rawPathL = $rowL['tagihan']->fotos->first()->path_foto;
-                      $fotoPathL = str_starts_with($rawPathL, 'uploads/')
-                          ? public_path($rawPathL)
-                          : storage_path('app/public/' . $rawPathL);
-                  }
-                ?>
-                <td colspan="{{ $spanL }}" style="width: {{ $spanL * 25 }}%;">
-                  @if($fotoPathL && file_exists($fotoPathL))
-                    <img src="{{ $fotoPathL }}">
+              @foreach($barisFotoKol as $row)
+                <?php $jmlFoto = $row['tagihan']->fotos->count(); ?>
+                <td class="foto-cell" style="width: {{ $lebarKolomFotoKol }}%;">
+                  @if($jmlFoto)
+                    @foreach($row['tagihan']->fotos as $foto)
+                      @if($foto->file_path && is_file($foto->file_path))
+                        <img src="{{ $foto->file_path }}" alt="Foto meter" style="width: 100%; max-width: 45mm; display: block; margin: 0 auto 4px;">
+                      @else
+                        <em style="color: #888;">file tidak ditemukan</em>
+                      @endif
+                    @endforeach
                   @else
-                    <em>tidak ada foto</em>
+                    <span class="foto-empty-row">&mdash; tidak ada foto &mdash;</span>
                   @endif
                 </td>
               @endforeach
             </tr>
           </table>
-        @endforeach
+        @endif
       @endif
+
+    @else
+
+      <table class="grid">
+        <thead>
+          <tr>
+            <th style="width: 8%;">No</th>
+            <th style="width: 26%;">Nama Titik Meter</th>
+            <th colspan="2" style="width: 22%;">COUNTER M3</th>
+            <th style="width: 12%;">Jumlah Pengambilan</th>
+            <th style="width: 14%;">Tarif Rp/M3</th>
+            <th style="width: 18%;">Jumlah (Rp)</th>
+          </tr>
+          <tr>
+            <th></th>
+            <th></th>
+            <th>Bulan Ini</th>
+            <th>Bulan Lalu</th>
+            <th></th>
+            <th></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach($area['rows'] as $i => $row)
+            @continue(!$row['tagihan'])
+            <tr>
+              <td class="c">{{ $i + 1 }}</td>
+              <td>{{ $row['titik_meter']->nama }}</td>
+              <td class="c">{{ (int) round((float) $row['tagihan']->meter_ini) }}</td>
+              <td class="c">{{ (int) round((float) $row['tagihan']->meter_lalu) }}</td>
+              <td class="c">{{ (int) round((float) $row['tagihan']->pemakaian) }}</td>
+              <td class="c">{{ number_format($row['tagihan']->tarif, 2, ',', '.') }}</td>
+              <td class="c bold">{{ number_format($row['tagihan']->jumlah, 0, ',', '.') }}</td>
+            </tr>
+          @endforeach
+          <tr class="subtotal-bg bold">
+            <td colspan="5">Subtotal</td>
+            <td></td>
+            <td class="c">Rp {{ number_format($area['subtotal'], 0, ',', '.') }}</td>
+          </tr>
+          @if($area['kena_ppn'])
+            <tr class="bold">
+              <td colspan="5">PPN {{ number_format($area['persen_ppn'], 0, ',', '.') }}%</td>
+              <td></td>
+              <td class="c">Rp {{ number_format($area['ppn'], 0, ',', '.') }}</td>
+            </tr>
+            <tr class="subtotal-bg bold">
+              <td colspan="5">Total</td>
+              <td></td>
+              <td class="c">Rp {{ number_format($area['total'], 0, ',', '.') }}</td>
+            </tr>
+          @endif
+        </tbody>
+      </table>
+
+      <?php
+        $barisFoto = $area['rows']->filter(function ($r) { return $r['tagihan']; })->values();
+        $adaFoto = $barisFoto->contains(function ($r) { return $r['tagihan']->fotos->count() > 0; });
+        $jmlKolomFoto = max($barisFoto->count(), 1);
+        $lebarKolomFoto = round(100 / $jmlKolomFoto, 2);
+      ?>
+      @if($adaFoto)
+        <p style="margin-top: 14px; font-weight: bold;">Foto Meter :</p>
+        @if($jmlKolomFoto === 1)
+          <?php $rowFotoTunggal = $barisFoto->first(); $jmlFotoTunggal = $rowFotoTunggal['tagihan']->fotos->count(); ?>
+          <table class="foto-group">
+            <tr>
+              <td class="foto-label-cell" colspan="100">1. {{ $rowFotoTunggal['titik_meter']->nama }}</td>
+            </tr>
+            <tr>
+              @if($jmlFotoTunggal)
+                <?php $lebarFotoTunggal = min(40, intdiv(180, $jmlFotoTunggal)); ?>
+                @foreach($rowFotoTunggal['tagihan']->fotos as $foto)
+                  <td class="foto-cell">
+                    @if($foto->file_path && is_file($foto->file_path))
+                      <img src="{{ $foto->file_path }}" alt="Foto meter" style="width: {{ $lebarFotoTunggal }}mm;">
+                    @else
+                      <em style="color: #888;">file tidak ditemukan</em>
+                    @endif
+                  </td>
+                @endforeach
+              @else
+                <td class="foto-empty-row" colspan="100">&mdash; tidak ada foto &mdash;</td>
+              @endif
+            </tr>
+          </table>
+        @else
+          <table class="foto-group">
+            <tr>
+              @foreach($barisFoto as $i => $row)
+                <td class="foto-label-cell" style="width: {{ $lebarKolomFoto }}%;">{{ $i + 1 }}. {{ $row['titik_meter']->nama }}</td>
+              @endforeach
+            </tr>
+            <tr>
+              @foreach($barisFoto as $row)
+                <?php $jmlFoto = $row['tagihan']->fotos->count(); ?>
+                <td class="foto-cell" style="width: {{ $lebarKolomFoto }}%;">
+                  @if($jmlFoto)
+                    @foreach($row['tagihan']->fotos as $foto)
+                      @if($foto->file_path && is_file($foto->file_path))
+                        <img src="{{ $foto->file_path }}" alt="Foto meter" style="width: 100%; max-width: 45mm; display: block; margin: 0 auto 4px;">
+                      @else
+                        <em style="color: #888;">file tidak ditemukan</em>
+                      @endif
+                    @endforeach
+                  @else
+                    <span class="foto-empty-row">&mdash; tidak ada foto &mdash;</span>
+                  @endif
+                </td>
+              @endforeach
+            </tr>
+          </table>
+        @endif
+      @endif
+
     @endif
-
-    {{-- TTD PER AREA --}}
-    <table class="ttd-table">
-      <tr>
-        <td colspan="{{ $report['penandatangan']->count() }}" class="ttd-title">
-          Mengetahui / Menyetujui
-        </td>
-      </tr>
-      <tr>
-        @foreach($report['penandatangan'] as $row)
-          <td>
-            {{ $row->jabatan }}
-            <div class="ttd-space"></div>
-            <b>{{ $row->nama ?: '...................................' }}</b>
-          </td>
-        @endforeach
-      </tr>
-      <tr>
-        <td colspan="{{ $report['penandatangan']->count() }}">
-          @php($ttdRow = $report['penandatangan']->first())
-          @php($tempat = $ttdRow->tempat ?? '')
-          @php($tanggal = now()->locale('id')->translatedFormat('d F Y'))
-          {{ ($tempat ? $tempat . ', ' : '') . $tanggal }}
-        </td>
-      </tr>
-    </table>
-
   @endforeach
 
-  <h4 class="grand">Grand Total Semua Area: {{ number_format($grandTotal, 0, ',', '.') }}</h4>
+  <?php
+    $ttd = collect($penandatangan)->values();
+    $ttdKiri = $ttd[0] ?? null;
+    $ttdKanan = $ttd[1] ?? null;
+    $tempatTtd = $ttdKiri ? $ttdKiri->tempat : '';
+    $tanggalTtd = now()->locale('id')->translatedFormat('d F Y');
+  ?>
+  @if($ttdKiri || $ttdKanan)
+    <div class="sign">
+      <table class="signature-table">
+        <tr>
+          <td class="sign-title">Mengetahui / Menyetujui</td>
+          <td class="sign-date">{{ ($tempatTtd ? $tempatTtd . ', ' : '') . $tanggalTtd }}</td>
+        </tr>
+        <tr>
+          <td class="sign-jabatan">{{ $ttdKiri ? $ttdKiri->jabatan : '' }}</td>
+          <td class="sign-jabatan">{{ $ttdKanan ? $ttdKanan->jabatan : '' }}</td>
+        </tr>
+        <tr>
+          <td class="signature-space">&nbsp;</td>
+          <td class="signature-space">&nbsp;</td>
+        </tr>
+        <tr>
+          <td class="sign-nama">{{ $ttdKiri ? ($ttdKiri->nama ?: '.....................................' ) : '' }}</td>
+          <td class="sign-nama">{{ $ttdKanan ? ($ttdKanan->nama ?: '.....................................' ) : '' }}</td>
+        </tr>
+      </table>
+    </div>
+  @endif
+
 </body>
 </html>
