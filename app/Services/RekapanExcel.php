@@ -61,13 +61,6 @@ class RekapanExcel
         return $title;
     }
 
-    /**
-     * Format rekap sekarang murni otomatis berdasarkan jumlah titik meter,
-     * sama seperti logika di PDF (rekap.blade.php):
-     * 1 titik meter        -> 'standar'    (vertical(), 1 kolom)
-     * 2-3 titik meter      -> 'multikolom' (horizontal(), pivot per kolom)
-     * lebih dari 3 titik   -> 'list'       (list(), tabel/grid ke bawah)
-     */
     private static function fill(Worksheet $sheet, array $area, string $periodeLabel, $penandatangan): void
     {
         $jmlTitik = $area['jml_titik'] ?? $area['rows']->count();
@@ -81,16 +74,10 @@ class RekapanExcel
         }
     }
 
-    /**
-     * Header dokumen: logo + nama perusahaan, lalu judul dokumen + periode.
-     * $title dibedakan per jenis layout ("BIAYA PEMAKAIAN AIR" utk single titik,
-     * "Rekap Perhitungan Pemakaian Air Baku" utk multi titik).
-     */
     private static function headerBlock(Worksheet $sheet, string $periodeLabel, string $lastCol, string $title = 'BIAYA PEMAKAIAN AIR'): int
     {
         $sheet->getParent()->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
 
-        // Logo dibuat pas & rapi, cuma nutup baris 1-2 (jangan sampai numpuk ke tabel)
         $sheet->getRowDimension(1)->setRowHeight(20);
         $sheet->getRowDimension(2)->setRowHeight(20);
 
@@ -103,13 +90,10 @@ class RekapanExcel
             $drawing->setOffsetX(4);
             $drawing->setOffsetY(4);
             $drawing->setResizeProportional(true);
-            $drawing->setHeight(35); // logo nutup kolom A-B, tinggi tetep pas di 2 baris header
+            $drawing->setHeight(35);
             $drawing->setWorksheet($sheet);
         }
 
-        // Logo makan kolom A-B, nama perusahaan mulai dari kolom C dan CUMA
-        // di-merge C:D (bukan sampai lastCol) — kolom sisanya di kanan tetap
-        // kolom biasa/kosong, jangan ikut ke-stretch.
         $sheet->mergeCells('B1:D1');
         $sheet->setCellValue('B1', 'PT PLN NUSANTARA POWER');
         $sheet->getStyle('B1')->getFont()->setName('Calibri')->setBold(false)->setSize(10);
@@ -149,7 +133,7 @@ class RekapanExcel
         $lalu = $tg ? (int) round((float) $tg->meter_lalu) : 0;
         $faktor = $tg ? (float) $tg->meter_faktor : 0;
 
-        $colWidthsPx = ['A' => 22, 'B' => 13, 'C' => 16, 'D' => 12]; // dipakai buat estimasi lebar tabel (px = unit * 7)
+        $colWidthsPx = ['A' => 22, 'B' => 13, 'C' => 16, 'D' => 12];
         $sheet->getColumnDimension('A')->setWidth($colWidthsPx['A']);
         $sheet->getColumnDimension('B')->setWidth($colWidthsPx['B']);
         $sheet->getColumnDimension('C')->setWidth($colWidthsPx['C']);
@@ -177,7 +161,6 @@ class RekapanExcel
             self::kv($sheet, $r, 'Jumlah (Rp)', (float) $area['total'], null, true, null, 'D', '#,##0');
         }
 
-        // Border cuma buat tabel angka, foto ditaruh polos di bawahnya tanpa dikotakin
         self::borders($sheet, 'A'.$dataStart.':D'.($r - 1));
         $r++;
 
@@ -189,9 +172,6 @@ class RekapanExcel
             $drawing->setResizeProportional(true);
             $drawing->setHeight(110);
 
-            // Kalau fotonya landscape / lebih lebar dari tabel (A-D), lebarin
-            // kolom D biar tabelnya ikut melebar nyesuain foto — bukan foto
-            // yang numpuk/kepotong keluar tabel.
             $tableWidthPx = array_sum($colWidthsPx) * 7;
             if ($drawing->getWidth() + 10 > $tableWidthPx) {
                 $extraPx = $drawing->getWidth() + 10 - $tableWidthPx;
@@ -200,7 +180,6 @@ class RekapanExcel
                 $tableWidthPx = array_sum($colWidthsPx) * 7;
             }
 
-            // Foto ditaruh di tengah lebar tabel (kolom A-D), bukan mepet kiri
             $offsetX = max(5, (int) (($tableWidthPx - $drawing->getWidth()) / 2));
 
             $drawing->setCoordinates('A'.$r);
@@ -210,7 +189,6 @@ class RekapanExcel
             $sheet->getRowDimension($r)->setRowHeight(120);
             $r++;
         } elseif ($tg && $tg->fotos->isNotEmpty()) {
-            // ada record foto tapi file fisiknya nggak ketemu di storage
             $sheet->setCellValue('A'.$r, 'File foto tidak ditemukan');
             $r++;
         }
@@ -219,19 +197,11 @@ class RekapanExcel
         self::ttdBlock($sheet, $r, $penandatangan, 'D');
     }
 
-    /**
-     * Layout multi-titik (2-3 titik meter): tabel "pivot" — baris = langkah
-     * perhitungan (Bulan ini, Bulan lalu, dst), kolom = tiap titik meter +
-     * kolom "Jumlah" (total gabungan) di ujung kanan, dan kolom satuan
-     * paling kanan. Setara "multikolom" di PDF.
-     */
     private static function horizontal(Worksheet $sheet, array $area, string $periodeLabel, $penandatangan): void
     {
         $titikRows = $area['rows']->filter(fn ($row) => $row['tagihan'])->values();
         $n = max(1, $titikRows->count());
 
-        // Kolom: A = label, B = kode rumus, C..(C+n-1) = tiap titik meter,
-        // kolom berikutnya = Jumlah (total), kolom terakhir = satuan.
         $titikCols = [];
         for ($i = 0; $i < $n; $i++) {
             $titikCols[] = Coordinate::stringFromColumnIndex(3 + $i);
@@ -257,7 +227,6 @@ class RekapanExcel
         self::kv($sheet, $r, 'LOKASI FLOW METER', $area['area']->nama, null, false, null, $lastCol);
         self::titleRow($sheet, $r, 'PERHITUNGAN PEMAKAIAN', $lastCol);
 
-        // Header kolom per titik meter
         $sheet->setCellValue('A'.$r, '');
         foreach ($titikRows as $i => $row) {
             self::hcell($sheet, $titikCols[$i].$r, $row['titik_meter']->nama, true);
@@ -310,14 +279,6 @@ class RekapanExcel
         self::borders($sheet, 'A'.$dataStart.':'.$lastCol.($r - 1));
         $r++;
 
-        // Foto meter per titik, ditaruh sejajar di bawah kolom masing-masing titik
-        // (kayak di layout "standar"/vertical), bukan cuma satu foto gabungan.
-        //
-        // FIX: siapin objek Drawing dulu buat tiap titik biar tau LEBAR ASLI
-        // fotonya (setelah di-scale ke tinggi 100px) SEBELUM foto ditempatkan.
-        // Kalau lebar foto lebih besar dari lebar kolom default (13 unit),
-        // kolom titik itu dilebarin nyesuain foto — jadi foto landscape gak
-        // numpuk/nutupin kolom foto di sebelahnya (yang bikin keliatan "blok").
         $photoRow = $r;
         $drawings = [];
         $missingFoto = false;
@@ -334,7 +295,7 @@ class RekapanExcel
                 $drawing->setHeight(100);
                 $drawings[$i] = $drawing;
 
-                $neededWidthPx = $drawing->getWidth() + 10; // + padding kiri-kanan
+                $neededWidthPx = $drawing->getWidth() + 10;
                 $currentWidthPx = $sheet->getColumnDimension($titikCols[$i])->getWidth() * 7;
                 if ($neededWidthPx > $currentWidthPx) {
                     $newWidthUnit = min(self::MAX_TITIK_COL_WIDTH, $neededWidthPx / 7);
@@ -348,7 +309,6 @@ class RekapanExcel
         $anyFoto = ! empty($drawings);
         if ($anyFoto) {
             foreach ($drawings as $i => $drawing) {
-                // Ambil ulang lebar kolom (udah final/sudah dilebarin di atas)
                 $colWidthPx = $sheet->getColumnDimension($titikCols[$i])->getWidth() * 7;
                 $offsetX = max(2, (int) (($colWidthPx - $drawing->getWidth()) / 2));
 
@@ -368,14 +328,6 @@ class RekapanExcel
         self::ttdBlock($sheet, $r, $penandatangan, $lastCol);
     }
 
-    /**
-     * Layout untuk lebih dari 3 titik meter: tabel grid ke bawah — satu baris
-     * per titik meter (No, Nama, Counter M3 Bulan Ini/Lalu, Jumlah Pengambilan,
-     * Tarif, Jumlah). Setara "list" di PDF: SEMUA titik meter aktif tetap
-     * tampil walau belum ada tagihan bulan ini (kolom dikosongkan), header
-     * kolom tanpa sub-header di-merge vertikal, dan foto meter digrid 4 kolom
-     * per baris (bukan satu baris memanjang).
-     */
     private static function list(Worksheet $sheet, array $area, string $periodeLabel, $penandatangan): void
     {
         $rows = $area['rows']
@@ -383,21 +335,17 @@ class RekapanExcel
             ->values();
 
         $lastCol = 'G';
-        $sheet->getColumnDimension('A')->setWidth(6);   // No
-        $sheet->getColumnDimension('B')->setWidth(26);  // Nama Titik Meter
-        $sheet->getColumnDimension('C')->setWidth(12);  // Bulan Ini
-        $sheet->getColumnDimension('D')->setWidth(12);  // Bulan Lalu
-        $sheet->getColumnDimension('E')->setWidth(15);  // Jumlah Pengambilan
-        $sheet->getColumnDimension('F')->setWidth(13);  // Tarif Rp/M3
-        $sheet->getColumnDimension('G')->setWidth(16);  // Jumlah (Rp)
+        $sheet->getColumnDimension('A')->setWidth(6);
+        $sheet->getColumnDimension('B')->setWidth(26);
+        $sheet->getColumnDimension('C')->setWidth(12);
+        $sheet->getColumnDimension('D')->setWidth(12);
+        $sheet->getColumnDimension('E')->setWidth(15);
+        $sheet->getColumnDimension('F')->setWidth(13);
+        $sheet->getColumnDimension('G')->setWidth(16);
 
-        // List di PDF tidak menampilkan blok NAMA/ALAMAT/LOKASI FLOW METER,
-        // langsung ke judul + tabel — disamakan di sini.
         $r = self::headerBlock($sheet, $periodeLabel, $lastCol, 'BIAYA PEMAKAIAN AIR');
         $dataStart = $r;
 
-        // Header 2 baris: kolom tanpa sub-header di-merge vertikal (rowspan),
-        // cuma "COUNTER M3" yang pecah jadi Bulan Ini / Bulan Lalu.
         $headRow1 = $r;
         $headRow2 = $r + 1;
 
@@ -430,8 +378,6 @@ class RekapanExcel
         $sheet->getRowDimension($headRow2)->setRowHeight(16);
         $r = $headRow2 + 1;
 
-        // Baris data: SEMUA titik meter aktif tetap tampil, walau belum ada
-        // tagihan bulan ini (kolom counter/pengambilan/jumlah dikosongkan).
         $no = 0;
         foreach ($rows as $row) {
             $tg = $row['tagihan'] ?? null;
@@ -459,7 +405,6 @@ class RekapanExcel
             $r++;
         }
 
-        // Subtotal / PPN / Total — label merge A:E, nilai di kolom G (sama posisi seperti PDF)
         $sheet->mergeCells('A'.$r.':E'.$r);
         $sheet->setCellValue('A'.$r, 'Subtotal');
         $sheet->getStyle('A'.$r)->getFont()->setName('Calibri')->setBold(true);
@@ -498,16 +443,6 @@ class RekapanExcel
         self::borders($sheet, 'A'.$dataStart.':'.$lastCol.($r - 1));
         $r++;
 
-        // Foto meter: grid 4 "kolom foto" per baris (bukan satu baris memanjang
-        // sepanjang jumlah titik meter), sisa slot yang nggak ada titiknya lagi
-        // otomatis nggak ikut ke-render (nggak nyisain kolom kosong).
-        //
-        // FIX: di layout ini kolom A-G dipakai bareng sama tabel data utama,
-        // jadi kalau ada foto landscape kita GAK lebarin kolomnya (nanti tabel
-        // atasnya ikut melar & jadi aneh). Sebagai gantinya, kalau lebar foto
-        // (setelah di-scale ke tinggi 100px) lebih lebar dari slotnya, lebar
-        // fotonya yang dikecilin dikit (resizeProportional otomatis nyesuain
-        // tingginya) biar tetep muat rapi di slot & gak numpuk ke slot sebelah.
         $barisFoto = $rows->filter(fn ($row) => $row['tagihan'])->values();
         $anyFoto = $barisFoto->contains(fn ($row) => self::resolveFotoPath($row['tagihan']) !== null);
 
@@ -549,9 +484,6 @@ class RekapanExcel
                             $slot
                         ));
 
-                        // Foto landscape lebih lebar dari slot -> kecilin
-                        // lebarnya biar pas (tingginya otomatis ikut turun
-                        // karena resizeProportional true).
                         if ($drawing->getWidth() + 10 > $slotWidthPx) {
                             $drawing->setWidth((int) floor($slotWidthPx - 10));
                         }
@@ -578,11 +510,6 @@ class RekapanExcel
         self::ttdBlock($sheet, $r, $penandatangan, $lastCol);
     }
 
-    /**
-     * Bagi rentang kolom A..$lastCol jadi $n grup kolom yang kira-kira sama
-     * rata (dipakai buat nge-grid foto meter 4 "slot" per baris). Sama
-     * pendekatannya kayak chunking kolom di ttdBlock().
-     */
     private static function fotoGridColumns(string $lastCol, int $n = 4): array
     {
         $cols = range('A', $lastCol);
@@ -604,15 +531,6 @@ class RekapanExcel
         $r++;
     }
 
-    /**
-     * Baris label:value. $kode (opsional) diisi ke kolom B, misalnya notasi
-     * rumus "( a )", "( c = a - b )", atau prefiks satuan seperti "Rp".
-     * Kalau $satuan diisi, value ditaruh sendiri di kolom C dan satuan di
-     * kolom D. Kalau tidak, value di-merge dari kolom C sampai $lastCol.
-     *
-     * Kalau $kode kosong, label di-merge A:B biar nggak ada kolom B yang
-     * nganggur / bikin jarak kosong antara label dan value.
-     */
     private static function kv(Worksheet $sheet, int &$r, string $label, mixed $value, ?string $kode = null, bool $bold = false, ?string $satuan = null, string $lastCol = 'D', ?string $numFmt = null): void
     {
         if ($kode !== null) {
@@ -655,10 +573,6 @@ class RekapanExcel
         $r++;
     }
 
-    /**
-     * Baris tabel pivot: satu label + kode rumus, lalu satu value per
-     * titik meter (di $titikCols), kolom Jumlah (opsional), dan satuan (opsional).
-     */
     private static function pivotRow(
         Worksheet $sheet,
         int &$r,
@@ -744,11 +658,6 @@ class RekapanExcel
         ]);
     }
 
-    /**
-     * Ambil path file foto meter yang valid dari relasi TagihanAir::fotos().
-     * Menangani 2 skema penyimpanan: prefix "uploads/" (legacy, langsung di public/)
-     * dan skema baru lewat Storage::disk('public').
-     */
     private static function resolveFotoPath($tg): ?string
     {
         if (! $tg || ! $tg->fotos || $tg->fotos->isEmpty()) {
@@ -765,10 +674,10 @@ class RekapanExcel
     }
 
     /**
-     * Blok tanda tangan — disamakan urutannya dengan PDF (signature-table):
-     * baris 1 "Mengetahui / Menyetujui" full-width, baris 2 tempat & tanggal
-     * full-width, baru baris 3 jabatan per kolom, baris spasi tanda tangan,
-     * lalu baris nama per kolom.
+     * Blok tanda tangan — disamakan tampilannya dengan layout target:
+     * baris 1 judul "Mengetahui / Menyetujui" (kiri) SEJAJAR dengan tempat &
+     * tanggal (kanan) di baris yang sama, baris 2 jabatan per kolom persis
+     * di bawahnya, lalu baris spasi tanda tangan, baru baris nama per kolom.
      */
     private static function ttdBlock(Worksheet $sheet, int &$r, $penandatangan, string $lastCol = 'D'): void
     {
@@ -779,12 +688,6 @@ class RekapanExcel
         $cols = range('A', $lastCol);
         $n = $penandatangan->count();
 
-        // FIX: pembagian kolom buat tiap blok ttd sekarang berdasarkan LEBAR
-        // PIKSEL kolom yang sebenarnya (bukan cuma dihitung per huruf kolom).
-        // Soalnya kolom titik meter bisa melebar banyak kalau ada foto
-        // landscape, jadi kalau pembagiannya masih per jumlah kolom, blok ttd
-        // jadi nggak seimbang / berantakan secara visual (ada blok yang
-        // kebagian kolom-kolom super lebar, ada yang kebagian kolom sempit).
         $colWidths = [];
         foreach ($cols as $col) {
             $colWidths[$col] = max(1, $sheet->getColumnDimension($col)->getWidth());
@@ -805,7 +708,7 @@ class RekapanExcel
             $targetWidth = $totalWidth * (count($chunks) + 1) / $n;
             $shouldBreak = $groupsLeft > 1
                 && $currentWidth >= $targetWidth
-                && $colsLeft >= ($groupsLeft - 1); // jaga sisa kolom cukup buat grup berikutnya
+                && $colsLeft >= ($groupsLeft - 1);
 
             if ($shouldBreak) {
                 $chunks[] = $current;
@@ -827,20 +730,32 @@ class RekapanExcel
         $tempat = $first->tempat ?? '';
         $tanggal = Carbon::now()->locale('id')->translatedFormat('d F Y');
 
-        // Baris 1: judul "Mengetahui / Menyetujui" nutup semua kolom
+        // Baris 1: judul "Mengetahui / Menyetujui" di blok tanda tangan
+        // PERTAMA (kiri), tempat & tanggal di blok tanda tangan TERAKHIR
+        // (kanan) — sejajar di baris yang sama, sesuai layout target.
+        // Kalau cuma ada 1 penandatangan, judul & tanggal digabung jadi
+        // satu baris full-width (nggak ada blok kedua buat taruh tanggal).
         $titleRow = $r;
-        $sheet->mergeCells('A'.$titleRow.':'.$lastCol.$titleRow);
-        $sheet->setCellValue('A'.$titleRow, 'Mengetahui / Menyetujui');
-        $sheet->getStyle('A'.$titleRow)->getFont()->setName('Calibri')->setBold(true);
-        $sheet->getStyle('A'.$titleRow)->getAlignment()->setHorizontal('center');
-        $r++;
 
-        // Baris 2: tempat & tanggal, juga nutup semua kolom (bukan cuma di kolom kanan)
-        $dateRow = $r;
-        $sheet->mergeCells('A'.$dateRow.':'.$lastCol.$dateRow);
-        $sheet->setCellValue('A'.$dateRow, ($tempat ? $tempat.', ' : '').$tanggal);
-        $sheet->getStyle('A'.$dateRow)->getFont()->setName('Calibri');
-        $sheet->getStyle('A'.$dateRow)->getAlignment()->setHorizontal('center');
+        if ($n === 1) {
+            $sheet->mergeCells('A'.$titleRow.':'.$lastCol.$titleRow);
+            $sheet->setCellValue('A'.$titleRow, 'Mengetahui / Menyetujui — '.($tempat ? $tempat.', ' : '').$tanggal);
+            $sheet->getStyle('A'.$titleRow)->getFont()->setName('Calibri')->setBold(true);
+            $sheet->getStyle('A'.$titleRow)->getAlignment()->setHorizontal('center');
+        } else {
+            $titleChunk = $chunks[0];
+            [$titleStart, $titleEnd] = [reset($titleChunk), end($titleChunk)];
+            $sheet->mergeCells($titleStart.$titleRow.':'.$titleEnd.$titleRow);
+            $sheet->setCellValue($titleStart.$titleRow, 'Mengetahui / Menyetujui');
+            $sheet->getStyle($titleStart.$titleRow)->getFont()->setName('Calibri')->setBold(true);
+            $sheet->getStyle($titleStart.$titleRow)->getAlignment()->setHorizontal('center');
+
+            [$dateStart, $dateEnd] = [reset($lastChunk), end($lastChunk)];
+            $sheet->mergeCells($dateStart.$titleRow.':'.$dateEnd.$titleRow);
+            $sheet->setCellValue($dateStart.$titleRow, ($tempat ? $tempat.', ' : '').$tanggal);
+            $sheet->getStyle($dateStart.$titleRow)->getFont()->setName('Calibri');
+            $sheet->getStyle($dateStart.$titleRow)->getAlignment()->setHorizontal('center');
+        }
         $r++;
 
         $jabatanRow = $r;
@@ -886,10 +801,6 @@ class RekapanExcel
         return number_format((float) $value, 2, ',', '.');
     }
 
-    /**
-     * Format akuntansi: 0 -> "–", negatif -> "(1.234)", positif -> "1.234".
-     * Dipakai buat baris "Jumlah (Rp)" per titik di tabel pivot multi-titik.
-     */
     private static function fmtAccounting(mixed $value): string
     {
         $v = (float) $value;
