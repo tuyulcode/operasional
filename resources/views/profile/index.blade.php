@@ -34,7 +34,7 @@
 
           <label for="photo" class="pf-avatar-wrapper" title="Klik untuk pilih foto">
             @if($user->photo ?? false)
-              <img src="{{ asset('storage/' . $user->photo) }}" alt="Foto Profil" class="pf-avatar-img" id="pfAvatarImg">
+              <img src="{{ asset('storage-proxy.php?path=' . $user->photo) }}" alt="Foto Profil" class="pf-avatar-img" id="pfAvatarImg">
             @else
               <div class="pf-avatar-fallback" id="pfAvatarFallback">{{ strtoupper(substr($user->username ?? 'U', 0, 1)) }}</div>
               <img src="" alt="Foto Profil" class="pf-avatar-img" id="pfAvatarImg" style="display: none;">

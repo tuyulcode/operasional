@@ -93,7 +93,7 @@
     {{-- User Profile Dropdown --}}
     <div class="user-profile" id="userProfileDropdown">
       @if(Auth::user()->photo ?? false)
-        <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="Foto Profil" class="user-avatar-photo">
+        <img src="{{ asset('storage-proxy.php?path=' . Auth::user()->photo) }}" alt="Foto Profil" class="user-avatar-photo">
       @else
         <div class="user-avatar-initial">
           {{ strtoupper(substr(Auth::user()->username ?? 'U', 0, 1)) }}

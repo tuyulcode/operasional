@@ -27,7 +27,7 @@ class TagihanAirFoto extends Model
 
         return str_starts_with($this->path_foto, 'uploads/')
             ? asset($this->path_foto)
-            : Storage::disk('public')->url($this->path_foto);
+            : asset('storage-proxy.php?path=' . $this->path_foto);
     }
 
     public function getFilePathAttribute(): ?string
