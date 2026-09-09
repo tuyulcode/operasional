@@ -197,9 +197,17 @@
 
             <div class="form-group searchable-select" id="kendaraanSelectWrap">
               <label for="kendaraan_search">Kendaraan</label>
-              <input type="text" id="kendaraan_search" class="form-control" placeholder="Cari kendaraan..." autocomplete="off">
+              <div class="kendaraan-input-wrap">
+                <input type="text" id="kendaraan_search" class="form-control" placeholder="-- Cari kendaraan --" autocomplete="off" readonly>
+                <i class="fa-solid fa-chevron-down kendaraan-arrow"></i>
+              </div>
               <input type="hidden" id="kendaraan_id" name="kendaraan_id" value="{{ old('kendaraan_id', $edit->kendaraan_id ?? '') }}" required>
-              <div class="searchable-dropdown" id="kendaraanDropdown"></div>
+              <div class="searchable-dropdown" id="kendaraanDropdown">
+                <div class="searchable-dropdown-search">
+                  <input type="text" id="kendaraan_dropdown_search" class="form-control" placeholder="Cari kendaraan..." autocomplete="off">
+                </div>
+                <div class="searchable-dropdown-list" id="kendaraanDropdownList"></div>
+              </div>
               <small class="form-hint form-hint-spacer">&nbsp;</small>
             </div>
 
@@ -384,8 +392,6 @@
     top: calc(100% + 2px);
     left: 0;
     right: 0;
-    max-height: 220px;
-    overflow-y: auto;
     background: #fff;
     border: 1px solid #d1d5db;
     border-radius: 6px;
@@ -394,6 +400,22 @@
   }
   .searchable-dropdown.show {
     display: block;
+  }
+  .searchable-dropdown-search {
+    padding: 8px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .searchable-dropdown-search .form-control {
+    margin: 0;
+    color: #1f2937;
+  }
+  .searchable-dropdown-search .form-control::placeholder {
+    color: #374151;
+    opacity: 1;
+  }
+  .searchable-dropdown-list {
+    max-height: 180px;
+    overflow-y: auto;
   }
   .searchable-dropdown-item {
     padding: 8px 12px;
@@ -407,6 +429,36 @@
     padding: 8px 12px;
     font-size: 0.85rem;
     color: #9ca3af;
+  }
+  .kendaraan-input-wrap {
+    position: relative;
+  }
+  #kendaraan_search[readonly] {
+    cursor: pointer;
+    background: #fff !important;
+    color: #1f2937 !important;
+    opacity: 1 !important;
+    padding-right: 32px;
+  }
+  #kendaraan_search[readonly]::placeholder {
+    color: #374151 !important;
+    opacity: 1 !important;
+  }
+  .kendaraan-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b7280;
+    font-size: 0.75rem;
+    pointer-events: none;
+  }
+  .tanggal-alt-input,
+  .tanggal-alt-input[readonly] {
+    cursor: pointer !important;
+    background-color: #fff !important;
+    color: #1f2937 !important;
+    opacity: 1 !important;
   }
 
   /* Samakan padding tiap sel tabel Input Data, termasuk jarak tepi kolom
@@ -449,13 +501,13 @@
   }
 
   function renderKendaraanDropdown(filter) {
-    const dropdown = document.getElementById('kendaraanDropdown');
+    const list = document.getElementById('kendaraanDropdownList');
     const term = filter.toLowerCase();
     const filtered = kendaraanList.filter(function(k) { return k.label.toLowerCase().includes(term); });
 
-    dropdown.innerHTML = '';
+    list.innerHTML = '';
     if (!filtered.length) {
-      dropdown.innerHTML = '<div class="searchable-dropdown-empty">Kendaraan tidak ditemukan</div>';
+      list.innerHTML = '<div class="searchable-dropdown-empty">Kendaraan tidak ditemukan</div>';
     } else {
       filtered.forEach(function(k) {
         const item = document.createElement('div');
@@ -465,12 +517,19 @@
           e.preventDefault();
           document.getElementById('kendaraan_id').value = k.id;
           document.getElementById('kendaraan_search').value = k.label;
-          dropdown.classList.remove('show');
+          document.getElementById('kendaraanDropdown').classList.remove('show');
         });
-        dropdown.appendChild(item);
+        list.appendChild(item);
       });
     }
-    dropdown.classList.add('show');
+  }
+
+  function openKendaraanDropdown() {
+    const dropdownSearch = document.getElementById('kendaraan_dropdown_search');
+    dropdownSearch.value = '';
+    renderKendaraanDropdown('');
+    document.getElementById('kendaraanDropdown').classList.add('show');
+    dropdownSearch.focus();
   }
 
   function setKendaraanById(id) {
@@ -488,7 +547,7 @@
       dateFormat: 'Y-m-d',
       altInput: true,
       altFormat: 'd/m/Y',
-      altInputClass: 'form-control',
+      altInputClass: 'form-control tanggal-alt-input',
       allowInput: false,
       onChange: function() {
         updateHargaPerLiterDisplay();
@@ -550,11 +609,12 @@
     });
 
     const kendaraanSearch = document.getElementById('kendaraan_search');
-    kendaraanSearch.addEventListener('focus', function() { renderKendaraanDropdown(this.value); });
-    kendaraanSearch.addEventListener('input', function() {
-      document.getElementById('kendaraan_id').value = '';
+    kendaraanSearch.addEventListener('click', openKendaraanDropdown);
+
+    document.getElementById('kendaraan_dropdown_search').addEventListener('input', function() {
       renderKendaraanDropdown(this.value);
     });
+
     document.addEventListener('click', function(e) {
       if (!document.getElementById('kendaraanSelectWrap').contains(e.target)) {
         document.getElementById('kendaraanDropdown').classList.remove('show');
