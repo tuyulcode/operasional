@@ -114,6 +114,7 @@
               <input type="number" id="meter_ini" name="meter_ini" class="form-control"
                      step="0.01" min="0" placeholder="Contoh: 120"
                      value="{{ old('meter_ini', $edit->meter_ini ?? '') }}" required>
+              <div id="meterIniWarning" style="color: #dc3545; font-size: 12px; margin-top: 4px; display: none;"></div>
             </div>
 
             <div class="form-group">
@@ -473,6 +474,20 @@
     updateMeterLaluState(true);
   }
 
+  function setMeterIniWarning(msg) {
+    const el = document.getElementById('meterIniWarning');
+    if (!el) return;
+    if (msg) {
+      el.textContent = msg;
+      el.style.display = 'block';
+      meterIniInput.style.borderColor = '#dc3545';
+    } else {
+      el.textContent = '';
+      el.style.display = 'none';
+      meterIniInput.style.borderColor = '';
+    }
+  }
+
   function recalcTotals() {
     // Jika Meter Bulan Ini kosong, reset semua field kalkulasi
     if (!meterIniInput.value.trim()) {
@@ -480,6 +495,7 @@
         jumlahSebelumPpnInput.value = '';
         ppnNominalInput.value = '';
         jumlahInput.value = '';
+        setMeterIniWarning(null);
         return;
     }
 
@@ -489,7 +505,9 @@
     const tarif = parseIdValue(tarifInput.value);
 
     if (lalu > 0 && ini < lalu) {
-      showToast('Peringatan: Meter Bulan Ini (' + formatNumber(ini, 0) + ') kurang dari Meter Bulan Lalu (' + formatNumber(lalu, 0) + ')', 'error');
+      setMeterIniWarning('Meter Bulan Ini (' + formatNumber(ini, 0) + ') kurang dari Meter Bulan Lalu (' + formatNumber(lalu, 0) + ')');
+    } else {
+      setMeterIniWarning(null);
     }
 
     const pemakaian = (ini - lalu) * faktor;
@@ -662,7 +680,12 @@
     });
     tmSelect.addEventListener('change', autoFillMaster);
     periodeInput.addEventListener('change', fillMeterLalu);
-    meterIniInput.addEventListener('input', recalcTotals);
+    let meterIniDebounce;
+    meterIniInput.addEventListener('input', function () {
+      clearTimeout(meterIniDebounce);
+      setMeterIniWarning(null);
+      meterIniDebounce = setTimeout(recalcTotals, 1000);
+    });
     meterLaluInput.addEventListener('input', recalcTotals);
     meterFaktorInput.addEventListener('input', recalcTotals);
     tarifInput.addEventListener('input', recalcTotals);

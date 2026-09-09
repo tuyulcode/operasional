@@ -9,15 +9,13 @@
 
     .doc-header table { width: 100%; border-collapse: collapse; }
     .doc-header .logo-cell { width: 22%; text-align: left; vertical-align: middle; }
-    .doc-header .logo-cell img { width: 140px; height: auto; }
+    .doc-header .logo-cell img { width: 135px; height: auto; display: block; }
     .doc-header .org-cell { text-align: left; vertical-align: middle; }
-    .doc-header .org-name { font-size: 16px; font-weight: bold; }
-    .doc-header .org-sub { font-size: 12px; margin-top: 3px; }
+    .doc-header .org-name { font-size: 15px; font-weight: bold; }
+    .doc-header .org-sub { font-size: 11px; margin-top: 2px; }
 
-    .area-title { text-align: center; font-weight: bold; font-size: 13px; margin: 12px 0 2px; }
-    .area-bulan { text-align: center; font-size: 11px; margin-bottom: 8px; }
-
-    .area-name { font-weight: bold; font-size: 11px; margin: 12px 0 5px; }
+    .area-title { text-align: center; font-weight: bold; font-size: 13px; margin: 10px 0 2px; }
+    .area-bulan { text-align: center; font-size: 11px; margin-bottom: 6px; }
 
     table.grid { width: 100%; border-collapse: collapse; }
     table.grid th, table.grid td { border: 1px solid #333; padding: 3px 5px; font-size: 10px; }
@@ -36,23 +34,24 @@
 
     td.m3 { width: 8%; text-align: center; background: #f7f7f7; }
 
-    .foto-empty { margin-top: 10px; color: #555; }
-
-    .foto-empty-row { color: #888; text-align: center; }
-    table.foto-group { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }
-    table.foto-group td { border: 1px solid #333; padding: 4px 6px; word-wrap: break-word; overflow-wrap: break-word; }
+    .foto-section { margin-top: 10px; page-break-inside: avoid; }
+    .foto-title { font-weight: bold; font-size: 10px; margin-bottom: 4px; }
+    table.foto-group { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; page-break-inside: avoid; }
+    table.foto-group td { border: 1px solid #333; padding: 3px 4px; font-size: 9px; word-wrap: break-word; overflow-wrap: break-word; }
+    table.foto-group td.foto-empty-slot { border: none; background: transparent; }
     table.foto-group td.foto-label-cell { background: #f7f7f7; font-weight: bold; text-align: left; }
-    table.foto-group td.foto-cell { text-align: center; vertical-align: middle; }
-    table.foto-group td.foto-cell img { height: auto; border: 1px solid #888; }
+    table.foto-group td.foto-cell { text-align: center; vertical-align: middle; height: 30mm; }
+    table.foto-group td.foto-cell img { max-width: 40mm; max-height: 27mm; width: auto; height: auto; display: block; margin: 0 auto; border: 1px solid #888; }
+    .foto-empty-row { color: #888; text-align: center; font-style: italic; }
 
-    .sign { margin-top: 60px; }
+    .sign { margin-top: 16px; page-break-inside: avoid; }
     .signature-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .signature-table td { width: 50%; vertical-align: top; text-align: center; padding: 0; }
-    .sign-title { font-weight: bold; text-align: left; }
-    .sign-date { text-align: right; }
-    .sign-jabatan { font-weight: bold; text-align: center; }
-    .sign-nama { text-align: center; }
-    .signature-space { height: 65px; }
+    .sign-title { font-weight: bold; text-align: center; font-size: 10px; }
+    .sign-date { text-align: center; font-size: 10px; }
+    .sign-jabatan { font-weight: bold; text-align: center; font-size: 10px; line-height: 1.3; }
+    .sign-nama { font-weight: bold; text-align: center; font-size: 10px; }
+    .signature-space { height: 48px; }
   </style>
 </head>
 <body>
@@ -75,20 +74,9 @@
 
   @foreach($data as $i => $area)
     <?php
-      // Format rekap sekarang murni otomatis berdasarkan jumlah titik meter
-      // (opsi format_rekap manual sudah dihapus):
-      // 1 titik meter        -> 'standar'    (tampilan vertikal, 1 kolom)
-      // 2-3 titik meter      -> 'multikolom' (tampilan per-kolom berdampingan)
-      // lebih dari 3 titik   -> 'list'       (tampilan tabel/grid ke bawah)
       $jmlTitik = $area['jml_titik'] ?? $area['rows']->count();
-
-      if ($jmlTitik === 1) {
-          $format = 'standar';
-      } elseif ($jmlTitik <= 3) {
-          $format = 'multikolom';
-      } else {
-          $format = 'list';
-      }
+      $format = $area['area']->format_rekap
+        ?: ($jmlTitik === 1 ? 'standar' : ($jmlTitik <= 3 ? 'multikolom' : 'list'));
 
       $namaArea = str_replace('PT.', 'PT', $area['area']->nama);
     ?>
@@ -109,8 +97,7 @@
         $lalu = $tg ? (int) round((float) $tg->meter_lalu) : 0;
         $faktor = $tg ? (float) $tg->meter_faktor : 0;
         $fotos = $tg ? $tg->fotos : collect();
-        $lokasiFm = $row1['titik_meter']->lokasi_flow_meter ?:
-          $row1['titik_meter']->nama;
+        $lokasiFm = $row1['titik_meter']->lokasi_flow_meter ?: $row1['titik_meter']->nama;
       ?>
 
       <table class="infobox">
@@ -140,14 +127,14 @@
       </table>
 
       @if($tg && $fotos->count())
-        <p style="margin-top: 14px; font-weight: bold;">Foto Meter :</p>
-        @foreach($fotos->chunk(4) as $chunkFotoStd)
+        <div class="foto-section">
+          <div class="foto-title">Foto Meter :</div>
           <table class="foto-group">
             <tr>
-              @foreach($chunkFotoStd as $foto)
-                <td class="foto-cell" style="width: 25%;">
+              @foreach($fotos as $foto)
+                <td class="foto-cell" style="width: {{ round(100 / max($fotos->count(), 1), 2) }}%;">
                   @if($foto->file_path && is_file($foto->file_path))
-                    <img src="{{ $foto->file_path }}" alt="Foto meter" style="width: 100%; max-width: 45mm; display: block; margin: 0 auto 4px;">
+                    <img src="{{ $foto->file_path }}" alt="Foto meter">
                   @else
                     <em style="color: #888;">file tidak ditemukan</em>
                   @endif
@@ -155,9 +142,7 @@
               @endforeach
             </tr>
           </table>
-        @endforeach
-      @elseif($tg && $tg->fotos->isEmpty() && $tg->foto)
-        <div class="foto-empty">Foto meter ada di database tetapi file tidak ditemukan.</div>
+        </div>
       @endif
 
     @elseif($format === 'multikolom')
@@ -169,8 +154,6 @@
                 continue;
             }
             $t = $row['tagihan'] ?? null;
-            $jml = $t ? (float) $t->jumlah : 0;
-            $ppn = $t ? (float) $t->ppn_nominal : 0;
             $cols[] = [
                 'nama' => $row['titik_meter']->nama,
                 'ini' => $t ? (int) round((float) $t->meter_ini) : 0,
@@ -178,14 +161,14 @@
                 'faktor' => $t ? (float) $t->meter_faktor : 0,
                 'pemakaian' => $t ? (int) round((float) $t->pemakaian) : 0,
                 'tarif' => $t ? (float) $t->tarif : 0,
-                'jumlah' => max(0, $jml - $ppn),
+                'jumlah' => $t ? (float) $t->jumlah : 0,
             ];
         }
 
         $sumIni = array_sum(array_column($cols, 'ini'));
         $sumLalu = array_sum(array_column($cols, 'lalu'));
         $sumPengambilan = array_sum(array_column($cols, 'pemakaian'));
-        $sumJumlah = $area['subtotal'];
+        $sumJumlah = array_sum(array_column($cols, 'jumlah'));
         $sumPpn = $area['ppn'];
         $sumTotal = $area['total'];
 
@@ -285,35 +268,28 @@
       </table>
 
       <?php
-        $barisFotoKol = $area['rows']->filter(function ($r) { return $r['tagihan']; })->values();
-        $adaFotoKol = $barisFotoKol->contains(function ($r) { return $r['tagihan']->fotos->count() > 0; });
-        $fotoChunksKol = $barisFotoKol->chunk(4)->values();
+        $barisFotoKol = $area['rows']->filter(fn ($r) => $r['tagihan'])->values();
+        $adaFotoKol = $barisFotoKol->contains(fn ($r) => $r['tagihan']->fotos->count() > 0);
+        $jmlKolomFotoKol = max($barisFotoKol->count(), 1);
+        $lebarKolomFotoKol = round(100 / $jmlKolomFotoKol, 2);
       ?>
       @if($adaFotoKol)
-        <p style="margin-top: 14px; font-weight: bold;">Foto Meter :</p>
-        @foreach($fotoChunksKol as $chunkIdx => $chunk)
-          <?php $chunkArr = $chunk->values(); $chunkCount = $chunkArr->count(); ?>
+        <div class="foto-section">
+          <div class="foto-title">Foto Meter :</div>
           <table class="foto-group">
             <tr>
-              @foreach($chunkArr as $idx => $row)
-                <?php
-                  $noLabel = $chunkIdx * 4 + $idx + 1;
-                  $span = ($idx === $chunkCount - 1) ? (4 - $chunkCount + 1) : 1;
-                ?>
-                <td class="foto-label-cell" colspan="{{ $span }}" style="width: {{ $span * 25 }}%;">{{ $noLabel }}. {{ $row['titik_meter']->nama }}</td>
+              @foreach($barisFotoKol as $idx => $row)
+                <td class="foto-label-cell" style="width: {{ $lebarKolomFotoKol }}%;">{{ $idx + 1 }}. {{ $row['titik_meter']->nama }}</td>
               @endforeach
             </tr>
             <tr>
-              @foreach($chunkArr as $idx => $row)
-                <?php
-                  $jmlFoto = $row['tagihan']->fotos->count();
-                  $span = ($idx === $chunkCount - 1) ? (4 - $chunkCount + 1) : 1;
-                ?>
-                <td class="foto-cell" colspan="{{ $span }}" style="width: {{ $span * 25 }}%;">
+              @foreach($barisFotoKol as $row)
+                <?php $jmlFoto = $row['tagihan']->fotos->count(); ?>
+                <td class="foto-cell" style="width: {{ $lebarKolomFotoKol }}%;">
                   @if($jmlFoto)
                     @foreach($row['tagihan']->fotos as $foto)
                       @if($foto->file_path && is_file($foto->file_path))
-                        <img src="{{ $foto->file_path }}" alt="Foto meter" style="width: 100%; max-width: 45mm; display: block; margin: 0 auto 4px;">
+                        <img src="{{ $foto->file_path }}" alt="Foto meter">
                       @else
                         <em style="color: #888;">file tidak ditemukan</em>
                       @endif
@@ -325,7 +301,7 @@
               @endforeach
             </tr>
           </table>
-        @endforeach
+        </div>
       @endif
 
     @else
@@ -383,47 +359,58 @@
       </table>
 
       <?php
-        $barisFoto = $area['rows']->filter(function ($r) { return $r['tagihan']; })->values();
-        $adaFoto = $barisFoto->contains(function ($r) { return $r['tagihan']->fotos->count() > 0; });
+        $barisFoto = $area['rows']->filter(fn ($r) => $r['tagihan'])->values();
+        $adaFoto = $barisFoto->contains(fn ($r) => $r['tagihan']->fotos->count() > 0);
         $fotoChunksList = $barisFoto->chunk(4)->values();
       ?>
       @if($adaFoto)
-        <p style="margin-top: 14px; font-weight: bold;">Foto Meter :</p>
-        @foreach($fotoChunksList as $chunkIdx => $chunk)
-          <?php $chunkArr = $chunk->values(); $chunkCount = $chunkArr->count(); ?>
-          <table class="foto-group">
-            <tr>
-              @foreach($chunkArr as $idx => $row)
-                <?php
-                  $noLabel = $chunkIdx * 4 + $idx + 1;
-                  $span = ($idx === $chunkCount - 1) ? (4 - $chunkCount + 1) : 1;
-                ?>
-                <td class="foto-label-cell" colspan="{{ $span }}" style="width: {{ $span * 25 }}%;">{{ $noLabel }}. {{ $row['titik_meter']->nama }}</td>
-              @endforeach
-            </tr>
-            <tr>
-              @foreach($chunkArr as $idx => $row)
-                <?php
-                  $jmlFoto = $row['tagihan']->fotos->count();
-                  $span = ($idx === $chunkCount - 1) ? (4 - $chunkCount + 1) : 1;
-                ?>
-                <td class="foto-cell" colspan="{{ $span }}" style="width: {{ $span * 25 }}%;">
-                  @if($jmlFoto)
-                    @foreach($row['tagihan']->fotos as $foto)
-                      @if($foto->file_path && is_file($foto->file_path))
-                        <img src="{{ $foto->file_path }}" alt="Foto meter" style="width: 100%; max-width: 45mm; display: block; margin: 0 auto 4px;">
-                      @else
-                        <em style="color: #888;">file tidak ditemukan</em>
-                      @endif
-                    @endforeach
+        <div class="foto-section">
+          <div class="foto-title">Foto Meter :</div>
+          @foreach($fotoChunksList as $chunkIdx => $chunk)
+            <?php $chunkArr = $chunk->values(); ?>
+            <table class="foto-group">
+              <tr>
+                @for($idx = 0; $idx < 4; $idx++)
+                  @if(isset($chunkArr[$idx]))
+                    <?php
+                      $row = $chunkArr[$idx];
+                      $titikIdx = $area['rows']->search(fn ($item) => ($item['titik_meter']->id ?? null) === ($row['titik_meter']->id ?? null));
+                      $noLabel = $titikIdx !== false ? ($titikIdx + 1) : ($chunkIdx * 4 + $idx + 1);
+                    ?>
+                    <td class="foto-label-cell" style="width: 25%;">{{ $noLabel }}. {{ $row['titik_meter']->nama }}</td>
                   @else
-                    <span class="foto-empty-row">&mdash; tidak ada foto &mdash;</span>
+                    <td class="foto-empty-slot" style="width: 25%;"></td>
                   @endif
-                </td>
-              @endforeach
-            </tr>
-          </table>
-        @endforeach
+                @endfor
+              </tr>
+              <tr>
+                @for($idx = 0; $idx < 4; $idx++)
+                  @if(isset($chunkArr[$idx]))
+                    <?php
+                      $row = $chunkArr[$idx];
+                      $jmlFoto = $row['tagihan']->fotos->count();
+                    ?>
+                    <td class="foto-cell" style="width: 25%;">
+                      @if($jmlFoto)
+                        @foreach($row['tagihan']->fotos as $foto)
+                          @if($foto->file_path && is_file($foto->file_path))
+                            <img src="{{ $foto->file_path }}" alt="Foto meter">
+                          @else
+                            <em style="color: #888;">file tidak ditemukan</em>
+                          @endif
+                        @endforeach
+                      @else
+                        <span class="foto-empty-row">&mdash; tidak ada foto &mdash;</span>
+                      @endif
+                    </td>
+                  @else
+                    <td class="foto-empty-slot" style="width: 25%;"></td>
+                  @endif
+                @endfor
+              </tr>
+            </table>
+          @endforeach
+        </div>
       @endif
 
     @endif
@@ -433,19 +420,26 @@
     $ttd = collect($penandatangan)->values();
     $ttdKiri = $ttd[0] ?? null;
     $ttdKanan = $ttd[1] ?? null;
-    $tempatTtd = $ttdKiri ? $ttdKiri->tempat : '';
+    $tempatTtd = $ttdKiri && $ttdKiri->tempat ? $ttdKiri->tempat : ($ttdKanan && $ttdKanan->tempat ? $ttdKanan->tempat : 'paiton');
     $tanggalTtd = now()->locale('id')->translatedFormat('d F Y');
+    $dateLabel = ($tempatTtd ? $tempatTtd . ', ' : '') . $tanggalTtd;
   ?>
   @if($ttdKiri || $ttdKanan)
     <div class="sign">
       <table class="signature-table">
         <tr>
-          <td class="sign-title">Mengetahui / Menyetujui</td>
-          <td class="sign-date">{{ ($tempatTtd ? $tempatTtd . ', ' : '') . $tanggalTtd }}</td>
+          <td class="sign-title">Menyetujui</td>
+          <td class="sign-date">{{ $dateLabel }}</td>
         </tr>
+        <tr style="height: 6px;"><td colspan="2"></td></tr>
         <tr>
-          <td class="sign-jabatan">{{ $ttdKiri ? $ttdKiri->jabatan : '' }}</td>
-          <td class="sign-jabatan">{{ $ttdKanan ? $ttdKanan->jabatan : '' }}</td>
+          <td class="sign-jabatan" style="vertical-align: top;">
+            {{ $ttdKiri ? $ttdKiri->jabatan : '' }}
+          </td>
+          <td class="sign-jabatan" style="vertical-align: top;">
+            <div>Mengusulkan</div>
+            <div style="margin-top: 2px;">{{ $ttdKanan ? $ttdKanan->jabatan : '' }}</div>
+          </td>
         </tr>
         <tr>
           <td class="signature-space">&nbsp;</td>
