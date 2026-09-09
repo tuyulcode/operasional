@@ -27,7 +27,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'username' => 'required|string|max:100|unique:users,username',
             'password' => 'required|string|min:6',
-            'role' => 'required|in:admin,petugas',
+            'role' => 'required|in:admin,petugas,lingkungan',
         ]);
 
         User::create([
@@ -51,7 +51,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'username' => ['required', 'string', 'max:100', Rule::unique('users', 'username')->ignore($user->id)],
             'password' => 'nullable|string|min:6',
-            'role' => 'required|in:admin,petugas',
+            'role' => 'required|in:admin,petugas,lingkungan',
         ]);
 
         if ($user->role === 'admin' && $validated['role'] !== 'admin' && User::where('role', 'admin')->count() <= 1) {
