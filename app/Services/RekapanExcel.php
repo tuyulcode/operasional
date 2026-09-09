@@ -221,10 +221,12 @@ class RekapanExcel
         $sheet->getColumnDimension($jumlahCol)->setWidth(14);
         $sheet->getColumnDimension($unitCol)->setWidth(8);
 
-        $r = self::headerBlock($sheet, $periodeLabel, $lastCol, 'Rekap Perhitungan Pemakaian Air Baku', 'B');
+        // Diubah menjadi "BIAYA PEMAKAIAN AIR"
+        $r = self::headerBlock($sheet, $periodeLabel, $lastCol, 'BIAYA PEMAKAIAN AIR', 'B');
         $dataStart = $r;
 
-        self::titleRow($sheet, $r, 'PENGAMBIL / PEMAKAI', $lastCol);
+        // Diubah menjadi "PENGAMBIL / PEMAKAIAN"
+        self::titleRow($sheet, $r, 'PENGAMBIL / PEMAKAIAN', $lastCol);
         self::kv($sheet, $r, 'NAMA', $area['area']->nama, null, true, null, $lastCol);
         self::kv($sheet, $r, 'ALAMAT', $area['area']->alamat ?: '-', null, false, null, $lastCol);
         self::kv($sheet, $r, 'LOKASI FLOW METER', $area['area']->nama, null, false, null, $lastCol);
@@ -346,7 +348,6 @@ class RekapanExcel
         $sheet->getColumnDimension('F')->setWidth(13);
         $sheet->getColumnDimension('G')->setWidth(16);
 
-        // Header PLN diletakkan mulai kolom C agar tidak bertabrakan dengan logo
         $r = self::headerBlock($sheet, $periodeLabel, $lastCol, 'BIAYA PEMAKAIAN AIR', 'C');
         $dataStart = $r;
 
@@ -467,7 +468,6 @@ class RekapanExcel
                     $slot = $fotoSlots[$i];
                     [$startCol, $endCol] = [reset($slot), end($slot)];
 
-                    // Ambil nomor urut yang konsisten dengan nomor tabel utama di atas
                     $titikIdx = $rows->search(fn ($item) => ($item['titik_meter']->id ?? null) === ($row['titik_meter']->id ?? null));
                     $noUrutFoto = $titikIdx !== false ? ($titikIdx + 1) : (($chunkIndex * 4) + $i + 1);
 
@@ -697,7 +697,6 @@ class RekapanExcel
         }
         $totalWidth = array_sum($colWidths);
 
-        // Membagi kolom menjadi 2 blok seimbang (kiri & kanan)
         $chunks = [];
         $current = [];
         $currentWidth = 0;
@@ -741,7 +740,6 @@ class RekapanExcel
         $tanggal = Carbon::now()->locale('id')->translatedFormat('d F Y');
         $dateText = ($tempat ? $tempat.', ' : '').$tanggal;
 
-        // Baris 1: Kolom Kiri = "Menyetujui", Kolom Kanan = "paiton, [tanggal]" (sejajar horizontal)
         $rowTop = $r;
         $sheet->mergeCells($leftStart.$rowTop.':'.$leftEnd.$rowTop);
         $sheet->setCellValue($leftStart.$rowTop, 'Menyetujui');
@@ -755,11 +753,9 @@ class RekapanExcel
         $sheet->getRowDimension($rowTop)->setRowHeight(18);
         $r++;
 
-        // Spasi kecil pemisah
         $sheet->getRowDimension($r)->setRowHeight(8);
         $r++;
 
-        // Baris 2: Jabatan Kiri sejajar dengan "Mengusulkan" di Kanan
         $rowJabatan1 = $r;
         $sheet->mergeCells($leftStart.$rowJabatan1.':'.$leftEnd.$rowJabatan1);
         $sheet->setCellValue($leftStart.$rowJabatan1, $pLeft ? $pLeft->jabatan : '');
@@ -773,7 +769,6 @@ class RekapanExcel
         $sheet->getRowDimension($rowJabatan1)->setRowHeight(18);
         $r++;
 
-        // Baris 3: Jabatan Kanan ("Asman SDM, Umum & CSR"), Kiri kosong
         $rowJabatan2 = $r;
         $sheet->mergeCells($rightStart.$rowJabatan2.':'.$rightEnd.$rowJabatan2);
         $sheet->setCellValue($rightStart.$rowJabatan2, $pRight ? $pRight->jabatan : '');
@@ -782,12 +777,10 @@ class RekapanExcel
         $sheet->getRowDimension($rowJabatan2)->setRowHeight(18);
         $r++;
 
-        // Baris 4: Spasi tanda tangan
         $spaceRow = $r;
         $sheet->getRowDimension($spaceRow)->setRowHeight(45);
         $r++;
 
-        // Baris 5: Nama penandatangan kiri dan kanan
         $namaRow = $r;
         $sheet->mergeCells($leftStart.$namaRow.':'.$leftEnd.$namaRow);
         $sheet->setCellValue($leftStart.$namaRow, $pLeft ? ($pLeft->nama ?: '...................................') : '');
