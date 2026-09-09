@@ -18,8 +18,6 @@ class RekapanExcel
 
     private const PPN_FILL = 'FFE2EFDA';
 
-    // Lebar kolom titik meter maksimum (dalam unit lebar Excel) biar kolom
-    // gak kebablasan lebar kalau ada foto landscape yang ekstrim rasionya.
     private const MAX_TITIK_COL_WIDTH = 45;
 
     public static function generate(array $report): Spreadsheet
@@ -39,7 +37,7 @@ class RekapanExcel
         if ($spreadsheet->getSheetCount() === 0) {
             $sheet = $spreadsheet->createSheet();
             $sheet->setTitle('Rekap');
-            self::headerBlock($sheet, '', 'A', 'BIAYA PEMAKAIAN AIR');
+            self::headerBlock($sheet, '', 'A', 'BIAYA PEMAKAIAN AIR', 'B');
             $sheet->setCellValue('A6', 'Tidak ada data untuk periode ini.');
         }
 
@@ -74,7 +72,7 @@ class RekapanExcel
         }
     }
 
-    private static function headerBlock(Worksheet $sheet, string $periodeLabel, string $lastCol, string $title = 'BIAYA PEMAKAIAN AIR'): int
+    private static function headerBlock(Worksheet $sheet, string $periodeLabel, string $lastCol, string $title = 'BIAYA PEMAKAIAN AIR', string $textStartCol = 'B'): int
     {
         $sheet->getParent()->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
 
@@ -90,19 +88,24 @@ class RekapanExcel
             $drawing->setOffsetX(4);
             $drawing->setOffsetY(4);
             $drawing->setResizeProportional(true);
-            $drawing->setHeight(35);
+            $drawing->setHeight(32);
             $drawing->setWorksheet($sheet);
         }
 
-        $sheet->mergeCells('B1:D1');
-        $sheet->setCellValue('B1', 'PT PLN NUSANTARA POWER');
-        $sheet->getStyle('B1')->getFont()->setName('Calibri')->setBold(false)->setSize(10);
-        $sheet->getStyle('B1')->getAlignment()->setVertical('center');
+        $startIdx = Coordinate::columnIndexFromString($textStartCol);
+        $lastIdx = Coordinate::columnIndexFromString($lastCol);
+        $endIdx = min($lastIdx, $startIdx + 2);
+        $textEndCol = Coordinate::stringFromColumnIndex(max($startIdx, $endIdx));
 
-        $sheet->mergeCells('B2:D2');
-        $sheet->setCellValue('B2', 'UNIT PEMBANGKITAN PAITON');
-        $sheet->getStyle('B2')->getFont()->setName('Calibri')->setBold(false)->setSize(10);
-        $sheet->getStyle('B2')->getAlignment()->setVertical('center');
+        $sheet->mergeCells("{$textStartCol}1:{$textEndCol}1");
+        $sheet->setCellValue("{$textStartCol}1", 'PT PLN NUSANTARA POWER');
+        $sheet->getStyle("{$textStartCol}1")->getFont()->setName('Calibri')->setBold(false)->setSize(10);
+        $sheet->getStyle("{$textStartCol}1")->getAlignment()->setVertical('center');
+
+        $sheet->mergeCells("{$textStartCol}2:{$textEndCol}2");
+        $sheet->setCellValue("{$textStartCol}2", 'UNIT PEMBANGKITAN PAITON');
+        $sheet->getStyle("{$textStartCol}2")->getFont()->setName('Calibri')->setBold(false)->setSize(10);
+        $sheet->getStyle("{$textStartCol}2")->getAlignment()->setVertical('center');
 
         $r = 3;
         $sheet->mergeCells("A{$r}:{$lastCol}{$r}");
@@ -133,13 +136,13 @@ class RekapanExcel
         $lalu = $tg ? (int) round((float) $tg->meter_lalu) : 0;
         $faktor = $tg ? (float) $tg->meter_faktor : 0;
 
-        $colWidthsPx = ['A' => 22, 'B' => 13, 'C' => 16, 'D' => 12];
+        $colWidthsPx = ['A' => 24, 'B' => 13, 'C' => 16, 'D' => 12];
         $sheet->getColumnDimension('A')->setWidth($colWidthsPx['A']);
         $sheet->getColumnDimension('B')->setWidth($colWidthsPx['B']);
         $sheet->getColumnDimension('C')->setWidth($colWidthsPx['C']);
         $sheet->getColumnDimension('D')->setWidth($colWidthsPx['D']);
 
-        $r = self::headerBlock($sheet, $periodeLabel, 'D', 'BIAYA PEMAKAIAN AIR');
+        $r = self::headerBlock($sheet, $periodeLabel, 'D', 'BIAYA PEMAKAIAN AIR', 'B');
         $dataStart = $r;
 
         self::kv($sheet, $r, 'NAMA', $area['area']->nama, null, true);
@@ -210,7 +213,7 @@ class RekapanExcel
         $unitCol = Coordinate::stringFromColumnIndex(4 + $n);
         $lastCol = $unitCol;
 
-        $sheet->getColumnDimension('A')->setWidth(22);
+        $sheet->getColumnDimension('A')->setWidth(24);
         $sheet->getColumnDimension('B')->setWidth(13);
         foreach ($titikCols as $col) {
             $sheet->getColumnDimension($col)->setWidth(13);
@@ -218,7 +221,7 @@ class RekapanExcel
         $sheet->getColumnDimension($jumlahCol)->setWidth(14);
         $sheet->getColumnDimension($unitCol)->setWidth(8);
 
-        $r = self::headerBlock($sheet, $periodeLabel, $lastCol, 'Rekap Perhitungan Pemakaian Air Baku');
+        $r = self::headerBlock($sheet, $periodeLabel, $lastCol, 'Rekap Perhitungan Pemakaian Air Baku', 'B');
         $dataStart = $r;
 
         self::titleRow($sheet, $r, 'PENGAMBIL / PEMAKAI', $lastCol);
@@ -343,7 +346,8 @@ class RekapanExcel
         $sheet->getColumnDimension('F')->setWidth(13);
         $sheet->getColumnDimension('G')->setWidth(16);
 
-        $r = self::headerBlock($sheet, $periodeLabel, $lastCol, 'BIAYA PEMAKAIAN AIR');
+        // Header PLN diletakkan mulai kolom C agar tidak bertabrakan dengan logo
+        $r = self::headerBlock($sheet, $periodeLabel, $lastCol, 'BIAYA PEMAKAIAN AIR', 'C');
         $dataStart = $r;
 
         $headRow1 = $r;
@@ -449,10 +453,11 @@ class RekapanExcel
         if ($barisFoto->isNotEmpty() && $anyFoto) {
             $sheet->setCellValue('A'.$r, 'Foto Meter :');
             $sheet->getStyle('A'.$r)->getFont()->setName('Calibri')->setBold(true);
-            $r += 2;
+            $r += 1;
 
             $fotoSlots = self::fotoGridColumns($lastCol, 4);
 
+            $chunkIndex = 0;
             foreach ($barisFoto->chunk(4) as $chunk) {
                 $chunkArr = $chunk->values();
                 $labelRow = $r;
@@ -462,8 +467,12 @@ class RekapanExcel
                     $slot = $fotoSlots[$i];
                     [$startCol, $endCol] = [reset($slot), end($slot)];
 
+                    // Ambil nomor urut yang konsisten dengan nomor tabel utama di atas
+                    $titikIdx = $rows->search(fn ($item) => ($item['titik_meter']->id ?? null) === ($row['titik_meter']->id ?? null));
+                    $noUrutFoto = $titikIdx !== false ? ($titikIdx + 1) : (($chunkIndex * 4) + $i + 1);
+
                     $sheet->mergeCells($startCol.$labelRow.':'.$endCol.$labelRow);
-                    $sheet->setCellValue($startCol.$labelRow, $row['titik_meter']->nama);
+                    $sheet->setCellValue($startCol.$labelRow, $noUrutFoto . '. ' . $row['titik_meter']->nama);
                     $sheet->getStyle($startCol.$labelRow)->getFont()->setName('Calibri')->setBold(true);
                     $sheet->getStyle($startCol.$labelRow)->getAlignment()->setHorizontal('center');
                     $sheet->getStyle($startCol.$labelRow.':'.$endCol.$labelRow)
@@ -477,7 +486,7 @@ class RekapanExcel
                         $drawing->setName('foto-list-'.$labelRow.'-'.$i);
                         $drawing->setPath($fotoPath);
                         $drawing->setResizeProportional(true);
-                        $drawing->setHeight(100);
+                        $drawing->setHeight(95);
 
                         $slotWidthPx = array_sum(array_map(
                             fn ($col) => $sheet->getColumnDimension($col)->getWidth() * 7,
@@ -492,7 +501,7 @@ class RekapanExcel
 
                         $drawing->setCoordinates($startCol.$photoRow);
                         $drawing->setOffsetX($offsetX);
-                        $drawing->setOffsetY(5);
+                        $drawing->setOffsetY(4);
                         $drawing->setWorksheet($sheet);
                     } else {
                         $sheet->setCellValue($startCol.$photoRow, 'file tidak ditemukan');
@@ -501,8 +510,10 @@ class RekapanExcel
                     }
                 }
 
-                $sheet->getRowDimension($photoRow)->setRowHeight(105);
+                $sheet->getRowDimension($labelRow)->setRowHeight(18);
+                $sheet->getRowDimension($photoRow)->setRowHeight(100);
                 $r = $photoRow + 1;
+                $chunkIndex++;
             }
         }
 
@@ -673,12 +684,6 @@ class RekapanExcel
         return is_file($path) ? $path : null;
     }
 
-    /**
-     * Blok tanda tangan — disamakan tampilannya dengan layout target:
-     * baris 1 judul "Mengetahui / Menyetujui" (kiri) SEJAJAR dengan tempat &
-     * tanggal (kanan) di baris yang sama, baris 2 jabatan per kolom persis
-     * di bawahnya, lalu baris spasi tanda tangan, baru baris nama per kolom.
-     */
     private static function ttdBlock(Worksheet $sheet, int &$r, $penandatangan, string $lastCol = 'D'): void
     {
         if (! $penandatangan || $penandatangan->isEmpty()) {
@@ -686,26 +691,25 @@ class RekapanExcel
         }
 
         $cols = range('A', $lastCol);
-        $n = $penandatangan->count();
-
         $colWidths = [];
         foreach ($cols as $col) {
             $colWidths[$col] = max(1, $sheet->getColumnDimension($col)->getWidth());
         }
         $totalWidth = array_sum($colWidths);
 
+        // Membagi kolom menjadi 2 blok seimbang (kiri & kanan)
         $chunks = [];
         $current = [];
         $currentWidth = 0;
         $colsLeft = count($cols);
-        $groupsLeft = $n;
+        $groupsLeft = 2;
 
         foreach ($cols as $col) {
             $current[] = $col;
             $currentWidth += $colWidths[$col];
             $colsLeft--;
 
-            $targetWidth = $totalWidth * (count($chunks) + 1) / $n;
+            $targetWidth = $totalWidth * (count($chunks) + 1) / 2;
             $shouldBreak = $groupsLeft > 1
                 && $currentWidth >= $targetWidth
                 && $colsLeft >= ($groupsLeft - 1);
@@ -720,96 +724,84 @@ class RekapanExcel
         if (! empty($current)) {
             $chunks[] = $current;
         }
-        while (count($chunks) < $n) {
+        while (count($chunks) < 2) {
             $chunks[] = [end($cols)];
         }
 
-        $lastChunk = end($chunks);
+        $leftChunk = $chunks[0];
+        $rightChunk = $chunks[1] ?? end($chunks);
 
-        $first = $penandatangan->first();
-        $tempat = $first->tempat ?? '';
+        [$leftStart, $leftEnd] = [reset($leftChunk), end($leftChunk)];
+        [$rightStart, $rightEnd] = [reset($rightChunk), end($rightChunk)];
+
+        $pLeft = $penandatangan->first();
+        $pRight = $penandatangan->count() > 1 ? $penandatangan->get(1) : null;
+
+        $tempat = $pLeft->tempat ?: ($pRight ? $pRight->tempat : 'paiton');
         $tanggal = Carbon::now()->locale('id')->translatedFormat('d F Y');
+        $dateText = ($tempat ? $tempat.', ' : '').$tanggal;
 
-        // Baris 1: judul "Mengetahui / Menyetujui" di blok tanda tangan
-        // PERTAMA (kiri), tempat & tanggal di blok tanda tangan TERAKHIR
-        // (kanan) — sejajar di baris yang sama, sesuai layout target.
-        // Kalau cuma ada 1 penandatangan, judul & tanggal digabung jadi
-        // satu baris full-width (nggak ada blok kedua buat taruh tanggal).
-        $titleRow = $r;
+        // Baris 1: Kolom Kiri = "Menyetujui", Kolom Kanan = "paiton, [tanggal]" (sejajar horizontal)
+        $rowTop = $r;
+        $sheet->mergeCells($leftStart.$rowTop.':'.$leftEnd.$rowTop);
+        $sheet->setCellValue($leftStart.$rowTop, 'Menyetujui');
+        $sheet->getStyle($leftStart.$rowTop)->getFont()->setName('Calibri')->setBold(true);
+        $sheet->getStyle($leftStart.$rowTop)->getAlignment()->setHorizontal('center');
 
-        if ($n === 1) {
-            $sheet->mergeCells('A'.$titleRow.':'.$lastCol.$titleRow);
-            $sheet->setCellValue('A'.$titleRow, 'Mengetahui / Menyetujui — '.($tempat ? $tempat.', ' : '').$tanggal);
-            $sheet->getStyle('A'.$titleRow)->getFont()->setName('Calibri')->setBold(true);
-            $sheet->getStyle('A'.$titleRow)->getAlignment()->setHorizontal('center');
-        } else {
-            $titleChunk = $chunks[0];
-            [$titleStart, $titleEnd] = [reset($titleChunk), end($titleChunk)];
-            $sheet->mergeCells($titleStart.$titleRow.':'.$titleEnd.$titleRow);
-            $sheet->setCellValue($titleStart.$titleRow, 'Mengetahui / Menyetujui');
-            $sheet->getStyle($titleStart.$titleRow)->getFont()->setName('Calibri')->setBold(true);
-            $sheet->getStyle($titleStart.$titleRow)->getAlignment()->setHorizontal('center');
-
-            [$dateStart, $dateEnd] = [reset($lastChunk), end($lastChunk)];
-            $sheet->mergeCells($dateStart.$titleRow.':'.$dateEnd.$titleRow);
-            $sheet->setCellValue($dateStart.$titleRow, ($tempat ? $tempat.', ' : '').$tanggal);
-            $sheet->getStyle($dateStart.$titleRow)->getFont()->setName('Calibri');
-            $sheet->getStyle($dateStart.$titleRow)->getAlignment()->setHorizontal('center');
-        }
+        $sheet->mergeCells($rightStart.$rowTop.':'.$rightEnd.$rowTop);
+        $sheet->setCellValue($rightStart.$rowTop, $dateText);
+        $sheet->getStyle($rightStart.$rowTop)->getFont()->setName('Calibri');
+        $sheet->getStyle($rightStart.$rowTop)->getAlignment()->setHorizontal('center');
+        $sheet->getRowDimension($rowTop)->setRowHeight(18);
         $r++;
 
-        $jabatanRow = $r;
-        $spaceRow = $r + 1;
-        $namaRow = $r + 2;
+        // Spasi kecil pemisah
+        $sheet->getRowDimension($r)->setRowHeight(8);
+        $r++;
 
-        foreach ($penandatangan as $i => $p) {
-            $chunk = $chunks[$i] ?? $lastChunk;
-            [$startCol, $endCol] = [reset($chunk), end($chunk)];
+        // Baris 2: Jabatan Kiri sejajar dengan "Mengusulkan" di Kanan
+        $rowJabatan1 = $r;
+        $sheet->mergeCells($leftStart.$rowJabatan1.':'.$leftEnd.$rowJabatan1);
+        $sheet->setCellValue($leftStart.$rowJabatan1, $pLeft ? $pLeft->jabatan : '');
+        $sheet->getStyle($leftStart.$rowJabatan1)->getFont()->setName('Calibri')->setBold(true);
+        $sheet->getStyle($leftStart.$rowJabatan1)->getAlignment()->setHorizontal('center');
 
-            $sheet->mergeCells($startCol.$jabatanRow.':'.$endCol.$jabatanRow);
-            $sheet->setCellValue($startCol.$jabatanRow, $p->jabatan);
-            $sheet->getStyle($startCol.$jabatanRow)->getFont()->setName('Calibri')->setBold(true);
-            $sheet->getStyle($startCol.$jabatanRow)->getAlignment()->setHorizontal('center');
+        $sheet->mergeCells($rightStart.$rowJabatan1.':'.$rightEnd.$rowJabatan1);
+        $sheet->setCellValue($rightStart.$rowJabatan1, 'Mengusulkan');
+        $sheet->getStyle($rightStart.$rowJabatan1)->getFont()->setName('Calibri')->setBold(true);
+        $sheet->getStyle($rightStart.$rowJabatan1)->getAlignment()->setHorizontal('center');
+        $sheet->getRowDimension($rowJabatan1)->setRowHeight(18);
+        $r++;
 
-            $sheet->mergeCells($startCol.$namaRow.':'.$endCol.$namaRow);
-            $sheet->setCellValue($startCol.$namaRow, $p->nama ?: '...................................');
-            $sheet->getStyle($startCol.$namaRow)->getFont()->setName('Calibri')->setBold(true);
-            $sheet->getStyle($startCol.$namaRow)->getAlignment()->setHorizontal('center');
-        }
+        // Baris 3: Jabatan Kanan ("Asman SDM, Umum & CSR"), Kiri kosong
+        $rowJabatan2 = $r;
+        $sheet->mergeCells($rightStart.$rowJabatan2.':'.$rightEnd.$rowJabatan2);
+        $sheet->setCellValue($rightStart.$rowJabatan2, $pRight ? $pRight->jabatan : '');
+        $sheet->getStyle($rightStart.$rowJabatan2)->getFont()->setName('Calibri')->setBold(true);
+        $sheet->getStyle($rightStart.$rowJabatan2)->getAlignment()->setHorizontal('center');
+        $sheet->getRowDimension($rowJabatan2)->setRowHeight(18);
+        $r++;
+
+        // Baris 4: Spasi tanda tangan
+        $spaceRow = $r;
         $sheet->getRowDimension($spaceRow)->setRowHeight(45);
+        $r++;
+
+        // Baris 5: Nama penandatangan kiri dan kanan
+        $namaRow = $r;
+        $sheet->mergeCells($leftStart.$namaRow.':'.$leftEnd.$namaRow);
+        $sheet->setCellValue($leftStart.$namaRow, $pLeft ? ($pLeft->nama ?: '...................................') : '');
+        $sheet->getStyle($leftStart.$namaRow)->getFont()->setName('Calibri')->setBold(true);
+        $sheet->getStyle($leftStart.$namaRow)->getAlignment()->setHorizontal('center');
+
+        if ($pRight) {
+            $sheet->mergeCells($rightStart.$namaRow.':'.$rightEnd.$namaRow);
+            $sheet->setCellValue($rightStart.$namaRow, $pRight->nama ?: '...................................');
+            $sheet->getStyle($rightStart.$namaRow)->getFont()->setName('Calibri')->setBold(true);
+            $sheet->getStyle($rightStart.$namaRow)->getAlignment()->setHorizontal('center');
+        }
+        $sheet->getRowDimension($namaRow)->setRowHeight(18);
 
         $r = $namaRow + 2;
-    }
-
-    private static function rp(mixed $value): string
-    {
-        return 'Rp '.number_format((float) $value, 0, ',', '.');
-    }
-
-    private static function rp2(mixed $value): string
-    {
-        return 'Rp '.number_format((float) $value, 2, ',', '.');
-    }
-
-    private static function fmt0(mixed $value): string
-    {
-        return number_format((float) $value, 0, ',', '.');
-    }
-
-    private static function fmt2(mixed $value): string
-    {
-        return number_format((float) $value, 2, ',', '.');
-    }
-
-    private static function fmtAccounting(mixed $value): string
-    {
-        $v = (float) $value;
-        if ($v == 0) {
-            return '–';
-        }
-
-        return $v < 0
-            ? '('.number_format(abs($v), 0, ',', '.').')'
-            : number_format($v, 0, ',', '.');
     }
 }
