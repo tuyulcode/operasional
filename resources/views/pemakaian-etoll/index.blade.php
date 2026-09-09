@@ -320,7 +320,7 @@
       altInput: true,
       altFormat: 'd/m/Y',
       altInputClass: 'form-control',
-      allowInput: false,
+      allowInput: true,
     });
 
     const overlay = document.getElementById('etollModal');
