@@ -132,6 +132,7 @@
               <option value="">-- Pilih Role --</option>
               <option value="admin" {{ old('role', $edit->role ?? '') == 'admin' ? 'selected' : '' }}>Admin</option>
               <option value="petugas" {{ old('role', $edit->role ?? '') == 'petugas' ? 'selected' : '' }}>Petugas</option>
+              <option value="lingkungan" {{ old('role', $edit->role ?? '') == 'lingkungan' ? 'selected' : '' }}>Lingkungan</option>
             </select>
           </div>
         </div>
