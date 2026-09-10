@@ -102,9 +102,11 @@
         <p>Daftar area yang tersimpan</p>
       </div>
       <div class="card-actions">
+        @unless(Auth::user()->role === 'lingkungan')
         <button type="button" class="btn btn-primary btn-sm" onclick="openAddArea()">
           <i class="fa-solid fa-plus"></i> Tambah Area
         </button>
+        @endunless
       </div>
     </div>
     <div class="card-body" style="padding: 0;">
@@ -116,7 +118,9 @@
               <th>Nama Pengguna</th>
               <th>Alamat</th>
               <th>PPN</th>
+              @unless(Auth::user()->role === 'lingkungan')
               <th>Aksi</th>
+              @endunless
             </tr>
           </thead>
           <tbody>
@@ -138,6 +142,7 @@
                   -
                 @endif
               </td>
+              @unless(Auth::user()->role === 'lingkungan')
               <td>
                 <button type="button" class="btn btn-icon btn-edit" title="Edit"
                         data-id="{{ $area->id }}"
@@ -164,10 +169,11 @@
                 </form>
                 @endif
               </td>
+              @endunless
             </tr>
             @empty
             <tr>
-              <td colspan="5" style="text-align: center; padding: 30px; color: #999;">
+              <td colspan="{{ Auth::user()->role === 'lingkungan' ? 4 : 5 }}" style="text-align: center; padding: 30px; color: #999;">
                 <i class="fa-solid fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
                 Belum ada data area
               </td>
@@ -180,6 +186,7 @@
       </div>
     </div>
 
+    @unless(Auth::user()->role === 'lingkungan')
     {{-- MODAL TAMBAH / EDIT AREA --}}
   <div class="modal-overlay" id="areaModal">
     <div class="modal">
@@ -277,6 +284,7 @@
       </form>
     </div>
   </div>
+  @endunless
 
 @endsection
 
@@ -293,9 +301,11 @@
       if (e.key === 'Escape') closeAreaModal();
     });
 
+    @unless(Auth::user()->role === 'lingkungan')
     @if($edit || $errors->any())
       document.getElementById('areaModal').classList.add('show');
     @endif
+    @endunless
   });
 
   function selectFormatCard(card) {

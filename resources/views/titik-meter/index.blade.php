@@ -29,9 +29,11 @@
         <p>Daftar titik meter yang tersimpan</p>
       </div>
       <div class="card-actions">
+        @unless(Auth::user()->role === 'lingkungan')
         <button type="button" class="btn btn-primary btn-sm" onclick="openAddTitikMeter()">
           <i class="fa-solid fa-plus"></i> Tambah Titik Meter
         </button>
+        @endunless
       </div>
     </div>
     <div class="card-body" style="padding: 0;">
@@ -45,7 +47,9 @@
               <th>Meter Faktor</th>
               <th>Tarif Harga</th>
               <th>Status</th>
+              @unless(Auth::user()->role === 'lingkungan')
               <th>Aksi</th>
+              @endunless
             </tr>
           </thead>
           <tbody>
@@ -63,6 +67,12 @@
               <td>{{ $titikMeter->meter_faktor }}</td>
               <td>Rp {{ number_format($titikMeter->tarif_harga, 2, ',', '.') }}</td>
               <td>
+                @if(Auth::user()->role === 'lingkungan')
+                  <span class="badge-status {{ $titikMeter->status == 'aktif' ? 'badge-aktif' : 'badge-nonaktif' }}">
+                    <i class="fa-solid fa-{{ $titikMeter->status == 'aktif' ? 'circle-check' : 'circle-xmark' }}"></i>
+                    {{ ucfirst($titikMeter->status) }}
+                  </span>
+                @else
                 <form action="{{ route('titik-meter.toggle-status', $titikMeter->id) }}" method="POST" style="display:inline;">
                   @csrf
                   <button type="submit" class="btn-toggle-status {{ $titikMeter->status == 'aktif' ? 'status-aktif' : 'status-nonaktif' }}"
@@ -71,7 +81,9 @@
                     {{ ucfirst($titikMeter->status) }}
                   </button>
                 </form>
+                @endif
               </td>
+              @unless(Auth::user()->role === 'lingkungan')
               <td>
                 <button type="button" class="btn btn-icon btn-edit" title="Edit"
                         data-id="{{ $titikMeter->id }}"
@@ -98,10 +110,11 @@
                   @endif
                 </form>
               </td>
+              @endunless
             </tr>
             @empty
             <tr>
-              <td colspan="7" style="text-align: center; padding: 30px; color: #999;">
+              <td colspan="{{ Auth::user()->role === 'lingkungan' ? 6 : 7 }}" style="text-align: center; padding: 30px; color: #999;">
                 <i class="fa-solid fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
                 Belum ada data titik meter
               </td>
@@ -114,6 +127,7 @@
     </div>
   </div>
 
+  @unless(Auth::user()->role === 'lingkungan')
   {{-- MODAL TAMBAH / EDIT TITIK METER --}}
   <div class="modal-overlay" id="titikMeterModal">
     <div class="modal">
@@ -183,11 +197,13 @@
       </form>
     </div>
   </div>
+  @endunless
 
 @endsection
 
 @push('scripts')
 <script>
+  @unless(Auth::user()->role === 'lingkungan')
   document.addEventListener('DOMContentLoaded', function() {
     const overlay = document.getElementById('titikMeterModal');
 
@@ -215,6 +231,7 @@
       formatRupiah(hargaInput);
     @endif
   });
+  @endunless
 
   function parseIdValue(str) {
     if (!str) return 0;
