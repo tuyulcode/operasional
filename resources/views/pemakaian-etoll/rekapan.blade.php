@@ -4,32 +4,36 @@
   $periodeLabel = $report['periodeLabel'];
   $pemegangs = $report['pemegangs'];
   $bulanGroups = $report['bulanGroups'];
-  $maxDateCount = $report['maxDateCount'];
   $totalKeseluruhan = $report['totalKeseluruhan'];
 
-  // Lebar kolom Nama dihitung dari nama terpanjang, dikonversi ke persentase
-  // supaya tidak bentrok dengan kolom tanggal yang juga pakai %.
+  $totalDateCols = 0;
+  foreach ($bulanGroups as $group) {
+    $totalDateCols += count($group['rows']);
+  }
+
   $namaMaxLen = $pemegangs->pluck('nama')->map(fn($n) => mb_strlen($n))->max() ?: 4;
-  $namaPctEstimasi = max(90, $namaMaxLen * 8 + 24);
-  $lebarHalamanPx = 1000;
-  $namaPct = max(8, min(25, ($namaPctEstimasi / $lebarHalamanPx) * 100));
-
-  // Kolom Jumlah & kolom tanggal tetap pakai persentase dari sisa lebar tabel.
-  $jumlahPct = 8;
+  $namaPct = 12;
+  $jumlahPct = 12;
   $sisaPct = 100 - $namaPct - $jumlahPct;
-  $tanggalPct = $maxDateCount > 0 ? $sisaPct / $maxDateCount : $sisaPct;
+  $tanggalPct = $totalDateCols > 0 ? round($sisaPct / $totalDateCols, 2) : $sisaPct;
 
-  // Semakin banyak kolom tanggal, semakin kecil font supaya tetap terbaca.
   $fontSize = match(true) {
-      $maxDateCount <= 10 => 12,
-      $maxDateCount <= 20 => 10,
+      $totalDateCols <= 10 => 12,
+      $totalDateCols <= 20 => 10,
       default => 8,
   };
 
   $fmt = fn ($val) => (!$val || $val <= 0) ? '-' : number_format($val, 0, ',', '.');
+
+  $grandTotalPerPemegang = [];
+  foreach ($pemegangs as $p) {
+    $grandTotalPerPemegang[$p->id] = 0;
+    foreach ($bulanGroups as $group) {
+      $grandTotalPerPemegang[$p->id] += $group['totalPerPemegang'][$p->id] ?? 0;
+    }
+  }
 @endphp
 
-{{-- FILTER REKAPAN --}}
 <div class="card">
   <div class="card-header">
     <div class="card-header-title">
@@ -91,40 +95,47 @@
       <div class="table-responsive" style="overflow-x: auto;">
         <table style="border-collapse: collapse; table-layout: fixed; width: 100%; font-size: {{ $fontSize }}px; margin: 0;" border="1" cellpadding="4" cellspacing="0">
           <tr>
-            <td colspan="{{ $maxDateCount + 2 }}" style="background-color: #dbeafe; color: #1f2937; font-weight: bold; text-align: center;">
+            <td colspan="{{ $totalDateCols + 2 }}" style="background-color: #dbeafe; color: #1f2937; font-weight: bold; text-align: center;">
               A. Roda Empat
             </td>
           </tr>
 
-          @foreach($bulanGroups as $group)
-            <tr>
-              <td colspan="{{ $maxDateCount + 2 }}" style="background-color: #eef4ff; color: #1f2937; font-weight: bold; text-align: center;">
-                {{ $group['label'] }}
-              </td>
-            </tr>
-            <tr style="background-color: #e9ecef; color: #1f2937; font-weight: bold; text-align: center;">
-              <th rowspan="2" style="width: {{ $namaPct }}%; white-space: nowrap;">Nama</th>
-              <th colspan="{{ $maxDateCount }}" style="width: {{ $sisaPct }}%;">Tanggal</th>
-              <th rowspan="2" style="width: {{ $jumlahPct }}%; white-space: nowrap;">Jumlah</th>
-            </tr>
-            <tr style="background-color: #e9ecef; color: #1f2937; font-weight: bold; text-align: center;">
+          <tr style="background-color: #e9ecef; color: #1f2937; font-weight: bold; text-align: center;">
+            <th rowspan="3" style="width: {{ $namaPct }}%; white-space: nowrap;">Nama</th>
+            @foreach($bulanGroups as $group)
+              <th colspan="{{ count($group['rows']) }}">{{ $group['label'] }}</th>
+            @endforeach
+            <th rowspan="3" style="width: {{ $jumlahPct }}%; white-space: nowrap;">Jumlah</th>
+          </tr>
+
+          <tr style="background-color: #e9ecef; color: #1f2937; font-weight: bold; text-align: center;">
+            @foreach($bulanGroups as $group)
+              <th colspan="{{ count($group['rows']) }}">Tanggal</th>
+            @endforeach
+          </tr>
+
+          <tr style="background-color: #e9ecef; color: #1f2937; font-weight: bold; text-align: center;">
+            @foreach($bulanGroups as $group)
               @foreach($group['rows'] as $row)
                 <th style="width: {{ $tanggalPct }}%;">{{ $row['tanggal'] }}</th>
               @endforeach
-            </tr>
-            @foreach($pemegangs as $p)
-            <tr>
-              <td style="width: {{ $namaPct }}%; white-space: nowrap;">{{ $p->nama }}</td>
+            @endforeach
+          </tr>
+
+          @foreach($pemegangs as $p)
+          <tr>
+            <td style="width: {{ $namaPct }}%; white-space: nowrap;">{{ $p->nama }}</td>
+            @foreach($bulanGroups as $group)
               @foreach($group['rows'] as $row)
                 <td style="width: {{ $tanggalPct }}%; text-align: right;">{{ $fmt($row['nilai'][$p->id] ?? 0) }}</td>
               @endforeach
-              <td style="width: {{ $jumlahPct }}%; text-align: right; font-weight: bold;">{{ $fmt($group['totalPerPemegang'][$p->id] ?? 0) }}</td>
-            </tr>
             @endforeach
+            <td style="width: {{ $jumlahPct }}%; text-align: right; font-weight: bold;">{{ $fmt($grandTotalPerPemegang[$p->id]) }}</td>
+          </tr>
           @endforeach
 
           <tr style="background-color: #f1f3f5; color: #1f2937; font-weight: bold;">
-            <td colspan="{{ $maxDateCount + 1 }}" style="text-align: center;">Total</td>
+            <td colspan="{{ $totalDateCols + 1 }}" style="text-align: center;">Total</td>
             <td style="width: {{ $jumlahPct }}%; text-align: right;">{{ $fmt($totalKeseluruhan) }}</td>
           </tr>
         </table>

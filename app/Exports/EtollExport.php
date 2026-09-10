@@ -23,9 +23,14 @@ class EtollExport implements FromView, WithColumnFormatting
     public function columnFormats(): array
     {
         $formats = [];
-        $maxDateCount = $this->data['maxDateCount'];
 
-        for ($i = 0; $i < $maxDateCount + 1; $i++) {
+        // Hitung total kolom tanggal di seluruh bulan
+        $totalDateCols = 0;
+        foreach ($this->data['bulanGroups'] as $group) {
+            $totalDateCols += count($group['rows']);
+        }
+
+        for ($i = 0; $i < $totalDateCols + 1; $i++) {
             $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 2);
             $formats[$col] = '#,##0';
         }
