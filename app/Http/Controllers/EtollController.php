@@ -27,7 +27,11 @@ class EtollController extends Controller
             ]);
         }
 
-        $pemakaianEtolls = PemakaianEtoll::with('pemegangKendaraan')->latest('tanggal')->latest('id')->paginate(20);
+        $pemakaianEtolls = PemakaianEtoll::with('pemegangKendaraan')
+            ->latest('tanggal')
+            ->latest('id')
+            ->paginate(15)
+            ->withQueryString();
         $pemegangKendaraans = PemegangKendaraan::orderBy('nama')->get();
 
         $edit = null;
@@ -55,10 +59,6 @@ class EtollController extends Controller
 
         PemakaianEtoll::create($validated);
 
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'message' => 'Data pemakaian e-toll berhasil ditambahkan.']);
-        }
-
         return redirect()->route('pemakaian-etoll.index')
             ->with('success', 'Data pemakaian e-toll berhasil ditambahkan.');
     }
@@ -75,22 +75,14 @@ class EtollController extends Controller
 
         $pemakaianEtoll->update($validated);
 
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'message' => 'Data pemakaian e-toll berhasil diperbarui.']);
-        }
-
         return redirect()->route('pemakaian-etoll.index')
             ->with('success', 'Data pemakaian e-toll berhasil diperbarui.');
     }
 
-    public function destroy(Request $request, $id)
+    public function destroy($id)
     {
         $pemakaianEtoll = PemakaianEtoll::findOrFail($id);
         $pemakaianEtoll->delete();
-
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'message' => 'Data pemakaian e-toll berhasil dihapus.']);
-        }
 
         return redirect()->route('pemakaian-etoll.index')
             ->with('success', 'Data pemakaian e-toll berhasil dihapus.');
@@ -177,8 +169,8 @@ class EtollController extends Controller
                 'tanggalAwalRaw' => $tanggalAwalRaw,
                 'tanggalAkhirRaw' => $tanggalAkhirRaw,
                 'pemegangs' => collect(),
-                'rows' => [],
-                'totalPerPemegang' => [],
+                'bulanGroups' => [],
+                'maxDateCount' => 0,
                 'totalKeseluruhan' => 0,
                 'awal' => null,
                 'akhir' => null,
@@ -195,8 +187,12 @@ class EtollController extends Controller
     }
 
     /**
-     * Susun data laporan pivot per tanggal (bisa lintas bulan/tahun): baris = setiap
-     * tanggal dari $awal s/d $akhir (inklusif), kolom = nama pemegang kendaraan.
+     * Susun data laporan pivot per tanggal, DIKELOMPOKKAN PER BULAN. Kalau rentang
+     * tanggal yang dipilih nyebrang bulan (misal 25 Sep - 5 Okt), datanya dipecah
+     * jadi beberapa "blok bulan" (masing-masing dengan kolom tanggal & kolom Jumlah
+     * sendiri), supaya nomor kolom tanggal tidak campur aduk antar bulan yang
+     * jumlah harinya beda-beda. Baris "Total" paling bawah cuma 1 angka gabungan
+     * seluruh periode (lintas semua bulan & semua pemegang kendaraan).
      */
     private function buildLaporanData(Carbon $awal, Carbon $akhir): array
     {
@@ -224,35 +220,75 @@ class EtollController extends Controller
             $nilai[$key][$item->pemegang_kendaraan_id] = ($nilai[$key][$item->pemegang_kendaraan_id] ?? 0) + (float) $item->nominal;
         }
 
-        $rows = [];
-        $totalPerPemegang = array_fill_keys($pemegangIds, 0);
+        // Kelompokkan tanggal per bulan (Y-m), urut sesuai urutan tanggal
+        $tanggalPerBulan = [];
+        foreach ($periode as $tgl) {
+            $groupKey = $tgl->format('Y-m');
+            $tanggalPerBulan[$groupKey]['label'] = $tgl->locale('id')->translatedFormat('F Y');
+            $tanggalPerBulan[$groupKey]['tanggals'][] = $tgl->copy();
+        }
+
+        $bulanGroups = [];
         $totalKeseluruhan = 0;
 
-        foreach ($periode as $tgl) {
-            $key = $tgl->format('Y-m-d');
-            $rowTotal = array_sum($nilai[$key]);
+        foreach ($tanggalPerBulan as $group) {
+            $rows = [];
+            $totalPerPemegang = array_fill_keys($pemegangIds, 0);
 
-            $rows[] = [
-                'tanggalKey' => $key,
-                'tanggal' => $tgl->format('d/m'),
-                'nilai' => $nilai[$key],
-                'total' => $rowTotal,
-            ];
+            foreach ($group['tanggals'] as $tgl) {
+                $key = $tgl->format('Y-m-d');
+                $rowTotal = array_sum($nilai[$key]);
 
-            foreach ($nilai[$key] as $pemegangId => $val) {
-                $totalPerPemegang[$pemegangId] += $val;
+                $rows[] = [
+                    'tanggalKey' => $key,
+                    'tanggal' => $tgl->day,
+                    'nilai' => $nilai[$key],
+                    'total' => $rowTotal,
+                ];
+
+                foreach ($nilai[$key] as $pemegangId => $val) {
+                    $totalPerPemegang[$pemegangId] += $val;
+                }
+                $totalKeseluruhan += $rowTotal;
             }
-            $totalKeseluruhan += $rowTotal;
+
+            $bulanGroups[] = [
+                'label' => $group['label'],
+                'rows' => $rows,
+                'totalPerPemegang' => $totalPerPemegang,
+            ];
         }
+
+        // Samakan jumlah kolom tanggal di semua blok bulan (padding baris kosong
+        // di blok yang lebih sedikit harinya), supaya semua blok tetap dalam 1
+        // <table> yang sama tanpa bikin kolom antar blok salah hitung/geser.
+        $maxDateCount = 0;
+        foreach ($bulanGroups as $group) {
+            if (count($group['rows']) > $maxDateCount) {
+                $maxDateCount = count($group['rows']);
+            }
+        }
+
+        foreach ($bulanGroups as &$group) {
+            while (count($group['rows']) < $maxDateCount) {
+                $group['rows'][] = [
+                    'tanggalKey' => null,
+                    'tanggal' => '',
+                    'nilai' => [],
+                    'total' => 0,
+                ];
+            }
+        }
+        unset($group);
 
         return [
             'pemegangs' => $pemegangs,
-            'rows' => $rows,
-            'totalPerPemegang' => $totalPerPemegang,
+            'bulanGroups' => $bulanGroups,
+            'maxDateCount' => $maxDateCount,
             'totalKeseluruhan' => $totalKeseluruhan,
             'awal' => $awal,
             'akhir' => $akhir,
-            'periodeLabel' => $awal->translatedFormat('d F Y') . ' - ' . $akhir->translatedFormat('d F Y'),
+            'periodeLabel' => $awal->locale('id')->translatedFormat('j F Y') . ' - ' . $akhir->locale('id')->translatedFormat('j F Y'),
         ];
     }
 }

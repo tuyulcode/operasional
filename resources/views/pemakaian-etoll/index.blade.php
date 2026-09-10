@@ -94,11 +94,17 @@
                           onclick="openEditEtoll(this)">
                     <i class="fa-solid fa-pen"></i>
                   </button>
+                  @if(Auth::user()->role === 'petugas')
+                  <button type="button" class="btn btn-icon" disabled title="Anda tidak memiliki akses untuk menghapus data">
+                    <i class="fa-solid fa-lock"></i>
+                  </button>
+                  @else
                   <button type="button" class="btn btn-icon btn-delete" title="Hapus"
                           data-id="{{ $item->id }}"
                           onclick="openDeleteEtoll(this)">
                     <i class="fa-solid fa-trash-can"></i>
                   </button>
+                  @endif
                 </td>
               </tr>
               @empty

@@ -69,7 +69,11 @@
                         onclick="openEditUser(this)">
                   <i class="fa-solid fa-pen"></i>
                 </button>
-                @if($u->id !== auth()->id())
+                @if(Auth::user()->role === 'petugas')
+                <button type="button" class="btn btn-icon" disabled title="Anda tidak memiliki akses untuk menghapus data">
+                  <i class="fa-solid fa-lock"></i>
+                </button>
+                @elseif($u->id !== auth()->id())
                 <button type="button" class="btn btn-icon btn-delete" title="Hapus"
                         data-id="{{ $u->id }}"
                         data-username="{{ $u->username }}"

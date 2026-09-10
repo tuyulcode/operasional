@@ -18,6 +18,11 @@ class TagihanAirController extends Controller
     {
         $tab = $request->query('tab', 'input');
 
+        // Role lingkungan cuma boleh lihat Rekapan, apapun tab yang diminta di URL.
+        if ($request->user()->role === 'lingkungan') {
+            $tab = 'rekapan';
+        }
+
         if ($tab === 'rekapan') {
             $report = (new RekapanController)->buildReport($request);
 

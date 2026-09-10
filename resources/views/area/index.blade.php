@@ -149,6 +149,11 @@
                         onclick="openEditArea(this)">
                   <i class="fa-solid fa-pen"></i>
                 </button>
+                @if(Auth::user()->role === 'petugas')
+                  <button type="button" class="btn btn-icon" disabled title="Anda tidak memiliki akses untuk menghapus data">
+                    <i class="fa-solid fa-lock"></i>
+                  </button>
+                @else
                 <form action="{{ route('area.destroy', $area->id) }}" method="POST" style="display: inline;"
                       class="ajax-form">
                   @csrf
@@ -157,6 +162,7 @@
                     <i class="fa-solid fa-trash-can"></i>
                   </button>
                 </form>
+                @endif
               </td>
             </tr>
             @empty

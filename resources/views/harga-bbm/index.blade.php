@@ -83,7 +83,12 @@
                   <i class="fa-solid fa-pen"></i>
                 </button>
 
-                @if($item->isDipakai())
+                @if(Auth::user()->role === 'petugas')
+                  <button type="button" class="btn btn-icon" disabled
+                          title="Anda tidak memiliki akses untuk menghapus data">
+                    <i class="fa-solid fa-lock"></i>
+                  </button>
+                @elseif($item->isDipakai())
                   <button type="button" class="btn btn-icon" disabled
                           title="Tidak bisa dihapus, data sudah dipakai">
                     <i class="fa-solid fa-lock"></i>
