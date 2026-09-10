@@ -17,11 +17,14 @@
     <td colspan="{{ $maxDateCount + 2 }}" align="center" bgcolor="#EEF4FF" style="font-weight: bold; background-color: #EEF4FF; color: #1F2937; border: 1px solid #000000;">{{ $group['label'] }}</td>
   </tr>
   <tr>
-    <td align="center" bgcolor="#E9ECEF" style="width: 120px; font-weight: bold; background-color: #E9ECEF; color: #1F2937; border: 1px solid #000000;">Nama</td>
+    <td rowspan="2" align="center" bgcolor="#E9ECEF" style="width: 120px; font-weight: bold; background-color: #E9ECEF; color: #1F2937; border: 1px solid #000000;">Nama</td>
+    <td colspan="{{ $maxDateCount }}" align="center" bgcolor="#E9ECEF" style="font-weight: bold; background-color: #E9ECEF; color: #1F2937; border: 1px solid #000000;">Tanggal</td>
+    <td rowspan="2" align="center" bgcolor="#E9ECEF" style="width: 80px; font-weight: bold; background-color: #E9ECEF; color: #1F2937; border: 1px solid #000000;">Jumlah</td>
+  </tr>
+  <tr>
     @foreach($group['rows'] as $row)
       <td align="center" bgcolor="#E9ECEF" style="width: 40px; font-weight: bold; background-color: #E9ECEF; color: #1F2937; border: 1px solid #000000;">{{ $row['tanggal'] }}</td>
     @endforeach
-    <td align="center" bgcolor="#E9ECEF" style="width: 80px; font-weight: bold; background-color: #E9ECEF; color: #1F2937; border: 1px solid #000000;">Jumlah</td>
   </tr>
   @foreach($pemegangs as $p)
   <tr>

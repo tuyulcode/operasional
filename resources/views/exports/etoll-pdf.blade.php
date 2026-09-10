@@ -91,11 +91,14 @@
         <td colspan="{{ $maxDateCount + 2 }}" class="bulan-label">{{ $group['label'] }}</td>
       </tr>
       <tr>
-        <td class="kolom-header col-nama" style="width: {{ $namaPct }}%;">Nama</td>
+        <td rowspan="2" class="kolom-header col-nama" style="width: {{ $namaPct }}%;">Nama</td>
+        <td colspan="{{ $maxDateCount }}" class="kolom-header" style="width: {{ $sisaPct }}%;">Tanggal</td>
+        <td rowspan="2" class="kolom-header col-jumlah" style="width: {{ $jumlahPct }}%;">Jumlah</td>
+      </tr>
+      <tr>
         @foreach($group['rows'] as $row)
           <td class="kolom-header col-tgl" style="width: {{ $tanggalPct }}%;">{{ $row['tanggal'] }}</td>
         @endforeach
-        <td class="kolom-header col-jumlah" style="width: {{ $jumlahPct }}%;">Jumlah</td>
       </tr>
       @foreach($pemegangs as $p)
       <tr>

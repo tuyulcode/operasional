@@ -103,11 +103,14 @@
               </td>
             </tr>
             <tr style="background-color: #e9ecef; color: #1f2937; font-weight: bold; text-align: center;">
-              <th style="width: {{ $namaPct }}%; white-space: nowrap;">Nama</th>
+              <th rowspan="2" style="width: {{ $namaPct }}%; white-space: nowrap;">Nama</th>
+              <th colspan="{{ $maxDateCount }}" style="width: {{ $sisaPct }}%;">Tanggal</th>
+              <th rowspan="2" style="width: {{ $jumlahPct }}%; white-space: nowrap;">Jumlah</th>
+            </tr>
+            <tr style="background-color: #e9ecef; color: #1f2937; font-weight: bold; text-align: center;">
               @foreach($group['rows'] as $row)
                 <th style="width: {{ $tanggalPct }}%;">{{ $row['tanggal'] }}</th>
               @endforeach
-              <th style="width: {{ $jumlahPct }}%; white-space: nowrap;">Jumlah</th>
             </tr>
             @foreach($pemegangs as $p)
             <tr>
