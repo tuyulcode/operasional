@@ -3,9 +3,28 @@
   $tanggalAkhirRaw = $report['tanggalAkhirRaw'];
   $periodeLabel = $report['periodeLabel'];
   $pemegangs = $report['pemegangs'];
-  $rows = $report['rows'];
-  $totalPerPemegang = $report['totalPerPemegang'];
+  $bulanGroups = $report['bulanGroups'];
+  $maxDateCount = $report['maxDateCount'];
   $totalKeseluruhan = $report['totalKeseluruhan'];
+
+  // Lebar kolom Nama FIXED (px), dihitung dari nama terpanjang di data pemegang
+  // kendaraan — supaya nama tidak kepotong tapi juga tidak buang-buang ruang.
+  $namaMaxLen = $pemegangs->pluck('nama')->map(fn($n) => mb_strlen($n))->max() ?: 4;
+  $namaWidthPx = max(90, min(220, $namaMaxLen * 8 + 24));
+
+  // Kolom Jumlah & kolom tanggal tetap pakai persentase dari sisa lebar tabel.
+  $jumlahPct = 8;
+  $sisaPct = 100 - $jumlahPct;
+  $tanggalPct = $maxDateCount > 0 ? $sisaPct / $maxDateCount : $sisaPct;
+
+  // Semakin banyak kolom tanggal, semakin kecil font supaya tetap terbaca.
+  $fontSize = match(true) {
+      $maxDateCount <= 10 => 12,
+      $maxDateCount <= 20 => 10,
+      default => 8,
+  };
+
+  $fmt = fn ($val) => (!$val || $val <= 0) ? '-' : number_format($val, 0, ',', '.');
 @endphp
 
 {{-- FILTER REKAPAN --}}
@@ -68,38 +87,41 @@
       <p style="text-align: center; margin-bottom: 16px;">Periode {{ $periodeLabel }}</p>
 
       <div class="table-responsive" style="overflow-x: auto;">
-        <table style="border-collapse: collapse; width: max-content; min-width: 100%; font-size: 12px;" border="1" cellpadding="4" cellspacing="0">
-          <thead>
+        <table style="border-collapse: collapse; table-layout: fixed; width: 100%; font-size: {{ $fontSize }}px; margin: 0;" border="1" cellpadding="4" cellspacing="0">
+          <tr>
+            <td colspan="{{ $maxDateCount + 2 }}" style="background-color: #dbeafe; color: #1f2937; font-weight: bold; text-align: center;">
+              A. Roda Empat
+            </td>
+          </tr>
+
+          @foreach($bulanGroups as $group)
             <tr>
-              <td colspan="{{ count($rows) + 2 }}" style="background-color: #dbeafe; color: #1f2937; font-weight: bold; text-align: center;">
-                A. Roda Empat
+              <td colspan="{{ $maxDateCount + 2 }}" style="background-color: #eef4ff; color: #1f2937; font-weight: bold; text-align: center;">
+                {{ $group['label'] }}
               </td>
             </tr>
             <tr style="background-color: #e9ecef; color: #1f2937; font-weight: bold; text-align: center;">
-              <th style="white-space: nowrap;">Nama</th>
-              @foreach($rows as $row)
-                <th style="white-space: nowrap;">{{ $row['tanggal'] }}</th>
+              <th style="width: {{ $namaWidthPx }}px; white-space: nowrap;">Nama</th>
+              @foreach($group['rows'] as $row)
+                <th style="width: {{ $tanggalPct }}%;">{{ $row['tanggal'] }}</th>
               @endforeach
-              <th style="white-space: nowrap;">Jumlah</th>
+              <th style="width: {{ $jumlahPct }}%; white-space: nowrap;">Jumlah</th>
             </tr>
-          </thead>
-          <tbody>
             @foreach($pemegangs as $p)
             <tr>
-              <td style="white-space: nowrap;">{{ $p->nama }}</td>
-              @foreach($rows as $row)
-                <td style="text-align: right;">{{ ($row['nilai'][$p->id] ?? 0) > 0 ? number_format($row['nilai'][$p->id], 0, ',', '.') : '-' }}</td>
+              <td style="width: {{ $namaWidthPx }}px; white-space: nowrap;">{{ $p->nama }}</td>
+              @foreach($group['rows'] as $row)
+                <td style="width: {{ $tanggalPct }}%; text-align: right;">{{ $fmt($row['nilai'][$p->id] ?? 0) }}</td>
               @endforeach
-              <td style="text-align: right; font-weight: bold;">{{ ($totalPerPemegang[$p->id] ?? 0) > 0 ? number_format($totalPerPemegang[$p->id], 0, ',', '.') : '-' }}</td>
+              <td style="width: {{ $jumlahPct }}%; text-align: right; font-weight: bold;">{{ $fmt($group['totalPerPemegang'][$p->id] ?? 0) }}</td>
             </tr>
             @endforeach
-          </tbody>
-          <tfoot>
-            <tr style="background-color: #f1f3f5; color: #1f2937; font-weight: bold;">
-              <td colspan="{{ count($rows) + 1 }}" style="text-align: center;">Total</td>
-              <td style="text-align: right;">{{ number_format($totalKeseluruhan, 0, ',', '.') }}</td>
-            </tr>
-          </tfoot>
+          @endforeach
+
+          <tr style="background-color: #f1f3f5; color: #1f2937; font-weight: bold;">
+            <td colspan="{{ $maxDateCount + 1 }}" style="text-align: center;">Total</td>
+            <td style="width: {{ $jumlahPct }}%; text-align: right;">{{ $fmt($totalKeseluruhan) }}</td>
+          </tr>
         </table>
       </div>
     </div>
