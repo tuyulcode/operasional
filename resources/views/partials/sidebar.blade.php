@@ -26,6 +26,7 @@
     {{-- Category: Transaksi --}}
     <div class="menu-category">Transaksi</div>
 
+    @unless(Auth::user()->role === 'lingkungan')
     <li class="menu-item {{ request()->routeIs('pemakaian-etoll.*') ? 'active' : '' }}">
       <a href="{{ route('pemakaian-etoll.index') }}" class="menu-link">
         <div class="link-left">
@@ -34,9 +35,10 @@
         </div>
       </a>
     </li>
+    @endunless
 
     <li class="menu-item {{ request()->routeIs('pemakaian-bbm.*') ? 'active' : '' }}">
-      <a href="{{ route('pemakaian-bbm.index') }}" class="menu-link">
+      <a href="{{ Auth::user()->role === 'lingkungan' ? route('pemakaian-bbm.rekapan') : route('pemakaian-bbm.index') }}" class="menu-link">
         <div class="link-left">
           <i class="fa-solid fa-gas-pump link-icon"></i>
           <span class="link-text">BBM & Consumable</span>
@@ -53,6 +55,7 @@
       </a>
     </li>
 
+    @unless(Auth::user()->role === 'lingkungan')
     {{-- Category: Master Data --}}
     <div class="menu-category">Master Data</div>
 
@@ -94,7 +97,9 @@
         <li><a href="{{ route('ppn.index') }}" class="submenu-link {{ request()->routeIs('ppn.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> PPN</a></li>
       </ul>
     </li>
+    @endunless
 
+    @unless(Auth::user()->role === 'lingkungan')
     {{-- Category: Pengaturan --}}
     <div class="menu-category">Pengaturan</div>
 
@@ -117,5 +122,6 @@
         </div>
       </a>
     </li>
+    @endunless
   </div>
 </aside>

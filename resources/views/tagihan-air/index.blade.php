@@ -4,6 +4,11 @@
 
 @section('content')
 
+  @php
+    $isLingkungan = Auth::user()->role === 'lingkungan';
+    $activeTab = $isLingkungan ? 'rekapan' : ($tab ?? 'input');
+  @endphp
+
   <div class="page-header">
     <div class="page-title">Tagihan Air</div>
     <ul class="breadcrumb">
@@ -27,21 +32,23 @@
   @endif
 
   <div class="tabs">
+    @unless($isLingkungan)
     <a href="{{ route('tagihan-air.index', ['tab' => 'input']) }}"
-       class="tab-link {{ ($tab ?? 'input') === 'input' ? 'active' : '' }}">
+       class="tab-link {{ $activeTab === 'input' ? 'active' : '' }}">
       <i class="fa-solid fa-table-list"></i> Input Data
     </a>
     <a href="{{ route('tagihan-air.index', ['tab' => 'data']) }}"
-       class="tab-link {{ ($tab ?? 'input') === 'data' ? 'active' : '' }}">
+       class="tab-link {{ $activeTab === 'data' ? 'active' : '' }}">
       <i class="fa-solid fa-database"></i> Data Tagihan Air
     </a>
+    @endunless
     <a href="{{ route('tagihan-air.index', ['tab' => 'rekapan']) }}"
-       class="tab-link {{ ($tab ?? 'input') === 'rekapan' ? 'active' : '' }}">
+       class="tab-link {{ $activeTab === 'rekapan' ? 'active' : '' }}">
       <i class="fa-solid fa-file-invoice"></i> Rekapan
     </a>
   </div>
 
-  @if(($tab ?? 'input') === 'input')
+  @if($activeTab === 'input')
 
   {{-- FORM INPUT --}}
   <div class="card tagihan-form">
@@ -213,7 +220,7 @@
     </div>
   </div>
 
-  @elseif(($tab ?? 'input') === 'data')
+  @elseif($activeTab === 'data')
 
   {{-- TABEL --}}
     <div class="card">
@@ -352,7 +359,7 @@
 
 @endsection
 
-@if(($tab ?? 'input') === 'input')
+@if($activeTab === 'input')
 @push('scripts')
 <script>
   const meterMap = @json($meterMap);
@@ -843,7 +850,7 @@
 @endpush
 @endif
 
-@if(($tab ?? 'input') === 'data')
+@if($activeTab === 'data')
 @push('scripts')
 <script>
   document.addEventListener('DOMContentLoaded', function() {
