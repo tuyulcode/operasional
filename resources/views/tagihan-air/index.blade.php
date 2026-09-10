@@ -154,6 +154,12 @@
                       <div style="position: relative; display: inline-block;">
                         <img src="{{ $f->url }}" alt="Foto meter"
                              style="width: 90px; height: 70px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;">
+                        @if(Auth::user()->role === 'petugas')
+                        <button type="button" class="btn btn-icon" disabled title="Anda tidak memiliki akses untuk menghapus data"
+                                style="position: absolute; top: 2px; right: 2px; margin: 0; padding: 2px 5px; font-size: 11px;">
+                          <i class="fa-solid fa-lock"></i>
+                        </button>
+                      @else
                         <button type="button" class="btn btn-icon btn-delete btn-delete-foto"
                                 data-url="{{ route('tagihan-air.foto.destroy', $f->id) }}"
                                 data-token="{{ csrf_token() }}"
@@ -161,6 +167,7 @@
                                 style="position: absolute; top: 2px; right: 2px; margin: 0; padding: 2px 5px; font-size: 11px;">
                           <i class="fa-solid fa-trash-can"></i>
                         </button>
+                      @endif
                       </div>
                     @endforeach
                   </div>
@@ -294,6 +301,11 @@
                      class="btn btn-icon btn-edit" title="Edit">
                     <i class="fa-solid fa-pen"></i>
                   </a>
+                  @if(Auth::user()->role === 'petugas')
+                    <button type="button" class="btn btn-icon" disabled title="Anda tidak memiliki akses untuk menghapus data">
+                      <i class="fa-solid fa-lock"></i>
+                    </button>
+                  @else
                   <form action="{{ route('tagihan-air.destroy', ['id' => $t->id, 'tab' => 'data']) }}"
                         method="POST" class="delete-tagihan-form ajax-form" style="display: inline;">
                     @csrf
@@ -302,6 +314,7 @@
                       <i class="fa-solid fa-trash-can"></i>
                     </button>
                   </form>
+                  @endif
                 </td>
               </tr>
               @empty
