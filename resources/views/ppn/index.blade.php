@@ -98,6 +98,11 @@
                       </button>
                     </form>
                   @endif
+                  @if(Auth::user()->role === 'petugas')
+                    <button type="button" class="btn btn-icon" disabled title="Anda tidak memiliki akses untuk menghapus data">
+                      <i class="fa-solid fa-lock"></i>
+                    </button>
+                  @else
                   <form action="{{ route('ppn.destroy', $ppn->id) }}" method="POST" style="display: inline;"
                         onsubmit="return confirm('Yakin ingin menghapus data PPN ini?');">
                     @csrf
@@ -106,6 +111,7 @@
                       <i class="fa-solid fa-trash-can"></i>
                     </button>
                   </form>
+                  @endif
                 </td>
               </tr>
               @empty

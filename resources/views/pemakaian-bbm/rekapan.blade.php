@@ -16,14 +16,17 @@
   </div>
 
   <div class="tabs">
+    @unless(Auth::user()->role === 'lingkungan')
     <a href="{{ route('pemakaian-bbm.index') }}"
        class="tab-link {{ request()->routeIs('pemakaian-bbm.index') ? 'active' : '' }}">
       <i class="fa-solid fa-table-list"></i> Input Data
     </a>
+    @endunless
     <a href="{{ route('pemakaian-bbm.rekapan') }}"
        class="tab-link {{ request()->routeIs('pemakaian-bbm.rekapan') ? 'active' : '' }}">
       <i class="fa-solid fa-file-invoice"></i> Rekapan
     </a>
+    @unless(Auth::user()->role === 'lingkungan')
     <a href="{{ route('pemakaian-bbm.pertanggungjawaban') }}"
        class="tab-link {{ request()->routeIs('pemakaian-bbm.pertanggungjawaban') ? 'active' : '' }}">
       <i class="fa-solid fa-file-signature"></i> Pertanggungjawaban
@@ -32,6 +35,7 @@
        class="tab-link {{ request()->routeIs('pemakaian-bbm.riwayat') ? 'active' : '' }}">
       <i class="fa-solid fa-clock-rotate-left"></i> Riwayat
     </a>
+    @endunless
   </div>
 
   <div class="card">
