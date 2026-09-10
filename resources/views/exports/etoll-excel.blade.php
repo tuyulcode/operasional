@@ -27,15 +27,15 @@
   <tr>
     <td style="width: 120px; border: 1px solid #000000;">{{ $p->nama }}</td>
     @foreach($group['rows'] as $row)
-      <td align="right" style="width: 40px; border: 1px solid #000000;">{{ ($row['nilai'][$p->id] ?? 0) > 0 ? number_format($row['nilai'][$p->id], 0, ',', '.') : '-' }}</td>
+      <td align="right" style="width: 40px; border: 1px solid #000000;">{{ ($row['nilai'][$p->id] ?? 0) > 0 ? $row['nilai'][$p->id] : '-' }}</td>
     @endforeach
-    <td align="right" style="width: 80px; border: 1px solid #000000; font-weight: bold;">{{ ($group['totalPerPemegang'][$p->id] ?? 0) > 0 ? number_format($group['totalPerPemegang'][$p->id], 0, ',', '.') : '-' }}</td>
+    <td align="right" style="width: 80px; border: 1px solid #000000; font-weight: bold;">{{ ($group['totalPerPemegang'][$p->id] ?? 0) > 0 ? $group['totalPerPemegang'][$p->id] : '-' }}</td>
   </tr>
   @endforeach
   @endforeach
 
   <tr>
     <td colspan="{{ $maxDateCount + 1 }}" align="center" bgcolor="#F1F3F5" style="font-weight: bold; background-color: #F1F3F5; color: #1F2937; border: 1px solid #000000; text-align: center;">Total</td>
-    <td align="right" bgcolor="#F1F3F5" style="width: 80px; font-weight: bold; background-color: #F1F3F5; color: #1F2937; border: 1px solid #000000;">{{ number_format($totalKeseluruhan, 0, ',', '.') }}</td>
+    <td align="right" bgcolor="#F1F3F5" style="width: 80px; font-weight: bold; background-color: #F1F3F5; color: #1F2937; border: 1px solid #000000;">{{ $totalKeseluruhan }}</td>
   </tr>
 </table>
