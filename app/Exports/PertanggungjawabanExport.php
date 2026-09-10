@@ -23,7 +23,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  *       ['no' => int, 'periodeLabel' => string, 'groups' => array, 'grandTotal' => array],
  *       ...
  *   ],
- *   'keterangan'    => ['paiton' => float, 'luar_paiton' => float, 'service_oli' => float, 'jasa' => float, 'jumlah' => float],
+ *   'keterangan'    => ['paiton' => float, ...],
  *   'penandatangan' => \App\Models\Penandatangan|null,
  * ]
  */
@@ -65,7 +65,7 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         $row = $this->writeMainTitle($sheet, $row);
 
         foreach ($this->data['weeks'] as $week) {
-            $row = $this->writeWeekTitle($sheet, $row, $week['no'], $week['periodeLabel']);
+            $row = $this->writeWeekTitle($sheet, $row, $week['periodeLabel']);
             $row++;
 
             $groups = array_values(array_filter(
@@ -114,7 +114,8 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
 
     private function setColumnWidths(Worksheet $sheet): void
     {
-        $widths = ['A' => 6, 'B' => 26, 'C' => 14, 'D' => 18];
+        // Dilebarkan dari sebelumnya (A6/B26/C14/D18)
+        $widths = ['A' => 8, 'B' => 36, 'C' => 18, 'D' => 22];
 
         foreach ($widths as $col => $width) {
             $sheet->getColumnDimension($col)->setWidth($width);
@@ -124,7 +125,7 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
     private function writeMainTitle(Worksheet $sheet, int $row): int
     {
         $sheet->mergeCells("A{$row}:D{$row}");
-        $sheet->setCellValue("A{$row}", 'PEMAKAIAN BBM KENDARAAN DINAS');
+        $sheet->setCellValue("A{$row}", 'PERTANGGUNGJAWABAN PEMAKAIAN BBM KENDARAAN DINAS');
         $sheet->getStyle("A{$row}")->applyFromArray([
             'font'      => ['bold' => true, 'size' => 13],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -134,10 +135,10 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         return $row + 1;
     }
 
-    private function writeWeekTitle(Worksheet $sheet, int $row, int $no, string $periodeLabel): int
+    private function writeWeekTitle(Worksheet $sheet, int $row, string $periodeLabel): int
     {
         $sheet->mergeCells("A{$row}:D{$row}");
-        $sheet->setCellValue("A{$row}", "{$no}. Periode {$periodeLabel}");
+        $sheet->setCellValue("A{$row}", "Periode {$periodeLabel}");
         $sheet->getStyle("A{$row}")->applyFromArray([
             'font'      => ['bold' => true, 'size' => 11],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -162,22 +163,18 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         return $row + 1;
     }
 
+    /**
+     * Header kolom - cuma 1 baris (No. / Nomor Kendaraan / Liter / Rp.),
+     * baris nomor urut kolom (1,2,3,4) dihapus.
+     */
     private function writeColumnHeader(Worksheet $sheet, int $row): int
     {
-        $r1 = $row;
-        $r2 = $row + 1;
+        $sheet->setCellValue("A{$row}", 'No.');
+        $sheet->setCellValue("B{$row}", 'Nomor Kendaraan');
+        $sheet->setCellValue("C{$row}", 'Liter');
+        $sheet->setCellValue("D{$row}", 'Rp.');
 
-        $sheet->setCellValue("A{$r1}", 'No.');
-        $sheet->setCellValue("B{$r1}", 'Nomor Kendaraan');
-        $sheet->setCellValue("C{$r1}", 'Liter');
-        $sheet->setCellValue("D{$r1}", 'Rp.');
-
-        $numbers = ['A' => '1', 'B' => '2', 'C' => '3', 'D' => '4'];
-        foreach ($numbers as $col => $val) {
-            $sheet->setCellValue("{$col}{$r2}", $val);
-        }
-
-        $range = "A{$r1}:D{$r2}";
+        $range = "A{$row}:D{$row}";
         $sheet->getStyle($range)->applyFromArray([
             'font'      => ['bold' => true],
             'alignment' => [
@@ -186,10 +183,9 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
             ],
         ]);
         $this->applyBorder($sheet, $range);
-        $sheet->getRowDimension($r1)->setRowHeight(20);
-        $sheet->getRowDimension($r2)->setRowHeight(16);
+        $sheet->getRowDimension($row)->setRowHeight(20);
 
-        return $r2 + 1;
+        return $row + 1;
     }
 
     private function writeSectionLabel(Worksheet $sheet, int $row, string $label): int
@@ -238,6 +234,10 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         return $row + 1;
     }
 
+    /**
+     * Baris "Pemakaian BBM untuk di Paiton" - tanpa tanda "-" di depan, dan
+     * "Rp <angka>" ditaruh langsung berdekatan (bukan di kolom terpisah jauh).
+     */
     private function writeKeterangan(Worksheet $sheet, int $row): int
     {
         $k = $this->data['keterangan'];
@@ -250,10 +250,11 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         $sheet->setCellValue("A{$row}", 'Laporan Pengeluaran BBM bulan ' . $this->data['bulanLabel']);
         $row += 2;
 
-        $sheet->setCellValue("A{$row}", '- Pemakaian BBM untuk di Paiton');
-        $sheet->setCellValue("C{$row}", 'Rp');
-        $sheet->setCellValueExplicit("D{$row}", number_format($k['paiton'], 0, ',', '.'), DataType::TYPE_STRING);
-        $sheet->getStyle("D{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->mergeCells("A{$row}:B{$row}");
+        $sheet->setCellValue("A{$row}", 'Pemakaian BBM untuk di Paiton');
+        $sheet->mergeCells("C{$row}:D{$row}");
+        $sheet->setCellValue("C{$row}", 'Rp ' . number_format($k['paiton'], 0, ',', '.'));
+        $sheet->getStyle("C{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
         $row += 2;
 
         return $row;
@@ -263,11 +264,7 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
      * TTD ambil murni dari data penandatangan yang dikirim ke export ini
      * ($this->data['penandatangan'], instance \App\Models\Penandatangan|null).
      * $p sendiri bisa null (belum ada baris ASMAN di tabel), makanya semua
-     * akses propertinya pakai null-safe operator (?->) - bukan cuma "??" saja,
-     * karena "??" tidak menyelamatkan dari warning "read property on null"
-     * ketika $p itu sendiri null. Kalau datanya kosong, tampilkan placeholder
-     * titik-titik biar jelas kelihatan belum di-setting, bukan diem-diem
-     * ganti ke jabatan tertentu yang di-tebak.
+     * akses propertinya pakai null-safe operator (?->).
      */
     private function writeSignature(Worksheet $sheet, int $row): void
     {
