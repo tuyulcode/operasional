@@ -7,14 +7,16 @@
   $maxDateCount = $report['maxDateCount'];
   $totalKeseluruhan = $report['totalKeseluruhan'];
 
-  // Lebar kolom Nama FIXED (px), dihitung dari nama terpanjang di data pemegang
-  // kendaraan — supaya nama tidak kepotong tapi juga tidak buang-buang ruang.
+  // Lebar kolom Nama dihitung dari nama terpanjang, dikonversi ke persentase
+  // supaya tidak bentrok dengan kolom tanggal yang juga pakai %.
   $namaMaxLen = $pemegangs->pluck('nama')->map(fn($n) => mb_strlen($n))->max() ?: 4;
-  $namaWidthPx = max(90, min(220, $namaMaxLen * 8 + 24));
+  $namaPctEstimasi = max(90, $namaMaxLen * 8 + 24);
+  $lebarHalamanPx = 1000;
+  $namaPct = max(8, min(25, ($namaPctEstimasi / $lebarHalamanPx) * 100));
 
   // Kolom Jumlah & kolom tanggal tetap pakai persentase dari sisa lebar tabel.
   $jumlahPct = 8;
-  $sisaPct = 100 - $jumlahPct;
+  $sisaPct = 100 - $namaPct - $jumlahPct;
   $tanggalPct = $maxDateCount > 0 ? $sisaPct / $maxDateCount : $sisaPct;
 
   // Semakin banyak kolom tanggal, semakin kecil font supaya tetap terbaca.
@@ -101,7 +103,7 @@
               </td>
             </tr>
             <tr style="background-color: #e9ecef; color: #1f2937; font-weight: bold; text-align: center;">
-              <th style="width: {{ $namaWidthPx }}px; white-space: nowrap;">Nama</th>
+              <th style="width: {{ $namaPct }}%; white-space: nowrap;">Nama</th>
               @foreach($group['rows'] as $row)
                 <th style="width: {{ $tanggalPct }}%;">{{ $row['tanggal'] }}</th>
               @endforeach
@@ -109,7 +111,7 @@
             </tr>
             @foreach($pemegangs as $p)
             <tr>
-              <td style="width: {{ $namaWidthPx }}px; white-space: nowrap;">{{ $p->nama }}</td>
+              <td style="width: {{ $namaPct }}%; white-space: nowrap;">{{ $p->nama }}</td>
               @foreach($group['rows'] as $row)
                 <td style="width: {{ $tanggalPct }}%; text-align: right;">{{ $fmt($row['nilai'][$p->id] ?? 0) }}</td>
               @endforeach

@@ -61,9 +61,9 @@
     // supaya dompdf tidak salah hitung lebar (dompdf kurang bisa diandalkan
     // kalau satu tabel table-layout:fixed dicampur satuan px & % sekaligus).
     $namaMaxLen = $pemegangs->pluck('nama')->map(fn($n) => mb_strlen($n))->max() ?: 4;
-    $namaWidthPxEstimasi = max(45, min(90, $namaMaxLen * 3.5 + 12));
+    $namaWidthPxEstimasi = max(45, $namaMaxLen * 5 + 15);
     $lebarHalamanPx = 1000; // estimasi lebar area cetak A4 landscape (dikurangi margin)
-    $namaPct = max(6, min(18, ($namaWidthPxEstimasi / $lebarHalamanPx) * 100));
+    $namaPct = max(6, min(30, ($namaWidthPxEstimasi / $lebarHalamanPx) * 100));
 
     $jumlahPct = 8;
     $sisaPct = 100 - $namaPct - $jumlahPct;
