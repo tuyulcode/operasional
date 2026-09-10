@@ -6,44 +6,20 @@
     @page { size: portrait; margin: 20px; }
     body { font-family: sans-serif; }
 
-    .header-table {
-      width: 100%;
-      table-layout: fixed;
-      border-collapse: collapse;
-      margin-bottom: 16px;
-    }
-    .header-table td {
-      border: none;
-      vertical-align: top;
-    }
-    .logo-cell {
-      width: 15%;
+    .logo-row {
       text-align: left;
+      margin-bottom: 8px;
     }
-    .logo-cell img {
+    .logo-row img {
       height: 45px;
     }
-    .title-cell {
-      width: 70%;
-      text-align: center;
-    }
-
-    h3 { margin: 0; font-size: 15px; line-height: 1.2; }
   </style>
 </head>
 <body>
 
-  <table class="header-table">
-    <tr>
-      <td class="logo-cell">
-        <img src="{{ public_path('images/logo-pln2.png') }}" alt="Logo PLN">
-      </td>
-      <td class="title-cell">
-        <h3>PERTANGGUNGJAWABAN PEMAKAIAN BBM</h3>
-      </td>
-      <td class="logo-cell"></td>
-    </tr>
-  </table>
+  <div class="logo-row">
+    <img src="{{ public_path('images/logo-pln2.png') }}" alt="Logo PLN">
+  </div>
 
   @include('rekapan.pemakaian-bbm._pertanggungjawaban-report', [
     'weeks'         => $weeks,
