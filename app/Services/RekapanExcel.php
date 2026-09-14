@@ -196,7 +196,7 @@ class RekapanExcel
             $r++;
         }
 
-        $r += 1;
+        $r += 3;
         self::ttdBlock($sheet, $r, $penandatangan, 'D');
     }
 
@@ -329,7 +329,7 @@ class RekapanExcel
             $r = $photoRow + 1;
         }
 
-        $r += 2;
+        $r += 4;
         self::ttdBlock($sheet, $r, $penandatangan, $lastCol);
     }
 
@@ -517,7 +517,7 @@ class RekapanExcel
             }
         }
 
-        $r += 1;
+        $r += 3;
         self::ttdBlock($sheet, $r, $penandatangan, $lastCol);
     }
 
@@ -740,45 +740,49 @@ class RekapanExcel
         $tanggal = Carbon::now()->locale('id')->translatedFormat('d F Y');
         $dateText = ($tempat ? $tempat.', ' : '').$tanggal;
 
-        $rowTop = $r;
-        $sheet->mergeCells($leftStart.$rowTop.':'.$leftEnd.$rowTop);
-        $sheet->setCellValue($leftStart.$rowTop, 'Menyetujui');
-        $sheet->getStyle($leftStart.$rowTop)->getFont()->setName('Calibri')->setBold(true);
-        $sheet->getStyle($leftStart.$rowTop)->getAlignment()->setHorizontal('center');
-
-        $sheet->mergeCells($rightStart.$rowTop.':'.$rightEnd.$rowTop);
-        $sheet->setCellValue($rightStart.$rowTop, $dateText);
-        $sheet->getStyle($rightStart.$rowTop)->getFont()->setName('Calibri');
-        $sheet->getStyle($rightStart.$rowTop)->getAlignment()->setHorizontal('center');
-        $sheet->getRowDimension($rowTop)->setRowHeight(18);
+        $rowDate = $r;
+        $sheet->mergeCells($rightStart.$rowDate.':'.$rightEnd.$rowDate);
+        $sheet->setCellValue($rightStart.$rowDate, $dateText);
+        $sheet->getStyle($rightStart.$rowDate)->getFont()->setName('Calibri');
+        $sheet->getStyle($rightStart.$rowDate)->getAlignment()->setHorizontal('center');
+        $sheet->getRowDimension($rowDate)->setRowHeight(18);
         $r++;
 
         $sheet->getRowDimension($r)->setRowHeight(8);
         $r++;
 
-        $rowJabatan1 = $r;
-        $sheet->mergeCells($leftStart.$rowJabatan1.':'.$leftEnd.$rowJabatan1);
-        $sheet->setCellValue($leftStart.$rowJabatan1, $pLeft ? $pLeft->jabatan : '');
-        $sheet->getStyle($leftStart.$rowJabatan1)->getFont()->setName('Calibri')->setBold(true);
-        $sheet->getStyle($leftStart.$rowJabatan1)->getAlignment()->setHorizontal('center');
+        $rowTitle = $r;
+        $sheet->mergeCells($leftStart.$rowTitle.':'.$leftEnd.$rowTitle);
+        $sheet->setCellValue($leftStart.$rowTitle, 'Menyetujui,');
+        $sheet->getStyle($leftStart.$rowTitle)->getFont()->setName('Calibri')->setBold(true);
+        $sheet->getStyle($leftStart.$rowTitle)->getAlignment()->setHorizontal('center');
 
-        $sheet->mergeCells($rightStart.$rowJabatan1.':'.$rightEnd.$rowJabatan1);
-        $sheet->setCellValue($rightStart.$rowJabatan1, 'Mengusulkan');
-        $sheet->getStyle($rightStart.$rowJabatan1)->getFont()->setName('Calibri')->setBold(true);
-        $sheet->getStyle($rightStart.$rowJabatan1)->getAlignment()->setHorizontal('center');
-        $sheet->getRowDimension($rowJabatan1)->setRowHeight(18);
+        if ($pRight) {
+            $sheet->mergeCells($rightStart.$rowTitle.':'.$rightEnd.$rowTitle);
+            $sheet->setCellValue($rightStart.$rowTitle, 'Mengusulkan,');
+            $sheet->getStyle($rightStart.$rowTitle)->getFont()->setName('Calibri')->setBold(true);
+            $sheet->getStyle($rightStart.$rowTitle)->getAlignment()->setHorizontal('center');
+        }
+        $sheet->getRowDimension($rowTitle)->setRowHeight(18);
         $r++;
 
-        $rowJabatan2 = $r;
-        $sheet->mergeCells($rightStart.$rowJabatan2.':'.$rightEnd.$rowJabatan2);
-        $sheet->setCellValue($rightStart.$rowJabatan2, $pRight ? $pRight->jabatan : '');
-        $sheet->getStyle($rightStart.$rowJabatan2)->getFont()->setName('Calibri')->setBold(true);
-        $sheet->getStyle($rightStart.$rowJabatan2)->getAlignment()->setHorizontal('center');
-        $sheet->getRowDimension($rowJabatan2)->setRowHeight(18);
+        $rowJabatan = $r;
+        $sheet->mergeCells($leftStart.$rowJabatan.':'.$leftEnd.$rowJabatan);
+        $sheet->setCellValue($leftStart.$rowJabatan, $pLeft ? $pLeft->jabatan : '');
+        $sheet->getStyle($leftStart.$rowJabatan)->getFont()->setName('Calibri')->setBold(true);
+        $sheet->getStyle($leftStart.$rowJabatan)->getAlignment()->setHorizontal('center');
+
+        if ($pRight) {
+            $sheet->mergeCells($rightStart.$rowJabatan.':'.$rightEnd.$rowJabatan);
+            $sheet->setCellValue($rightStart.$rowJabatan, $pRight->jabatan ?: '');
+            $sheet->getStyle($rightStart.$rowJabatan)->getFont()->setName('Calibri')->setBold(true);
+            $sheet->getStyle($rightStart.$rowJabatan)->getAlignment()->setHorizontal('center');
+        }
+        $sheet->getRowDimension($rowJabatan)->setRowHeight(18);
         $r++;
 
         $spaceRow = $r;
-        $sheet->getRowDimension($spaceRow)->setRowHeight(45);
+        $sheet->getRowDimension($spaceRow)->setRowHeight(68);
         $r++;
 
         $namaRow = $r;
