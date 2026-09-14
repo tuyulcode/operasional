@@ -229,8 +229,9 @@ class PemakaianBbmController extends Controller
             $keterangan = $this->buildKeterangan($weeks);
             // Cuma buat teks "Laporan Pengeluaran BBM bulan ..." di preview.
             // Nilai final yang sebenarnya disimpan ke DB dihitung ulang di
-            // buildDanSimpanPertanggungjawabanData() pas export.
-            $bulanLabel = Carbon::parse($validated['tanggal_awal'])->locale('id')->translatedFormat('F Y');
+            // buildDanSimpanPertanggungjawabanData() pas export - dua-duanya
+            // sekarang pakai formatBulanLabel() yang sama biar konsisten.
+            $bulanLabel = $this->formatBulanLabel($validated['tanggal_awal'], $validated['tanggal_akhir']);
         }
 
         // Semua rentang tanggal yang sudah pernah di-export sebelumnya (jadi baris
@@ -519,33 +520,73 @@ class PemakaianBbmController extends Controller
     }
 
     /**
+     * Format label periode jadi rentang tanggal (bukan cuma nama bulan), dipakai
+     * konsisten di preview & export (Excel/PDF) maupun kolom Bulan di tab Riwayat.
+     *
+     * - Satu bulan & tahun sama : "2 - 4 September 2026"
+     * - Beda bulan, tahun sama  : "22 September - 4 Oktober 2026"
+     * - Beda tahun              : "28 Desember 2026 - 3 Januari 2027"
+     */
+    private function formatBulanLabel(string $tanggalAwal, string $tanggalAkhir): string
+    {
+        $awal  = Carbon::parse($tanggalAwal)->locale('id');
+        $akhir = Carbon::parse($tanggalAkhir)->locale('id');
+
+        if ($awal->year !== $akhir->year) {
+            return $awal->translatedFormat('j F Y') . ' - ' . $akhir->translatedFormat('j F Y');
+        }
+
+        if ($awal->month !== $akhir->month) {
+            return $awal->translatedFormat('j F') . ' - ' . $akhir->translatedFormat('j F Y');
+        }
+
+        return $awal->day . ' - ' . $akhir->translatedFormat('j F Y');
+    }
+
+    /**
      * Dipanggil pas user beneran klik Export Excel/PDF (bukan pas preview).
      *
      * 1. Validasi tanggal_awal/tanggal_akhir.
-     * 2. Cek belum pernah dipakai periode lain (double-check - preview juga
-     *    sudah men-disable tanggal ini di datepicker, ini jaring pengaman kedua).
-     * 3. Auto-generate bulan_label dari tanggal_awal (mis. "September 2026").
-     * 4. SIMPAN sebagai baris pertanggungjawaban_periode baru - inilah titik
-     *    tanggal ini resmi "terpakai" & muncul di tab Riwayat.
+     * 2. Kalau rentang tanggal PERSIS SAMA dengan periode yang sudah pernah
+     *    tercatat -> pakai ulang datanya (reuse), TIDAK bikin baris baru, TIDAK
+     *    error. Ini yang bikin export Excel lalu PDF (atau berkali-kali) untuk
+     *    rentang yang sama tetap bisa jalan terus.
+     * 3. Kalau rentangnya BEDA tapi tumpang tindih sama periode lain -> tetap
+     *    ditolak (mencegah data finansial dihitung dobel di laporan berbeda).
+     * 4. Kalau ini beneran periode baru -> auto-generate bulan_label pakai
+     *    formatBulanLabel() (format rentang tanggal), lalu SIMPAN sebagai baris
+     *    pertanggungjawaban_periode baru - inilah titik tanggal ini resmi
+     *    "terpakai" & muncul di tab Riwayat.
      * 5. Baru bangun data laporannya buat di-render ke Excel/PDF.
      */
     private function buildDanSimpanPertanggungjawabanData(Request $request): array
     {
         $validated = $this->validatePeriode($request);
 
-        $overlap = PertanggungjawabanPeriode::where('tanggal_awal', '<=', $validated['tanggal_akhir'])
-            ->where('tanggal_akhir', '>=', $validated['tanggal_awal'])
-            ->exists();
+        // Rentang PERSIS SAMA yang sudah pernah tercatat -> reuse, jangan bikin
+        // baris baru, jangan error.
+        $existing = PertanggungjawabanPeriode::where('tanggal_awal', $validated['tanggal_awal'])
+            ->where('tanggal_akhir', $validated['tanggal_akhir'])
+            ->first();
 
-        abort_if($overlap, 422, 'Rentang tanggal ini sudah pernah di-export sebelumnya. Cek tab Riwayat.');
+        if ($existing) {
+            $bulanLabel = $existing->bulan_label;
+        } else {
+            // Rentang BEDA tapi tumpang tindih sama periode lain -> tetap ditolak.
+            $overlap = PertanggungjawabanPeriode::where('tanggal_awal', '<=', $validated['tanggal_akhir'])
+                ->where('tanggal_akhir', '>=', $validated['tanggal_awal'])
+                ->exists();
 
-        $bulanLabel = Carbon::parse($validated['tanggal_awal'])->locale('id')->translatedFormat('F Y');
+            abort_if($overlap, 422, 'Rentang tanggal ini tumpang tindih dengan periode lain yang sudah pernah di-export. Cek tab Riwayat.');
 
-        PertanggungjawabanPeriode::create([
-            'bulan_label'   => $bulanLabel,
-            'tanggal_awal'  => $validated['tanggal_awal'],
-            'tanggal_akhir' => $validated['tanggal_akhir'],
-        ]);
+            $bulanLabel = $this->formatBulanLabel($validated['tanggal_awal'], $validated['tanggal_akhir']);
+
+            PertanggungjawabanPeriode::create([
+                'bulan_label'   => $bulanLabel,
+                'tanggal_awal'  => $validated['tanggal_awal'],
+                'tanggal_akhir' => $validated['tanggal_akhir'],
+            ]);
+        }
 
         $weeks         = $this->buildWeeksForRange($validated['tanggal_awal'], $validated['tanggal_akhir']);
         $keterangan    = $this->buildKeterangan($weeks);
