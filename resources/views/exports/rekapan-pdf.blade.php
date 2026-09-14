@@ -44,14 +44,14 @@
     table.foto-group td.foto-cell img { max-width: 40mm; max-height: 27mm; width: auto; height: auto; display: block; margin: 0 auto; border: 1px solid #888; }
     .foto-empty-row { color: #888; text-align: center; font-style: italic; }
 
-    .sign { margin-top: 16px; page-break-inside: avoid; }
+    .sign { margin-top: 56px; page-break-inside: avoid; }
     .signature-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .signature-table td { width: 50%; vertical-align: top; text-align: center; padding: 0; }
     .sign-title { font-weight: bold; text-align: center; font-size: 10px; }
-    .sign-date { text-align: center; font-size: 10px; }
+    .sign-date { text-align: right; font-size: 10px; }
     .sign-jabatan { font-weight: bold; text-align: center; font-size: 10px; line-height: 1.3; }
     .sign-nama { font-weight: bold; text-align: center; font-size: 10px; }
-    .signature-space { height: 48px; }
+    .signature-space { height: 80px; }
   </style>
 </head>
 <body>
@@ -428,18 +428,17 @@
     <div class="sign">
       <table class="signature-table">
         <tr>
-          <td class="sign-title">Menyetujui</td>
+          <td></td>
           <td class="sign-date">{{ $dateLabel }}</td>
         </tr>
-        <tr style="height: 6px;"><td colspan="2"></td></tr>
+        <tr style="height: 8px;"><td colspan="2"></td></tr>
         <tr>
-          <td class="sign-jabatan" style="vertical-align: top;">
-            {{ $ttdKiri ? $ttdKiri->jabatan : '' }}
-          </td>
-          <td class="sign-jabatan" style="vertical-align: top;">
-            <div>Mengusulkan</div>
-            <div style="margin-top: 2px;">{{ $ttdKanan ? $ttdKanan->jabatan : '' }}</div>
-          </td>
+          <td class="sign-title">Menyetujui,</td>
+          <td class="sign-title">{{ $ttdKanan ? 'Mengusulkan,' : '' }}</td>
+        </tr>
+        <tr>
+          <td class="sign-jabatan">{{ $ttdKiri ? $ttdKiri->jabatan : '' }}</td>
+          <td class="sign-jabatan">{{ $ttdKanan ? $ttdKanan->jabatan : '' }}</td>
         </tr>
         <tr>
           <td class="signature-space">&nbsp;</td>
