@@ -48,20 +48,22 @@
     </div>
   @endif
 
-  {{-- Filter bulan + export --}}
+  {{-- Filter tanggal + export. Cukup isi tanggal_awal & tanggal_akhir langsung -
+       tidak ada lagi "Label Bulan" atau form "Tambah Periode" terpisah. Rentang
+       tanggal ini baru resmi tersimpan (masuk tab Riwayat) pas user klik Export. --}}
   <div class="card">
     <div class="card-body">
       <form method="GET" action="{{ route('pemakaian-bbm.pertanggungjawaban') }}"
             style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
-        <div class="form-group" style="margin:0; max-width:260px;">
-          <label for="bulan_label_filter">Label Bulan</label>
-          <input type="text" id="bulan_label_filter" name="bulan_label" class="form-control" list="bulan-options"
-                 placeholder="Contoh: Agustus 2026" value="{{ $bulanLabel ?? '' }}">
-          <datalist id="bulan-options">
-            @foreach($bulanOptions as $opt)
-              <option value="{{ $opt }}">
-            @endforeach
-          </datalist>
+        <div class="form-group" style="margin:0;">
+          <label for="tanggal_awal">Tanggal Awal</label>
+          <input type="text" id="tanggal_awal" name="tanggal_awal" class="form-control"
+                 placeholder="dd/mm/yyyy" value="{{ $tanggalAwal ?? '' }}" required>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label for="tanggal_akhir">Tanggal Akhir</label>
+          <input type="text" id="tanggal_akhir" name="tanggal_akhir" class="form-control"
+                 placeholder="dd/mm/yyyy" value="{{ $tanggalAkhir ?? '' }}" required>
         </div>
         <button type="submit" class="btn btn-primary">
           <i class="fa-solid fa-magnifying-glass"></i> Tampilkan
@@ -69,7 +71,7 @@
 
         @if(!empty($weeks))
           <button type="button" id="btnExportLaporan" class="btn btn-success" onclick="openExportConfirm()">
-            <i class="fa-solid fa-file-export"></i> Export Pertanggung Jawaban
+            <i class="fa-solid fa-file-export"></i> Export Pertanggung Jawaban di Paiton
           </button>
         @endif
 
@@ -77,6 +79,11 @@
           <i class="fa-solid fa-clock-rotate-left"></i> Lihat Semua Riwayat Periode
         </a>
       </form>
+      <p style="margin-top:10px; color:#94a3b8; font-size:0.85rem;">
+        <i class="fa-solid fa-circle-info"></i>
+        Tanggal yang tampil abu-abu/tidak bisa dipilih artinya sudah pernah di-export sebelumnya.
+        Kalau salah, minta admin hapus periode-nya di tab <strong>Riwayat</strong> supaya tanggalnya bisa dipilih ulang.
+      </p>
     </div>
   </div>
 
@@ -89,8 +96,10 @@
           <div class="modal-confirm-icon">
             <i class="fa-solid fa-file-export"></i>
           </div>
-          <h3 class="modal-confirm-title">Export Pertanggung Jawaban?</h3>
-          <p class="modal-confirm-text">Apakah Anda yakin ingin export laporan pertanggungjawaban untuk bulan ini?</p>
+          <h3 class="modal-confirm-title">Export Pertanggung Jawaban di Paiton?</h3>
+          <p class="modal-confirm-text">
+            Setelah di-export, rentang tanggal ini akan tercatat permanen di Riwayat dan tidak bisa dipilih lagi. Lanjutkan?
+          </p>
         </div>
         <div class="modal-footer modal-confirm-footer">
           <button type="button" class="btn btn-secondary" onclick="closeExportConfirm()">Tidak</button>
@@ -108,11 +117,11 @@
         </div>
         <div class="modal-footer modal-confirm-footer">
           <a class="btn btn-success"
-             href="{{ route('pemakaian-bbm.export-pertanggungjawaban-excel', ['bulan_label' => $bulanLabel ?? '']) }}">
+             href="{{ route('pemakaian-bbm.export-pertanggungjawaban-excel', ['tanggal_awal' => $tanggalAwal ?? '', 'tanggal_akhir' => $tanggalAkhir ?? '']) }}">
             <i class="fa-solid fa-file-excel"></i> Export Excel
           </a>
           <a class="btn btn-danger"
-             href="{{ route('pemakaian-bbm.export-pertanggungjawaban-pdf', ['bulan_label' => $bulanLabel ?? '']) }}">
+             href="{{ route('pemakaian-bbm.export-pertanggungjawaban-pdf', ['tanggal_awal' => $tanggalAwal ?? '', 'tanggal_akhir' => $tanggalAkhir ?? '']) }}">
             <i class="fa-solid fa-file-pdf"></i> Export PDF
           </a>
         </div>
@@ -124,55 +133,21 @@
     </div>
   </div>
 
-  {{-- Tambah periode baru: semua user boleh, biar bisa generate laporan sendiri --}}
-  <div class="card">
-    <div class="card-header">
-      <div class="card-header-title">
-        <h3><i class="fa-solid fa-calendar-plus" style="color: var(--primary-color); margin-right: 8px;"></i> Tambah Periode</h3>
-      </div>
-    </div>
-    <div class="card-body">
-      <form method="POST" action="{{ route('pemakaian-bbm.pertanggungjawaban.periode.store') }}"
-            style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
-        @csrf
-        <div class="form-group" style="margin:0; max-width:220px;">
-          <label for="bulan_label">Label Bulan</label>
-          <input type="text" id="bulan_label" name="bulan_label" class="form-control" list="bulan-options"
-                 placeholder="Contoh: Agustus 2026"
-                 value="{{ old('bulan_label', $bulanLabel ?? '') }}" required>
-        </div>
-        <div class="form-group" style="margin:0;">
-          <label for="tanggal_awal">Tanggal Awal</label>
-          <input type="date" id="tanggal_awal" name="tanggal_awal" class="form-control"
-                 value="{{ old('tanggal_awal') }}" required>
-        </div>
-        <div class="form-group" style="margin:0;">
-          <label for="tanggal_akhir">Tanggal Akhir</label>
-          <input type="date" id="tanggal_akhir" name="tanggal_akhir" class="form-control"
-                 value="{{ old('tanggal_akhir') }}" required>
-        </div>
-        <button type="submit" class="btn btn-primary">
-          <i class="fa-solid fa-plus"></i> Tambah Periode
-        </button>
-      </form>
-      <p style="margin-top:10px; color:#94a3b8; font-size:0.85rem;">
-        <i class="fa-solid fa-circle-info"></i>
-        Tanggal yang sudah dipakai periode lain otomatis tidak bisa dipakai lagi.
-        Kalau salah input, minta admin hapus periode-nya di tab <strong>Riwayat</strong> supaya tanggalnya bisa dipilih ulang.
-      </p>
-    </div>
-  </div>
-
-  {{-- Preview laporan --}}
+  {{-- Preview laporan. Dibungkus .ptj-preview supaya lebar tabelnya bisa
+       di-"kecilin" khusus tampilan web (lihat CSS di bawah) tanpa mengubah
+       ukuran hasil export PDF/Excel (partial yang sama dipakai di sana, tapi
+       lewat request terpisah tanpa class ini). --}}
   @if(!empty($weeks))
     <div class="card">
       <div class="card-body">
-        @include('rekapan.pemakaian-bbm._pertanggungjawaban-report', [
-          'weeks'         => $weeks,
-          'bulanLabel'    => $bulanLabel,
-          'keterangan'    => $keterangan,
-          'penandatangan' => $penandatangan,
-        ])
+        <div class="ptj-preview">
+          @include('rekapan.pemakaian-bbm._pertanggungjawaban-report', [
+            'weeks'         => $weeks,
+            'bulanLabel'    => $bulanLabel,
+            'keterangan'    => $keterangan,
+            'penandatangan' => $penandatangan,
+          ])
+        </div>
       </div>
     </div>
   @endif
@@ -180,6 +155,7 @@
 @endsection
 
 @push('styles')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
 <style>
   .modal-overlay {
     display: none;
@@ -192,7 +168,7 @@
   }
   .modal-overlay.show { display: flex; }
   .modal { background: #fff; border-radius: 12px; width: 90%; }
-  .modal-confirm { max-width: 380px; }
+  .modal-confirm { max-width: 420px; }
   .modal-confirm-body { text-align: center; padding: 32px 24px 8px; }
   .modal-confirm-icon {
     width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 50%;
@@ -203,11 +179,57 @@
   .modal-confirm-text { margin: 0; color: #6b7280; font-size: 0.9rem; line-height: 1.5; }
   .modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; }
   .modal-confirm-footer { justify-content: center; padding-top: 20px; padding-bottom: 24px; }
+
+  /* Perkecil LEBAR tabel laporan di halaman web SAJA (bukan skala teks/font).
+     Wrapper div tabel & blok Keterangan+TTD di partial sama-sama punya class
+     .ptj-report-block dengan inline style width:75% (dipakai juga oleh PDF/
+     Excel). Override ini cuma nyala di sini, butuh !important karena harus
+     menang lawan inline style. PDF & Excel di-generate lewat request terpisah
+     tanpa class .ptj-preview, jadi lebarnya tetap 75% seperti biasa. */
+  .ptj-preview .ptj-report-block {
+    width: 55% !important;
+  }
+  /* Flatpickr set altInput jadi readonly (karena allowInput:false), dan CSS
+     global proyek ini kayaknya nge-cursor:not-allowed semua input readonly.
+     Field tanggal ini sebenarnya tetap bisa diklik buat buka kalender, jadi
+     cursor-nya dipaksa balik ke normal di sini. */
+  .flatpickr-alt {
+    cursor: pointer !important;
+    background-color: #fff !important;
+  }
+
+  .flatpickr-day.flatpickr-disabled,
+  .flatpickr-day.flatpickr-disabled:hover {
+    background-color: #e5e7eb !important;
+    color: #6b7280 !important;
+    opacity: 1 !important;
+    text-decoration: line-through;
+    cursor: not-allowed !important;
+  }
 </style>
 @endpush
 
 @push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
 <script>
+  // Rentang tanggal yang sudah pernah di-export sebelumnya - dipakai buat
+  // men-disable tanggal itu di kalender tanggal_awal & tanggal_akhir.
+  const periodeTerpakai = @json($periodeTerpakai ?? []);
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const flatpickrOptions = {
+      dateFormat: 'Y-m-d',
+      altInput: true,
+      altFormat: 'd/m/Y',
+      altInputClass: 'form-control flatpickr-alt',
+      allowInput: false,
+      disable: periodeTerpakai,
+    };
+
+    flatpickr('#tanggal_awal', flatpickrOptions);
+    flatpickr('#tanggal_akhir', flatpickrOptions);
+  });
+
   function openExportConfirm() {
     document.getElementById('exportConfirmStep').style.display = 'block';
     document.getElementById('exportFormatStep').style.display = 'none';
