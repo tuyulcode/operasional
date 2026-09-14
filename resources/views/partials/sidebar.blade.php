@@ -55,10 +55,10 @@
       </a>
     </li>
 
-    @unless(Auth::user()->role === 'lingkungan')
     {{-- Category: Master Data --}}
     <div class="menu-category">Master Data</div>
 
+    @unless(Auth::user()->role === 'lingkungan')
     <li class="menu-item menu-item-has-sub {{ request()->routeIs('kendaraan.*', 'jenis-kendaraan.*', 'pemegang-kendaraan.*') ? 'open' : '' }}">
       <a href="#" class="menu-link">
         <div class="link-left">
@@ -82,6 +82,7 @@
         </div>
       </a>
     </li>
+    @endunless
 
     <li class="menu-item menu-item-has-sub {{ request()->routeIs('ppn.*', 'area.*', 'titik-meter.*') ? 'open' : '' }}">
       <a href="#" class="menu-link">
@@ -94,10 +95,11 @@
       <ul class="submenu">
         <li><a href="{{ route('area.index') }}" class="submenu-link {{ request()->routeIs('area.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Nama Pengguna</a></li>
         <li><a href="{{ route('titik-meter.index') }}" class="submenu-link {{ request()->routeIs('titik-meter.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> Titik Meter</a></li>
+        @unless(Auth::user()->role === 'lingkungan')
         <li><a href="{{ route('ppn.index') }}" class="submenu-link {{ request()->routeIs('ppn.*') ? 'active' : '' }}"><i class="fa-solid fa-angle-right"></i> PPN</a></li>
+        @endunless
       </ul>
     </li>
-    @endunless
 
     @unless(Auth::user()->role === 'lingkungan')
     {{-- Category: Pengaturan --}}

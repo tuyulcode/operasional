@@ -170,7 +170,6 @@ class EtollController extends Controller
                 'tanggalAkhirRaw' => $tanggalAkhirRaw,
                 'pemegangs' => collect(),
                 'bulanGroups' => [],
-                'maxDateCount' => 0,
                 'totalKeseluruhan' => 0,
                 'awal' => null,
                 'akhir' => null,
@@ -259,32 +258,9 @@ class EtollController extends Controller
             ];
         }
 
-        // Samakan jumlah kolom tanggal di semua blok bulan (padding baris kosong
-        // di blok yang lebih sedikit harinya), supaya semua blok tetap dalam 1
-        // <table> yang sama tanpa bikin kolom antar blok salah hitung/geser.
-        $maxDateCount = 0;
-        foreach ($bulanGroups as $group) {
-            if (count($group['rows']) > $maxDateCount) {
-                $maxDateCount = count($group['rows']);
-            }
-        }
-
-        foreach ($bulanGroups as &$group) {
-            while (count($group['rows']) < $maxDateCount) {
-                $group['rows'][] = [
-                    'tanggalKey' => null,
-                    'tanggal' => '',
-                    'nilai' => [],
-                    'total' => 0,
-                ];
-            }
-        }
-        unset($group);
-
         return [
             'pemegangs' => $pemegangs,
             'bulanGroups' => $bulanGroups,
-            'maxDateCount' => $maxDateCount,
             'totalKeseluruhan' => $totalKeseluruhan,
             'awal' => $awal,
             'akhir' => $akhir,
