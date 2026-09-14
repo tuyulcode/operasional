@@ -14,7 +14,7 @@
     $namaGroup = preg_replace('/^[A-Za-z]\.\s*/', '', $group['label']);
   @endphp
 
-  <div style="width:65%; margin:0 auto;">
+  <div style="width:75%; margin:0 auto;">
     <p style="display:inline-block; font-weight:bold; margin:14px 0 6px; padding:4px 10px; font-size:13px; background:#fbdce6; border-radius:4px;">{{ $noUrut }}. {{ $namaGroup }}</p>
 
     <table style="border-collapse: collapse; width: 100%; font-size: 12px; margin-bottom:10px;" border="1" cellpadding="4" cellspacing="0">
@@ -30,12 +30,6 @@
           <th style="padding:10px 4px;">Nomor Kendaraan</th>
           <th style="padding:10px 4px;">Liter</th>
           <th style="padding:10px 4px;">Rp.</th>
-        </tr>
-        <tr style="font-weight:bold; text-align:center;">
-          <th style="padding:6px 4px;">1</th>
-          <th style="padding:6px 4px;">2</th>
-          <th style="padding:6px 4px;">3</th>
-          <th style="padding:6px 4px;">4</th>
         </tr>
       </thead>
       <tbody>
