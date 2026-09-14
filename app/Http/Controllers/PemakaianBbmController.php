@@ -11,6 +11,7 @@ use App\Models\Penandatangan;
 use App\Models\PertanggungjawabanPeriode;
 use App\Services\PemakaianBbmRekapService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
@@ -206,76 +207,46 @@ class PemakaianBbmController extends Controller
     /**
      * Halaman laporan Pertanggungjawaban.
      *
-     * Periode disimpan permanen di tabel pertanggungjawaban_periode (bukan lagi
-     * form array "minggu" per-request). Tanggal yang sudah dipakai suatu periode
-     * otomatis tidak bisa dipakai lagi oleh periode lain (siapapun user-nya) sampai
-     * admin menghapusnya (lihat destroyPeriode()).
+     * BEDA DARI SEBELUMNYA: user langsung isi tanggal_awal & tanggal_akhir buat
+     * lihat preview - TIDAK ada lagi form "Tambah Periode" yang nyimpen ke DB
+     * di titik ini. Preview murni dihitung on-the-fly dari rekapService, tanpa
+     * nyimpen apa-apa. Baris pertanggungjawaban_periode baru dibuat nanti pas
+     * user beneran klik Export Excel/PDF (lihat buildDanSimpanPertanggungjawabanData()).
      */
     public function pertanggungjawaban(Request $request)
     {
-        $bulanLabel = $request->query('bulan_label');
-
-        $periodes = PertanggungjawabanPeriode::query()
-            ->when($bulanLabel, fn ($q) => $q->where('bulan_label', $bulanLabel))
-            ->orderBy('tanggal_awal')
-            ->get();
+        $tanggalAwal  = $request->query('tanggal_awal');
+        $tanggalAkhir = $request->query('tanggal_akhir');
 
         $weeks         = [];
         $keterangan    = null;
+        $bulanLabel    = null;
         $penandatangan = $this->getPenandatanganLaporan();
 
-        if ($bulanLabel && $periodes->isNotEmpty()) {
-            $weeks      = $this->buildWeeks($periodes);
+        if ($tanggalAwal && $tanggalAkhir) {
+            $validated  = $this->validatePeriode($request);
+            $weeks      = $this->buildWeeksForRange($validated['tanggal_awal'], $validated['tanggal_akhir']);
             $keterangan = $this->buildKeterangan($weeks);
+            // Cuma buat teks "Laporan Pengeluaran BBM bulan ..." di preview.
+            // Nilai final yang sebenarnya disimpan ke DB dihitung ulang di
+            // buildDanSimpanPertanggungjawabanData() pas export.
+            $bulanLabel = Carbon::parse($validated['tanggal_awal'])->locale('id')->translatedFormat('F Y');
         }
 
-        // Dropdown daftar label bulan yang sudah pernah diinput, biar gampang dipilih ulang
-        $bulanOptions = PertanggungjawabanPeriode::select('bulan_label')
-            ->distinct()
-            ->orderByDesc('bulan_label')
-            ->pluck('bulan_label');
+        // Semua rentang tanggal yang sudah pernah di-export sebelumnya (jadi baris
+        // pertanggungjawaban_periode) - dipakai JS (Flatpickr) buat men-disable
+        // tanggal itu di kalender tanggal_awal/tanggal_akhir, biar gak ke-export dobel.
+        $periodeTerpakai = PertanggungjawabanPeriode::orderBy('tanggal_awal')
+            ->get(['tanggal_awal', 'tanggal_akhir'])
+            ->map(fn ($p) => [
+                'from' => $p->tanggal_awal->format('Y-m-d'),
+                'to'   => $p->tanggal_akhir->format('Y-m-d'),
+            ])
+            ->values();
 
         return view('pemakaian-bbm.pertanggungjawaban', compact(
-            'bulanLabel', 'periodes', 'weeks', 'keterangan', 'penandatangan', 'bulanOptions'
+            'tanggalAwal', 'tanggalAkhir', 'weeks', 'keterangan', 'bulanLabel', 'penandatangan', 'periodeTerpakai'
         ));
-    }
-
-    /**
-     * Tambah 1 periode baru. Bisa dilakukan siapa saja (bukan admin-only) - setiap
-     * user boleh generate laporan untuk rentang tanggal yang dia mau. Ditolak kalau
-     * rentang tanggalnya tumpang tindih dengan periode yang sudah ada.
-     */
-    public function storePeriode(Request $request)
-    {
-        $validated = $request->validate([
-            'bulan_label'   => 'required|string|max:50',
-            'tanggal_awal'  => 'required|date',
-            'tanggal_akhir' => 'required|date|after_or_equal:tanggal_awal',
-        ], [
-            'bulan_label.required'         => 'Label bulan wajib diisi.',
-            'tanggal_awal.required'        => 'Tanggal awal wajib diisi.',
-            'tanggal_akhir.required'       => 'Tanggal akhir wajib diisi.',
-            'tanggal_akhir.after_or_equal' => 'Tanggal akhir tidak boleh sebelum tanggal awal.',
-        ]);
-
-        $overlap = PertanggungjawabanPeriode::where('tanggal_awal', '<=', $validated['tanggal_akhir'])
-            ->where('tanggal_akhir', '>=', $validated['tanggal_awal'])
-            ->exists();
-
-        if ($overlap) {
-            return redirect()
-                ->route('pemakaian-bbm.pertanggungjawaban', ['bulan_label' => $validated['bulan_label']])
-                ->withErrors([
-                    'tanggal_awal' => 'Sebagian atau seluruh tanggal pada rentang tersebut sudah dipakai di periode lain. Hapus periode itu dulu (tab Riwayat) kalau memang salah input.',
-                ])
-                ->withInput();
-        }
-
-        PertanggungjawabanPeriode::create($validated);
-
-        return redirect()
-            ->route('pemakaian-bbm.pertanggungjawaban', ['bulan_label' => $validated['bulan_label']])
-            ->with('success', 'Periode berhasil ditambahkan.');
     }
 
     /**
@@ -285,29 +256,28 @@ class PemakaianBbmController extends Controller
     {
         abort_unless(auth()->user()?->isAdmin(), 403, 'Hanya admin yang bisa menghapus periode.');
 
-        $periode    = PertanggungjawabanPeriode::findOrFail($id);
-        $bulanLabel = $periode->bulan_label;
+        $periode = PertanggungjawabanPeriode::findOrFail($id);
         $periode->delete();
 
         return redirect()
-            ->route('pemakaian-bbm.pertanggungjawaban', ['bulan_label' => $bulanLabel])
-            ->with('success', 'Periode berhasil dihapus, tanggalnya bisa dipilih lagi.');
+            ->route('pemakaian-bbm.riwayat')
+            ->with('success', 'Periode berhasil dihapus, tanggalnya bisa dipakai lagi.');
     }
 
     public function exportPertanggungjawabanExcel(Request $request)
     {
-        $data = $this->buildPertanggungjawabanData($request);
+        $data = $this->buildDanSimpanPertanggungjawabanData($request);
 
-        $filename = 'pertanggungjawaban-bbm_' . Str::slug($data['bulanLabel']) . '.xlsx';
+        $filename = 'pertanggungjawaban-bbm_' . $data['tanggalAwal'] . '_sd_' . $data['tanggalAkhir'] . '.xlsx';
 
         return Excel::download(new PertanggungjawabanExport($data), $filename);
     }
 
     public function exportPertanggungjawabanPdf(Request $request)
     {
-        $data = $this->buildPertanggungjawabanData($request);
+        $data = $this->buildDanSimpanPertanggungjawabanData($request);
 
-        $filename = 'pertanggungjawaban-bbm_' . Str::slug($data['bulanLabel']) . '.pdf';
+        $filename = 'pertanggungjawaban-bbm_' . $data['tanggalAwal'] . '_sd_' . $data['tanggalAkhir'] . '.pdf';
 
         $pdf = Pdf::loadView('rekapan.pemakaian-bbm.pertanggungjawaban-pdf', $data)->setPaper('a4', 'portrait');
 
@@ -316,7 +286,7 @@ class PemakaianBbmController extends Controller
 
     /**
      * Halaman Riwayat: daftar semua periode laporan Pertanggungjawaban yang pernah
-     * dibuat (semua bulan). Semua user bisa lihat, cuma admin yang bisa hapus
+     * di-export (semua bulan). Semua user bisa lihat, cuma admin yang bisa hapus
      * (lihat destroyPeriode()).
      */
     public function riwayat()
@@ -443,8 +413,9 @@ class PemakaianBbmController extends Controller
     }
 
     /**
-     * Validasi periode Rekapan. Tanggal akhir tetap wajib >= tanggal awal
-     * (data integrity), tapi pesan error dibuat jelas biar user ngerti salahnya di mana.
+     * Validasi periode Rekapan / Pertanggungjawaban. Tanggal akhir tetap wajib
+     * >= tanggal awal (data integrity), tapi pesan error dibuat jelas biar user
+     * ngerti salahnya di mana.
      */
     private function validatePeriode(Request $request): array
     {
@@ -461,7 +432,29 @@ class PemakaianBbmController extends Controller
     }
 
     /**
+     * Bangun "weeks" (cuma 1 entri) untuk satu rentang tanggal_awal-tanggal_akhir,
+     * dipakai baik oleh preview (pertanggungjawaban()) maupun export. Filter
+     * Paiton-only diterapkan di dalam buildWeeks() -> rekapService->build().
+     */
+    private function buildWeeksForRange(string $tanggalAwal, string $tanggalAkhir): array
+    {
+        $range = (object) [
+            'tanggal_awal'  => Carbon::parse($tanggalAwal),
+            'tanggal_akhir' => Carbon::parse($tanggalAkhir),
+        ];
+
+        return $this->buildWeeks([$range]);
+    }
+
+    /**
      * Bangun data tiap periode (grouped table) memakai rekap service yang sudah ada.
+     *
+     * Beda dari tab Rekapan: laporan Pertanggungjawaban cuma boleh menghitung
+     * transaksi yang lokasi pembelian-nya PAITON. Makanya build() dipanggil
+     * dengan parameter ketiga 'paiton' di sini - tab Rekapan (method rekapan()
+     * di atas) tetap manggil build() tanpa parameter itu, jadi tetap ambil
+     * semua lokasi seperti biasa.
+     *
      * Ikut hitung total gabungan Roda Empat + Roda Dua (exclude Roda Tiga) per
      * periode - ini yang jadi acuan angka "Pemakaian BBM untuk di Paiton" di
      * bagian Keterangan.
@@ -474,7 +467,7 @@ class PemakaianBbmController extends Controller
             $awal  = $periode->tanggal_awal->format('Y-m-d');
             $akhir = $periode->tanggal_akhir->format('Y-m-d');
 
-            $data = $this->rekapService->build($awal, $akhir);
+            $data = $this->rekapService->build($awal, $akhir, 'paiton');
 
             $groupsTanpaRodaTiga = array_values(array_filter(
                 $data['groups'],
@@ -519,14 +512,6 @@ class PemakaianBbmController extends Controller
 
     /**
      * Satu-satunya tempat query penandatangan untuk laporan Pertanggungjawaban.
-     * Dipakai oleh halaman preview (pertanggungjawaban()) dan oleh
-     * buildPertanggungjawabanData() (export Excel & PDF), supaya ketiganya
-     * selalu ambil baris yang sama persis dari tabel `penandatangan` - tidak
-     * ada lagi query yang diduplikasi/berpotensi beda antara satu output
-     * dengan output lainnya.
-     *
-     * Kalau baris ASMAN belum ada di tabel, hasilnya null - blade/export yang
-     * urus fallback placeholder titik-titik, bukan di sini.
      */
     private function getPenandatanganLaporan(): ?Penandatangan
     {
@@ -534,27 +519,42 @@ class PemakaianBbmController extends Controller
     }
 
     /**
-     * Kumpulkan semua data yang dibutuhkan export Excel/PDF Pertanggungjawaban,
-     * berdasarkan bulan_label yang dipilih.
+     * Dipanggil pas user beneran klik Export Excel/PDF (bukan pas preview).
+     *
+     * 1. Validasi tanggal_awal/tanggal_akhir.
+     * 2. Cek belum pernah dipakai periode lain (double-check - preview juga
+     *    sudah men-disable tanggal ini di datepicker, ini jaring pengaman kedua).
+     * 3. Auto-generate bulan_label dari tanggal_awal (mis. "September 2026").
+     * 4. SIMPAN sebagai baris pertanggungjawaban_periode baru - inilah titik
+     *    tanggal ini resmi "terpakai" & muncul di tab Riwayat.
+     * 5. Baru bangun data laporannya buat di-render ke Excel/PDF.
      */
-    private function buildPertanggungjawabanData(Request $request): array
+    private function buildDanSimpanPertanggungjawabanData(Request $request): array
     {
-        $validated = $request->validate([
-            'bulan_label' => 'required|string|max:50',
+        $validated = $this->validatePeriode($request);
+
+        $overlap = PertanggungjawabanPeriode::where('tanggal_awal', '<=', $validated['tanggal_akhir'])
+            ->where('tanggal_akhir', '>=', $validated['tanggal_awal'])
+            ->exists();
+
+        abort_if($overlap, 422, 'Rentang tanggal ini sudah pernah di-export sebelumnya. Cek tab Riwayat.');
+
+        $bulanLabel = Carbon::parse($validated['tanggal_awal'])->locale('id')->translatedFormat('F Y');
+
+        PertanggungjawabanPeriode::create([
+            'bulan_label'   => $bulanLabel,
+            'tanggal_awal'  => $validated['tanggal_awal'],
+            'tanggal_akhir' => $validated['tanggal_akhir'],
         ]);
 
-        $periodes = PertanggungjawabanPeriode::where('bulan_label', $validated['bulan_label'])
-            ->orderBy('tanggal_awal')
-            ->get();
-
-        abort_if($periodes->isEmpty(), 404, 'Belum ada periode untuk bulan tersebut.');
-
-        $weeks         = $this->buildWeeks($periodes);
+        $weeks         = $this->buildWeeksForRange($validated['tanggal_awal'], $validated['tanggal_akhir']);
         $keterangan    = $this->buildKeterangan($weeks);
         $penandatangan = $this->getPenandatanganLaporan();
 
         return [
-            'bulanLabel'    => $validated['bulan_label'],
+            'bulanLabel'    => $bulanLabel,
+            'tanggalAwal'   => $validated['tanggal_awal'],
+            'tanggalAkhir'  => $validated['tanggal_akhir'],
             'weeks'         => $weeks,
             'keterangan'    => $keterangan,
             'penandatangan' => $penandatangan,

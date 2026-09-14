@@ -43,13 +43,13 @@
       <form method="GET" action="{{ route('pemakaian-bbm.rekapan') }}" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
         <div class="form-group" style="margin:0;">
           <label for="tanggal_awal">Tanggal Awal</label>
-          <input type="date" id="tanggal_awal" name="tanggal_awal" class="form-control"
-                 value="{{ $tanggalAwal ?? '' }}" required>
+          <input type="text" id="tanggal_awal" name="tanggal_awal" class="form-control"
+                 placeholder="dd/mm/yyyy" value="{{ $tanggalAwal ?? '' }}" required>
         </div>
         <div class="form-group" style="margin:0;">
           <label for="tanggal_akhir">Tanggal Akhir</label>
-          <input type="date" id="tanggal_akhir" name="tanggal_akhir" class="form-control"
-                 value="{{ $tanggalAkhir ?? '' }}" required>
+          <input type="text" id="tanggal_akhir" name="tanggal_akhir" class="form-control"
+                 placeholder="dd/mm/yyyy" value="{{ $tanggalAkhir ?? '' }}" required>
         </div>
         <button type="submit" class="btn btn-primary">
           <i class="fa-solid fa-magnifying-glass"></i> Tampilkan
@@ -123,6 +123,7 @@
 @endsection
 
 @push('styles')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
 <style>
   .modal-overlay {
     display: none;
@@ -146,10 +147,29 @@
   .modal-confirm-text { margin: 0; color: #6b7280; font-size: 0.9rem; line-height: 1.5; }
   .modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; }
   .modal-confirm-footer { justify-content: center; padding-top: 20px; padding-bottom: 24px; }
+
+  /* Flatpickr set altInput jadi readonly (karena allowInput:false), dan CSS
+     global proyek ini kayaknya nge-cursor:not-allowed semua input readonly.
+     Field tanggal ini sebenarnya tetap bisa diklik buat buka kalender, jadi
+     cursor-nya dipaksa balik ke normal di sini. */
+  .flatpickr-alt {
+    cursor: pointer !important;
+    background-color: #fff !important;
+  }
+
+  .flatpickr-day.flatpickr-disabled,
+  .flatpickr-day.flatpickr-disabled:hover {
+    background-color: #e5e7eb !important;
+    color: #6b7280 !important;
+    opacity: 1 !important;
+    text-decoration: line-through;
+    cursor: not-allowed !important;
+  }
 </style>
 @endpush
 
 @push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
 <script>
   function openExportConfirm() {
     document.getElementById('exportConfirmStep').style.display = 'block';
@@ -170,6 +190,19 @@
         if (e.target === overlay) closeExportConfirm();
       });
     }
+
+    // Tanggal Awal/Akhir: user lihat DD/MM/YYYY, value asli yang dikirim ke
+    // server tetap YYYY-MM-DD (dateFormat) - konsisten dengan tab Pertanggungjawaban.
+    const flatpickrOptions = {
+      dateFormat: 'Y-m-d',
+      altInput: true,
+      altFormat: 'd/m/Y',
+      altInputClass: 'form-control flatpickr-alt',
+      allowInput: false,
+    };
+
+    flatpickr('#tanggal_awal', flatpickrOptions);
+    flatpickr('#tanggal_akhir', flatpickrOptions);
   });
 </script>
 @endpush
