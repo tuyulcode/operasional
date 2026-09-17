@@ -76,7 +76,10 @@
               <tr>
                 <td style="text-align:center;">{{ $i + 1 }}</td>
                 <td style="text-align:center;">
-                  <a href="{{ route('pemakaian-bbm.pertanggungjawaban', ['bulan_label' => $periode->bulan_label]) }}">
+                  <a href="{{ route('pemakaian-bbm.pertanggungjawaban', [
+                          'tanggal_awal'  => $periode->tanggal_awal->format('Y-m-d'),
+                          'tanggal_akhir' => $periode->tanggal_akhir->format('Y-m-d'),
+                      ]) }}">
                     {{ $periode->bulan_label }}
                   </a>
                 </td>
