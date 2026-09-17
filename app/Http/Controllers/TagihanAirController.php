@@ -8,9 +8,12 @@ use App\Models\TagihanAir;
 use App\Models\TagihanAirFoto;
 use App\Models\TitikMeter;
 use App\Support\NumberFormatter;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class TagihanAirController extends Controller
 {
@@ -90,7 +93,7 @@ class TagihanAirController extends Controller
         $periode = $request->input('periode');
         $periodeDate = $periode ? date('Y-m-01', strtotime($periode.'-01')) : null;
 
-        return $request->validate([
+        $validator = Validator::make($request->all(), [
             'titik_meter_id' => [
                 'required',
                 'exists:titik_meter,id',
@@ -121,7 +124,27 @@ class TagihanAirController extends Controller
                 },
             ],
             'foto_meter.*' => 'image|mimes:jpg,jpeg,png|max:5120',
+        ], [
+            'titik_meter_id.unique' => 'Data untuk titik meter ini pada periode '.($periode ?: 'yang dipilih').' sudah ada. Silakan edit data yang sudah tersimpan, atau pilih periode lain.',
         ]);
+
+        if ($validator->fails()) {
+            // Global exception handler aplikasi ini (bootstrap/app.php) cuma balikin JSON
+            // otomatis buat route yang diawali 'api/', jadi kalau dibiarkan lempar
+            // ValidationException biasa, request AJAX ke sini bakal dapat halaman HTML,
+            // bukan JSON -> bikin JS gagal parsing ("Unexpected token '<'"). Makanya di
+            // sini validasi ditangani manual, supaya AJAX pasti dapat JSON.
+            if ($request->ajax()) {
+                throw new HttpResponseException(response()->json([
+                    'message' => $validator->errors()->first(),
+                    'errors' => $validator->errors(),
+                ], 422));
+            }
+
+            throw new ValidationException($validator);
+        }
+
+        return $validator->validated();
     }
 
     protected function saveFotos(Request $request, $tagihanId): void
