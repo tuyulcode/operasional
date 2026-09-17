@@ -30,7 +30,7 @@ class TagihanAirController extends Controller
         }
 
         if ($tab === 'data') {
-            $tagihanAirs = TagihanAir::with(['titikMeter.area', 'fotos'])->latest('periode')->paginate(25);
+            $tagihanAirs = TagihanAir::with(['titikMeter.area', 'fotos'])->latest('periode')->paginate(15);
 
             return view('tagihan-air.index', compact('tab', 'tagihanAirs'));
         }
