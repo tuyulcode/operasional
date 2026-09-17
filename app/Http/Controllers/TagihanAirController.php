@@ -170,15 +170,29 @@ class TagihanAirController extends Controller
         $meterLalu = $this->resolveMeterLalu($validated['titik_meter_id'], $periodeDate, $request->input('meter_lalu'));
 
         if ($meterLalu === null) {
-            return back()->withInput()->withErrors([
-                'meter_lalu' => 'Belum ada histori periode sebelumnya di sistem. Isi Meter Lalu secara manual berdasarkan data awal (wajib).',
-            ]);
+            $pesan = 'Belum ada histori periode sebelumnya di sistem. Isi Meter Lalu secara manual berdasarkan data awal (wajib).';
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'message' => $pesan,
+                    'errors' => ['meter_lalu' => [$pesan]],
+                ], 422);
+            }
+
+            return back()->withInput()->withErrors(['meter_lalu' => $pesan]);
         }
 
         if ($validated['meter_ini'] < $meterLalu) {
-            return back()->withInput()->withErrors([
-                'meter_ini' => 'Meter Bulan Ini ('.number_format($validated['meter_ini'], 2, ',', '.').') tidak boleh kurang dari Meter Bulan Lalu ('.number_format($meterLalu, 2, ',', '.').').',
-            ]);
+            $pesan = 'Meter Bulan Ini ('.number_format($validated['meter_ini'], 2, ',', '.').') tidak boleh kurang dari Meter Bulan Lalu ('.number_format($meterLalu, 2, ',', '.').').';
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'message' => $pesan,
+                    'errors' => ['meter_ini' => [$pesan]],
+                ], 422);
+            }
+
+            return back()->withInput()->withErrors(['meter_ini' => $pesan]);
         }
 
         $titikMeter = TitikMeter::with('area')->find($validated['titik_meter_id']);
@@ -232,9 +246,16 @@ class TagihanAirController extends Controller
         }
 
         if ($validated['meter_ini'] < $meterLalu) {
-            return back()->withInput()->withErrors([
-                'meter_ini' => 'Meter Bulan Ini ('.number_format($validated['meter_ini'], 2, ',', '.').') tidak boleh kurang dari Meter Bulan Lalu ('.number_format($meterLalu, 2, ',', '.').').',
-            ]);
+            $pesan = 'Meter Bulan Ini ('.number_format($validated['meter_ini'], 2, ',', '.').') tidak boleh kurang dari Meter Bulan Lalu ('.number_format($meterLalu, 2, ',', '.').').';
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'message' => $pesan,
+                    'errors' => ['meter_ini' => [$pesan]],
+                ], 422);
+            }
+
+            return back()->withInput()->withErrors(['meter_ini' => $pesan]);
         }
 
         $titikMeter = TitikMeter::with('area')->find($validated['titik_meter_id']);
