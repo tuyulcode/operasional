@@ -9,26 +9,44 @@ use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
  * Export Excel laporan Pertanggungjawaban Pemakaian BBM.
- * Roda Tiga sengaja di-skip - laporan ini cuma Roda Empat & Roda Dua.
+ *
+ * Semua jenis kendaraan (Roda Empat / Roda Tiga / Roda Dua) SELALU ditampilkan,
+ * walaupun tidak ada datanya di periode ini - yang kosong tetap muncul dengan
+ * isi strip.
  *
  * $data yang diharapkan:
  * [
- *   'bulanLabel'    => string,
- *   'weeks'         => [
+ *   'weeks'                => [
  *       ['no' => int, 'periodeLabel' => string, 'groups' => array, 'grandTotal' => array],
  *       ...
  *   ],
- *   'keterangan'    => ['paiton' => float, ...],
- *   'penandatangan' => \App\Models\Penandatangan|null,
+ *   'keteranganBulanLabel' => string, // "September 2026" / "September & Oktober 2026" dst,
+ *                                     // dihitung controller lewat formatBulanSajaLabel()
+ *                                     // - dipakai buat teks "Laporan Pengeluaran BBM bulan ...".
+ *   'keterangan'           => ['paiton' => float, ...],
+ *   'penandatangan'        => \App\Models\Penandatangan|null,
  * ]
  */
 class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
 {
+    /**
+     * Warna aksen per jenis kendaraan - samain dengan tabel Rekapan.
+     */
+    private const GROUP_COLORS = [
+        'A. Roda Empat' => 'BDD7EE', // biru muda
+        'B. Roda Tiga'  => 'D9D2E9', // ungu muda
+        'C. Roda Dua'   => 'C6E0B4', // hijau muda
+    ];
+
+    // Oranye - baris "Jumlah Total"
+    private const COLOR_GRAND_BG = 'FFC000';
+
     public function __construct(protected array $data)
     {
     }
@@ -63,47 +81,54 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
 
         $row = 1;
         $row = $this->writeMainTitle($sheet, $row);
+        $row++; // jarak biar judul file gak mepet sama tabel di bawahnya
 
         foreach ($this->data['weeks'] as $week) {
             $row = $this->writeWeekTitle($sheet, $row, $week['periodeLabel']);
             $row++;
 
-            $groups = array_values(array_filter(
-                $week['groups'],
-                fn ($g) => !str_contains($g['label'], 'Roda Tiga')
-            ));
+            $groups = $this->normalizeGroups($week['groups']);
 
-            $groupCount = count($groups);
             $displayGrandTotal = ['liter' => 0, 'rp' => 0];
             foreach ($groups as $g) {
                 $displayGrandTotal['liter'] += $g['total']['liter'];
                 $displayGrandTotal['rp'] += $g['total']['rp'];
             }
 
+            // 1 baris kosong di paling atas tabel (di-merge jadi satu sel, tanpa warna)
+            $row = $this->writeBlankTableRow($sheet, $row);
+
             foreach ($groups as $index => $group) {
-                $noUrut = $index + 1;
-                $namaGroup = preg_replace('/^[A-Za-z]\.\s*/', '', $group['label']);
+                $accentColor = self::GROUP_COLORS[$group['label']] ?? 'FFFFFF';
+                $hurufGroup  = substr($group['label'], 0, 1); // "A. Roda Empat" -> "A"
 
-                $row = $this->writeGroupTitle($sheet, $row, $noUrut . '. ' . $namaGroup);
-                $row = $this->writeColumnHeader($sheet, $row);
+                $row = $this->writeGroupBanner($sheet, $row, $group['label'], $accentColor);
 
-                foreach ($group['sections'] as $section) {
-                    if ($section['label']) {
-                        $row = $this->writeSectionLabel($sheet, $row, $section['label']);
-                    }
+                // Header kolom (No. / Nomor Kendaraan / Liter / Rp.) cuma muncul
+                // sekali, di atas grup pertama (Roda Empat).
+                if ($index === 0) {
+                    $row = $this->writeColumnHeader($sheet, $row);
+                }
 
-                    foreach ($section['rows'] as $dataRow) {
-                        $row = $this->writeDataRow($sheet, $row, $dataRow);
+                if (empty($group['sections'])) {
+                    // Jenis kendaraan ini tidak punya data - tetap ditampilkan, isinya strip
+                    $row = $this->writeEmptyDataRow($sheet, $row);
+                } else {
+                    foreach ($group['sections'] as $section) {
+                        if ($section['label']) {
+                            $row = $this->writeSectionLabel($sheet, $row, $section['label']);
+                        }
+
+                        foreach ($section['rows'] as $dataRow) {
+                            $row = $this->writeDataRow($sheet, $row, $dataRow);
+                        }
                     }
                 }
 
-                $row = $this->writeTotalRow($sheet, $row, 'Jumlah ' . $noUrut, $group['total']);
-
-                if ($index === $groupCount - 1 && $groupCount > 0) {
-                    $labelNums = implode(' + ', range(1, $groupCount));
-                    $row = $this->writeTotalRow($sheet, $row, 'Jumlah ' . $labelNums, $displayGrandTotal);
-                }
+                $row = $this->writeTotalRow($sheet, $row, 'Subtotal ' . $hurufGroup, $group['total'], $accentColor);
             }
+
+            $row = $this->writeTotalRow($sheet, $row, 'Jumlah Total', $displayGrandTotal, self::COLOR_GRAND_BG);
 
             $row++;
         }
@@ -112,9 +137,31 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         $this->writeSignature($sheet, $row);
     }
 
+    /**
+     * Pastikan ketiga jenis kendaraan selalu ada & urut A-B-C. Yang tidak punya
+     * data di periode ini diisi grup kosong (nanti dirender sebagai strip).
+     */
+    private function normalizeGroups(array $groups): array
+    {
+        $byLabel = [];
+        foreach ($groups as $g) {
+            $byLabel[$g['label']] = $g;
+        }
+
+        $hasil = [];
+        foreach (array_keys(self::GROUP_COLORS) as $label) {
+            $hasil[] = $byLabel[$label] ?? [
+                'label'    => $label,
+                'sections' => [],
+                'total'    => ['liter' => 0, 'rp' => 0],
+            ];
+        }
+
+        return $hasil;
+    }
+
     private function setColumnWidths(Worksheet $sheet): void
     {
-        // Dilebarkan dari sebelumnya (A6/B26/C14/D18)
         $widths = ['A' => 8, 'B' => 36, 'C' => 18, 'D' => 22];
 
         foreach ($widths as $col => $width) {
@@ -149,23 +196,39 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
     }
 
     /**
-     * Judul grup ("1. Roda Empat" dst) - plain bold text, tanpa fill.
+     * 1 baris kosong paling atas tabel - di-merge jadi satu sel, ada border,
+     * tanpa warna. Row height dinaikkan sedikit biar ada jarak yang jelas
+     * antara judul di atasnya dan tabel.
      */
-    private function writeGroupTitle(Worksheet $sheet, int $row, string $label): int
+    private function writeBlankTableRow(Worksheet $sheet, int $row): int
     {
         $sheet->mergeCells("A{$row}:D{$row}");
-        $sheet->setCellValue("A{$row}", $label);
-        $sheet->getStyle("A{$row}")->applyFromArray([
-            'font'      => ['bold' => true],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'vertical' => Alignment::VERTICAL_CENTER],
-        ]);
+        $this->applyBorder($sheet, "A{$row}:D{$row}");
+        $sheet->getRowDimension($row)->setRowHeight(10);
 
         return $row + 1;
     }
 
     /**
-     * Header kolom - cuma 1 baris (No. / Nomor Kendaraan / Liter / Rp.),
-     * baris nomor urut kolom (1,2,3,4) dihapus.
+     * Banner jenis kendaraan ("A. Roda Empat" dst) - di-highlight sesuai warna grupnya.
+     */
+    private function writeGroupBanner(Worksheet $sheet, int $row, string $label, string $accentColor): int
+    {
+        $sheet->mergeCells("A{$row}:D{$row}");
+        $sheet->setCellValue("A{$row}", $label);
+        $sheet->getStyle("A{$row}:D{$row}")->applyFromArray([
+            'font'      => ['bold' => true],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'vertical' => Alignment::VERTICAL_CENTER, 'indent' => 1],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $accentColor]],
+        ]);
+        $this->applyBorder($sheet, "A{$row}:D{$row}");
+
+        return $row + 1;
+    }
+
+    /**
+     * Header kolom (No. / Nomor Kendaraan / Liter / Rp.) - tanpa warna, cuma
+     * ditulis sekali di atas grup pertama (Roda Empat).
      */
     private function writeColumnHeader(Worksheet $sheet, int $row): int
     {
@@ -216,7 +279,24 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         return $row + 1;
     }
 
-    private function writeTotalRow(Worksheet $sheet, int $row, string $label, array $total): int
+    /**
+     * Baris strip buat jenis kendaraan yang tidak punya data di periode ini.
+     */
+    private function writeEmptyDataRow(Worksheet $sheet, int $row): int
+    {
+        foreach (['A', 'B', 'C', 'D'] as $col) {
+            $sheet->setCellValueExplicit("{$col}{$row}", '-', DataType::TYPE_STRING);
+        }
+
+        $sheet->getStyle("A{$row}:D{$row}")->applyFromArray([
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+        ]);
+        $this->applyBorder($sheet, "A{$row}:D{$row}");
+
+        return $row + 1;
+    }
+
+    private function writeTotalRow(Worksheet $sheet, int $row, string $label, array $total, string $bgColor): int
     {
         $sheet->mergeCells("A{$row}:B{$row}");
         $sheet->setCellValue("A{$row}", $label);
@@ -227,31 +307,36 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
         $sheet->getStyle("A{$row}:D{$row}")->applyFromArray([
             'font'      => ['bold' => true],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $bgColor]],
         ]);
-        $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        $sheet->getStyle("A{$row}")->applyFromArray([
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'indent' => 1],
+        ]);
         $this->applyBorder($sheet, "A{$row}:D{$row}");
 
         return $row + 1;
     }
 
     /**
-     * Baris "Pemakaian BBM untuk di Paiton" - tanpa tanda "-" di depan, dan
-     * "Rp <angka>" ditaruh langsung berdekatan (bukan di kolom terpisah jauh).
+     * Baris "Pemakaian BBM untuk di Paiton :" - dan teks "Laporan Pengeluaran
+     * BBM bulan ..." yang labelnya dihitung otomatis dari tanggalMulai &
+     * tanggalSelesai (lihat buildBulanLabel()).
      */
     private function writeKeterangan(Worksheet $sheet, int $row): int
     {
-        $k = $this->data['keterangan'];
+        $k          = $this->data['keterangan'];
+        $bulanLabel = $this->data['keteranganBulanLabel'];
 
         $sheet->setCellValue("A{$row}", 'Keterangan :');
         $sheet->getStyle("A{$row}")->getFont()->setBold(true);
         $row++;
 
         $sheet->mergeCells("A{$row}:D{$row}");
-        $sheet->setCellValue("A{$row}", 'Laporan Pengeluaran BBM bulan ' . $this->data['bulanLabel']);
+        $sheet->setCellValue("A{$row}", 'Laporan Pengeluaran BBM bulan ' . $bulanLabel);
         $row += 2;
 
         $sheet->mergeCells("A{$row}:B{$row}");
-        $sheet->setCellValue("A{$row}", 'Pemakaian BBM untuk di Paiton');
+        $sheet->setCellValue("A{$row}", 'Pemakaian BBM untuk di Paiton :');
         $sheet->mergeCells("C{$row}:D{$row}");
         $sheet->setCellValue("C{$row}", 'Rp ' . number_format($k['paiton'], 0, ',', '.'));
         $sheet->getStyle("C{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);

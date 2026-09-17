@@ -218,20 +218,21 @@ class PemakaianBbmController extends Controller
         $tanggalAwal  = $request->query('tanggal_awal');
         $tanggalAkhir = $request->query('tanggal_akhir');
 
-        $weeks         = [];
-        $keterangan    = null;
-        $bulanLabel    = null;
-        $penandatangan = $this->getPenandatanganLaporan();
+        $weeks                = [];
+        $keterangan           = null;
+        $bulanLabel           = null;
+        $keteranganBulanLabel = null;
+        $penandatangan        = $this->getPenandatanganLaporan();
 
         if ($tanggalAwal && $tanggalAkhir) {
             $validated  = $this->validatePeriode($request);
             $weeks      = $this->buildWeeksForRange($validated['tanggal_awal'], $validated['tanggal_akhir']);
             $keterangan = $this->buildKeterangan($weeks);
-            // Cuma buat teks "Laporan Pengeluaran BBM bulan ..." di preview.
-            // Nilai final yang sebenarnya disimpan ke DB dihitung ulang di
-            // buildDanSimpanPertanggungjawabanData() pas export - dua-duanya
-            // sekarang pakai formatBulanLabel() yang sama biar konsisten.
-            $bulanLabel = $this->formatBulanLabel($validated['tanggal_awal'], $validated['tanggal_akhir']);
+            // $bulanLabel = rentang tanggal (dipakai di tempat lain / tab Riwayat).
+            // $keteranganBulanLabel = nama bulan doang, khusus buat teks
+            // "Laporan Pengeluaran BBM bulan ..." di bagian Keterangan.
+            $bulanLabel           = $this->formatBulanLabel($validated['tanggal_awal'], $validated['tanggal_akhir']);
+            $keteranganBulanLabel = $this->formatBulanSajaLabel($validated['tanggal_awal'], $validated['tanggal_akhir']);
         }
 
         // Semua rentang tanggal yang sudah pernah di-export sebelumnya (jadi baris
@@ -246,7 +247,7 @@ class PemakaianBbmController extends Controller
             ->values();
 
         return view('pemakaian-bbm.pertanggungjawaban', compact(
-            'tanggalAwal', 'tanggalAkhir', 'weeks', 'keterangan', 'bulanLabel', 'penandatangan', 'periodeTerpakai'
+            'tanggalAwal', 'tanggalAkhir', 'weeks', 'keterangan', 'bulanLabel', 'keteranganBulanLabel', 'penandatangan', 'periodeTerpakai'
         ));
     }
 
@@ -456,9 +457,8 @@ class PemakaianBbmController extends Controller
      * di atas) tetap manggil build() tanpa parameter itu, jadi tetap ambil
      * semua lokasi seperti biasa.
      *
-     * Ikut hitung total gabungan Roda Empat + Roda Dua (exclude Roda Tiga) per
-     * periode - ini yang jadi acuan angka "Pemakaian BBM untuk di Paiton" di
-     * bagian Keterangan.
+     * totalGabungan = SEMUA jenis kendaraan (Roda Empat + Roda Tiga + Roda Dua),
+     * biar angkanya persis sama dengan baris "Jumlah Total" di tabel laporan.
      */
     private function buildWeeks(iterable $periodes): array
     {
@@ -470,13 +470,8 @@ class PemakaianBbmController extends Controller
 
             $data = $this->rekapService->build($awal, $akhir, 'paiton');
 
-            $groupsTanpaRodaTiga = array_values(array_filter(
-                $data['groups'],
-                fn ($g) => !str_contains($g['label'], 'Roda Tiga')
-            ));
-
             $totalGabungan = ['liter' => 0, 'rp' => 0];
-            foreach ($groupsTanpaRodaTiga as $g) {
+            foreach ($data['groups'] as $g) {
                 $totalGabungan['liter'] += $g['total']['liter'];
                 $totalGabungan['rp'] += $g['total']['rp'];
             }
@@ -486,7 +481,7 @@ class PemakaianBbmController extends Controller
                 'periodeLabel'  => $data['periodeLabel'],
                 'groups'        => $data['groups'],
                 'grandTotal'    => $data['grandTotal'],
-                'totalGabungan' => $totalGabungan, // = "Jumlah 1 + 2" periode ini
+                'totalGabungan' => $totalGabungan, // = "Jumlah Total" periode ini
             ];
         }
 
@@ -495,8 +490,8 @@ class PemakaianBbmController extends Controller
 
     /**
      * Bagian "Keterangan" laporan cuma 1 baris: "Pemakaian BBM untuk di Paiton",
-     * nilainya adalah total "Jumlah 1 + 2" (Roda Empat + Roda Dua) dari seluruh
-     * periode yang dipilih, dijumlahkan.
+     * nilainya adalah total "Jumlah Total" (Roda Empat + Roda Tiga + Roda Dua)
+     * dari seluruh periode yang dipilih, dijumlahkan.
      */
     private function buildKeterangan(array $weeks): array
     {
@@ -544,6 +539,31 @@ class PemakaianBbmController extends Controller
     }
 
     /**
+     * Format khusus buat teks "Laporan Pengeluaran BBM bulan ..." di bagian
+     * Keterangan (beda dari formatBulanLabel() di atas yang formatnya rentang
+     * tanggal). Ini cuma nama bulan (+ tahun kalau perlu):
+     *
+     * - Satu bulan & tahun sama : "September 2026"
+     * - Beda bulan, tahun sama  : "September & Oktober 2026"
+     * - Beda tahun              : "Desember 2026 & Januari 2027"
+     */
+    private function formatBulanSajaLabel(string $tanggalAwal, string $tanggalAkhir): string
+    {
+        $awal  = Carbon::parse($tanggalAwal)->locale('id');
+        $akhir = Carbon::parse($tanggalAkhir)->locale('id');
+
+        if ($awal->month === $akhir->month && $awal->year === $akhir->year) {
+            return $awal->translatedFormat('F Y');
+        }
+
+        if ($awal->year === $akhir->year) {
+            return $awal->translatedFormat('F') . ' & ' . $akhir->translatedFormat('F Y');
+        }
+
+        return $awal->translatedFormat('F Y') . ' & ' . $akhir->translatedFormat('F Y');
+    }
+
+    /**
      * Dipanggil pas user beneran klik Export Excel/PDF (bukan pas preview).
      *
      * 1. Validasi tanggal_awal/tanggal_akhir.
@@ -588,17 +608,19 @@ class PemakaianBbmController extends Controller
             ]);
         }
 
-        $weeks         = $this->buildWeeksForRange($validated['tanggal_awal'], $validated['tanggal_akhir']);
-        $keterangan    = $this->buildKeterangan($weeks);
-        $penandatangan = $this->getPenandatanganLaporan();
+        $weeks                = $this->buildWeeksForRange($validated['tanggal_awal'], $validated['tanggal_akhir']);
+        $keterangan           = $this->buildKeterangan($weeks);
+        $penandatangan        = $this->getPenandatanganLaporan();
+        $keteranganBulanLabel = $this->formatBulanSajaLabel($validated['tanggal_awal'], $validated['tanggal_akhir']);
 
         return [
-            'bulanLabel'    => $bulanLabel,
-            'tanggalAwal'   => $validated['tanggal_awal'],
-            'tanggalAkhir'  => $validated['tanggal_akhir'],
-            'weeks'         => $weeks,
-            'keterangan'    => $keterangan,
-            'penandatangan' => $penandatangan,
+            'bulanLabel'           => $bulanLabel,
+            'keteranganBulanLabel' => $keteranganBulanLabel,
+            'tanggalAwal'          => $validated['tanggal_awal'],
+            'tanggalAkhir'         => $validated['tanggal_akhir'],
+            'weeks'                => $weeks,
+            'keterangan'           => $keterangan,
+            'penandatangan'        => $penandatangan,
         ];
     }
 }

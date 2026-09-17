@@ -12,15 +12,15 @@
   </div>
 @endforeach
 
-<div style="width:75%; margin:28px auto 0;">
+<div class="ptj-report-block" style="width:75%; margin:28px auto 0;">
   <table style="width:100%; border-collapse:collapse; font-size:13px; page-break-inside: avoid;">
     <tr>
       <td style="width:60%; vertical-align:top; padding-right:24px; border:none;">
         <strong>Keterangan :</strong><br>
-        Laporan Pengeluaran BBM bulan {{ $bulanLabel }}
+        Laporan Pengeluaran BBM bulan {{ $keteranganBulanLabel }}
         <table style="margin-top:10px; font-size:13px; border-collapse:collapse;">
           <tr>
-            <td style="padding:2px 40px 2px 0; border:none; white-space:nowrap;">Pemakaian BBM untuk di Paiton</td>
+            <td style="padding:2px 40px 2px 0; border:none; white-space:nowrap;">Pemakaian BBM untuk di Paiton :</td>
             <td style="padding:2px 0; border:none; white-space:nowrap;">Rp {{ number_format($keterangan['paiton'], 0, ',', '.') }}</td>
           </tr>
         </table>
