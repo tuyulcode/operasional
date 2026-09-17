@@ -22,10 +22,11 @@
   </div>
 
   @include('rekapan.pemakaian-bbm._pertanggungjawaban-report', [
-    'weeks'         => $weeks,
-    'bulanLabel'    => $bulanLabel,
-    'keterangan'    => $keterangan,
-    'penandatangan' => $penandatangan,
+    'weeks'                => $weeks,
+    'bulanLabel'           => $bulanLabel,
+    'keteranganBulanLabel' => $keteranganBulanLabel,
+    'keterangan'           => $keterangan,
+    'penandatangan'        => $penandatangan,
   ])
 
 </body>
