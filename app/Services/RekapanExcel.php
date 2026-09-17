@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use Carbon\Carbon;
-use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
@@ -12,13 +12,17 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class RekapanExcel
 {
-    private const HEADER_FILL = 'FFd9e2f3';
+    private const HEADER_FILL = 'FFD9E2F3';   // biru muda untuk header tabel
 
-    private const GRAND_FILL = 'FFe2efda';
+    private const TOTAL_FILL = 'FFE2EFDA';    // hijau muda untuk Jumlah Total / Total
 
-    private const PPN_FILL = 'FFE2EFDA';
+    private const PPN_FILL = 'FFFFF2CC';      // kuning muda untuk baris PPN
 
-    private const MAX_TITIK_COL_WIDTH = 45;
+    private const NUM_FMT = '#,##0;-#,##0;"-"';
+
+    private const LAST_COL = 'G';             // A..G = 7 kolom
+
+    private const JUMLAH_COL = 'G';           // nilai rupiah
 
     public static function generate(array $report): Spreadsheet
     {
@@ -26,20 +30,23 @@ class RekapanExcel
         $spreadsheet->removeSheetByIndex(0);
 
         $penandatangan = $report['penandatangan'] ?? collect();
+        $periodeLabel = $report['periodeLabel'] ?? '';
 
         $used = [];
         foreach ($report['data'] as $area) {
             $sheet = $spreadsheet->createSheet();
             $sheet->setTitle(self::sheetTitle($area['area']->nama, $used));
-            self::fill($sheet, $area, $report['periodeLabel'] ?? '', $penandatangan);
+            self::list($sheet, $area, $periodeLabel, $penandatangan);
         }
 
         if ($spreadsheet->getSheetCount() === 0) {
             $sheet = $spreadsheet->createSheet();
             $sheet->setTitle('Rekap');
-            self::headerBlock($sheet, '', 'A', 'BIAYA PEMAKAIAN AIR', 'B');
-            $sheet->setCellValue('A6', 'Tidak ada data untuk periode ini.');
+            self::headerBlock($sheet, '', '-');
+            $sheet->setCellValue('A8', 'Tidak ada data untuk periode ini.');
         }
+
+        $spreadsheet->setActiveSheetIndex(0);
 
         return $spreadsheet;
     }
@@ -59,21 +66,9 @@ class RekapanExcel
         return $title;
     }
 
-    private static function fill(Worksheet $sheet, array $area, string $periodeLabel, $penandatangan): void
+    private static function headerBlock(Worksheet $sheet, string $periodeLabel, string $lokasi): int
     {
-        $jmlTitik = $area['jml_titik'] ?? $area['rows']->count();
-
-        if ($jmlTitik === 1) {
-            self::vertical($sheet, $area, $periodeLabel, $penandatangan);
-        } elseif ($jmlTitik <= 3) {
-            self::horizontal($sheet, $area, $periodeLabel, $penandatangan);
-        } else {
-            self::list($sheet, $area, $periodeLabel, $penandatangan);
-        }
-    }
-
-    private static function headerBlock(Worksheet $sheet, string $periodeLabel, string $lastCol, string $title = 'BIAYA PEMAKAIAN AIR', string $textStartCol = 'B'): int
-    {
+        $lastCol = self::LAST_COL;
         $sheet->getParent()->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
 
         $sheet->getRowDimension(1)->setRowHeight(20);
@@ -92,35 +87,34 @@ class RekapanExcel
             $drawing->setWorksheet($sheet);
         }
 
-        $startIdx = Coordinate::columnIndexFromString($textStartCol);
-        $lastIdx = Coordinate::columnIndexFromString($lastCol);
-        $endIdx = min($lastIdx, $startIdx + 2);
-        $textEndCol = Coordinate::stringFromColumnIndex(max($startIdx, $endIdx));
+        $sheet->mergeCells('C1:E1');
+        $sheet->setCellValue('C1', 'PT PLN NUSANTARA POWER');
+        $sheet->getStyle('C1')->getFont()->setBold(true)->setSize(11);
+        $sheet->getStyle('C1')->getAlignment()->setVertical('center');
 
-        $sheet->mergeCells("{$textStartCol}1:{$textEndCol}1");
-        $sheet->setCellValue("{$textStartCol}1", 'PT PLN NUSANTARA POWER');
-        $sheet->getStyle("{$textStartCol}1")->getFont()->setName('Calibri')->setBold(false)->setSize(10);
-        $sheet->getStyle("{$textStartCol}1")->getAlignment()->setVertical('center');
-
-        $sheet->mergeCells("{$textStartCol}2:{$textEndCol}2");
-        $sheet->setCellValue("{$textStartCol}2", 'UNIT PEMBANGKITAN PAITON');
-        $sheet->getStyle("{$textStartCol}2")->getFont()->setName('Calibri')->setBold(false)->setSize(10);
-        $sheet->getStyle("{$textStartCol}2")->getAlignment()->setVertical('center');
+        $sheet->mergeCells('C2:E2');
+        $sheet->setCellValue('C2', 'UNIT PEMBANGKITAN PAITON');
+        $sheet->getStyle('C2')->getFont()->setSize(10);
+        $sheet->getStyle('C2')->getAlignment()->setVertical('center');
 
         $r = 3;
-        $sheet->mergeCells("A{$r}:{$lastCol}{$r}");
-        $sheet->setCellValue("A{$r}", $title);
-        $sheet->getStyle("A{$r}")->getFont()->setName('Calibri')->setBold(true)->setSize(16);
-        $sheet->getStyle("A{$r}")->getAlignment()->setHorizontal('center')->setVertical('center');
-        $sheet->getRowDimension($r)->setRowHeight(28);
-        $r++;
 
-        $sheet->mergeCells("A{$r}:{$lastCol}{$r}");
-        $sheet->setCellValue("A{$r}", $periodeLabel);
-        $sheet->getStyle("A{$r}")->getFont()->setName('Calibri')->setBold(true)->setSize(12);
-        $sheet->getStyle("A{$r}")->getAlignment()->setHorizontal('center');
-        $sheet->getRowDimension($r)->setRowHeight(20);
-        $r++;
+        $judul = [
+            ['Rekap Biaya Pemakaian Air', 14, true, 26],
+            [$lokasi, 12, true, 20],
+            ['Bulan : '.$periodeLabel, 11, true, 18],
+        ];
+
+        foreach ($judul as [$teks, $size, $bold, $height]) {
+            $sheet->mergeCells("A{$r}:{$lastCol}{$r}");
+            $sheet->setCellValue("A{$r}", $teks);
+            $sheet->getStyle("A{$r}")->getFont()->setBold($bold)->setSize($size);
+            $sheet->getStyle("A{$r}")->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getRowDimension($r)->setRowHeight($height);
+            $r++;
+        }
 
         $sheet->getRowDimension($r)->setRowHeight(8);
         $r++;
@@ -128,259 +122,69 @@ class RekapanExcel
         return $r;
     }
 
-    private static function vertical(Worksheet $sheet, array $area, string $periodeLabel, $penandatangan): void
-    {
-        $row1 = $area['rows']->first();
-        $tg = $row1['tagihan'] ?? null;
-        $ini = $tg ? (int) round((float) $tg->meter_ini) : 0;
-        $lalu = $tg ? (int) round((float) $tg->meter_lalu) : 0;
-        $faktor = $tg ? (float) $tg->meter_faktor : 0;
-
-        $colWidthsPx = ['A' => 24, 'B' => 13, 'C' => 16, 'D' => 12];
-        $sheet->getColumnDimension('A')->setWidth($colWidthsPx['A']);
-        $sheet->getColumnDimension('B')->setWidth($colWidthsPx['B']);
-        $sheet->getColumnDimension('C')->setWidth($colWidthsPx['C']);
-        $sheet->getColumnDimension('D')->setWidth($colWidthsPx['D']);
-
-        $r = self::headerBlock($sheet, $periodeLabel, 'D', 'BIAYA PEMAKAIAN AIR', 'B');
-        $dataStart = $r;
-
-        self::kv($sheet, $r, 'NAMA', $area['area']->nama, null, true);
-        self::kv($sheet, $r, 'ALAMAT', $area['area']->alamat ?: '-');
-        self::kv($sheet, $r, 'LOKASI FLOW METER', $row1['titik_meter']->nama);
-        self::titleRow($sheet, $r, 'PERHITUNGAN PEMAKAIAN');
-        self::kv($sheet, $r, 'Bulan ini', $ini, '( a )', false, 'M³');
-        self::kv($sheet, $r, 'Bulan lalu', $lalu, '( b )', false, 'M³');
-        self::kv($sheet, $r, 'Jumlah Pengambilan', $ini - $lalu, '( c = a - b )', false, 'M³');
-        self::kv($sheet, $r, 'Meter Faktor', $tg ? number_format($faktor, 0, ',', '.') : '0', '( d )');
-        self::kv($sheet, $r, 'Jumlah Pengambilan', $tg ? (int) round((float) $tg->pemakaian) : 0, '( e = c x d )', false, 'M³');
-        self::kv($sheet, $r, 'Tarif / Harga', (float) ($tg->tarif ?? 0), 'Rp', false, null, 'D', '#,##0');
-        self::kv($sheet, $r, 'Jumlah (Rp)', (float) $area['subtotal'], null, true, null, 'D', '#,##0');
-        if ($area['kena_ppn']) {
-            self::kv($sheet, $r, 'PPN '.number_format($area['persen_ppn'], 0, ',', '.').'%', (float) $area['ppn'], null, false, null, 'D', '#,##0');
-            $sheet->getStyle('A'.($r - 1).':D'.($r - 1))
-                ->getFill()->setFillType(Fill::FILL_SOLID)
-                ->getStartColor()->setARGB(self::PPN_FILL);
-            self::kv($sheet, $r, 'Jumlah (Rp)', (float) $area['total'], null, true, null, 'D', '#,##0');
-        }
-
-        self::borders($sheet, 'A'.$dataStart.':D'.($r - 1));
-        $r++;
-
-        $fotoPath = self::resolveFotoPath($tg);
-        if ($fotoPath) {
-            $drawing = new Drawing;
-            $drawing->setName('foto-meter');
-            $drawing->setPath($fotoPath);
-            $drawing->setResizeProportional(true);
-            $drawing->setHeight(110);
-
-            $tableWidthPx = array_sum($colWidthsPx) * 7;
-            if ($drawing->getWidth() + 10 > $tableWidthPx) {
-                $extraPx = $drawing->getWidth() + 10 - $tableWidthPx;
-                $colWidthsPx['D'] += (int) ceil($extraPx / 7);
-                $sheet->getColumnDimension('D')->setWidth($colWidthsPx['D']);
-                $tableWidthPx = array_sum($colWidthsPx) * 7;
-            }
-
-            $offsetX = max(5, (int) (($tableWidthPx - $drawing->getWidth()) / 2));
-
-            $drawing->setCoordinates('A'.$r);
-            $drawing->setOffsetX($offsetX);
-            $drawing->setOffsetY(5);
-            $drawing->setWorksheet($sheet);
-            $sheet->getRowDimension($r)->setRowHeight(120);
-            $r++;
-        } elseif ($tg && $tg->fotos->isNotEmpty()) {
-            $sheet->setCellValue('A'.$r, 'File foto tidak ditemukan');
-            $r++;
-        }
-
-        $r += 3;
-        self::ttdBlock($sheet, $r, $penandatangan, 'D');
-    }
-
-    private static function horizontal(Worksheet $sheet, array $area, string $periodeLabel, $penandatangan): void
-    {
-        $titikRows = $area['rows']->filter(fn ($row) => $row['tagihan'])->values();
-        $n = max(1, $titikRows->count());
-
-        $titikCols = [];
-        for ($i = 0; $i < $n; $i++) {
-            $titikCols[] = Coordinate::stringFromColumnIndex(3 + $i);
-        }
-        $jumlahCol = Coordinate::stringFromColumnIndex(3 + $n);
-        $unitCol = Coordinate::stringFromColumnIndex(4 + $n);
-        $lastCol = $unitCol;
-
-        $sheet->getColumnDimension('A')->setWidth(24);
-        $sheet->getColumnDimension('B')->setWidth(13);
-        foreach ($titikCols as $col) {
-            $sheet->getColumnDimension($col)->setWidth(13);
-        }
-        $sheet->getColumnDimension($jumlahCol)->setWidth(14);
-        $sheet->getColumnDimension($unitCol)->setWidth(8);
-
-        // Diubah menjadi "BIAYA PEMAKAIAN AIR"
-        $r = self::headerBlock($sheet, $periodeLabel, $lastCol, 'BIAYA PEMAKAIAN AIR', 'B');
-        $dataStart = $r;
-
-        // Diubah menjadi "PENGAMBIL / PEMAKAIAN"
-        self::titleRow($sheet, $r, 'PENGAMBIL / PEMAKAIAN', $lastCol);
-        self::kv($sheet, $r, 'NAMA', $area['area']->nama, null, true, null, $lastCol);
-        self::kv($sheet, $r, 'ALAMAT', $area['area']->alamat ?: '-', null, false, null, $lastCol);
-        self::kv($sheet, $r, 'LOKASI FLOW METER', $area['area']->nama, null, false, null, $lastCol);
-        self::titleRow($sheet, $r, 'PERHITUNGAN PEMAKAIAN', $lastCol);
-
-        $sheet->setCellValue('A'.$r, '');
-        foreach ($titikRows as $i => $row) {
-            self::hcell($sheet, $titikCols[$i].$r, $row['titik_meter']->nama, true);
-        }
-        self::hcell($sheet, $jumlahCol.$r, 'Jumlah', true);
-        $r++;
-
-        $ini = $lalu = $delta = $faktor = $pemakaian = $tarif = $subtotalTitik = [];
-        foreach ($titikRows as $i => $row) {
-            $tg = $row['tagihan'];
-            $ini[$i] = (int) round((float) $tg->meter_ini);
-            $lalu[$i] = (int) round((float) $tg->meter_lalu);
-            $delta[$i] = $ini[$i] - $lalu[$i];
-            $faktor[$i] = (float) $tg->meter_faktor;
-            $pemakaian[$i] = (int) round((float) $tg->pemakaian);
-            $tarif[$i] = (float) $tg->tarif;
-            $subtotalTitik[$i] = (float) $tg->jumlah;
-        }
-
-        self::pivotRow($sheet, $r, 'Bulan ini', '( a )', $titikCols, $ini, $jumlahCol, null, $unitCol, 'M³');
-        self::pivotRow($sheet, $r, 'Bulan lalu', '( b )', $titikCols, $lalu, $jumlahCol, null, $unitCol, 'M³');
-        self::pivotRow($sheet, $r, 'Jumlah Pengambilan', '( c = a - b )', $titikCols, $delta, $jumlahCol, null, $unitCol, 'M³');
-        self::pivotRow($sheet, $r, 'Meter Faktor', '( d )', $titikCols, array_map(fn ($v) => number_format($v, 0, ',', '.'), $faktor), $jumlahCol, null, $unitCol, null);
-        self::pivotRow($sheet, $r, 'Jumlah Pengambilan', '( e = c x d )', $titikCols, $pemakaian, $jumlahCol, null, $unitCol, 'M³');
-        self::pivotRow($sheet, $r, 'Tarif / Harga', 'Rp', $titikCols, $tarif, $jumlahCol, null, $unitCol, '/M³', false, null, null, '#,##0');
-
-        $grandTotal = array_sum($subtotalTitik);
-        self::pivotRow(
-            $sheet,
-            $r,
-            'Jumlah',
-            'Rp',
-            $titikCols,
-            $subtotalTitik,
-            $jumlahCol,
-            $grandTotal,
-            $unitCol,
-            null,
-            true,
-            null,
-            null,
-            '#,##0;(#,##0)'
-        );
-
-        if ($area['kena_ppn']) {
-            self::pivotRow($sheet, $r, 'PPN '.number_format($area['persen_ppn'], 0, ',', '.').'%', null, $titikCols, [], $jumlahCol, (float) $area['ppn'], $unitCol, null, false, self::PPN_FILL, $lastCol, '#,##0');
-            self::pivotRow($sheet, $r, 'Total', null, $titikCols, [], $jumlahCol, (float) $area['total'], $unitCol, null, true, self::GRAND_FILL, $lastCol, '#,##0');
-        }
-
-        self::borders($sheet, 'A'.$dataStart.':'.$lastCol.($r - 1));
-        $r++;
-
-        $photoRow = $r;
-        $drawings = [];
-        $missingFoto = false;
-
-        foreach ($titikRows as $i => $row) {
-            $tg = $row['tagihan'];
-            $fotoPath = self::resolveFotoPath($tg);
-
-            if ($fotoPath) {
-                $drawing = new Drawing;
-                $drawing->setName('foto-'.$i);
-                $drawing->setPath($fotoPath);
-                $drawing->setResizeProportional(true);
-                $drawing->setHeight(100);
-                $drawings[$i] = $drawing;
-
-                $neededWidthPx = $drawing->getWidth() + 10;
-                $currentWidthPx = $sheet->getColumnDimension($titikCols[$i])->getWidth() * 7;
-                if ($neededWidthPx > $currentWidthPx) {
-                    $newWidthUnit = min(self::MAX_TITIK_COL_WIDTH, $neededWidthPx / 7);
-                    $sheet->getColumnDimension($titikCols[$i])->setWidth($newWidthUnit);
-                }
-            } elseif ($tg && $tg->fotos->isNotEmpty()) {
-                $missingFoto = true;
-            }
-        }
-
-        $anyFoto = ! empty($drawings);
-        if ($anyFoto) {
-            foreach ($drawings as $i => $drawing) {
-                $colWidthPx = $sheet->getColumnDimension($titikCols[$i])->getWidth() * 7;
-                $offsetX = max(2, (int) (($colWidthPx - $drawing->getWidth()) / 2));
-
-                $drawing->setCoordinates($titikCols[$i].$photoRow);
-                $drawing->setOffsetX($offsetX);
-                $drawing->setOffsetY(5);
-                $drawing->setWorksheet($sheet);
-            }
-            $sheet->getRowDimension($photoRow)->setRowHeight(110);
-            $r = $photoRow + 1;
-        } elseif ($missingFoto) {
-            $sheet->setCellValue('A'.$photoRow, 'File foto tidak ditemukan');
-            $r = $photoRow + 1;
-        }
-
-        $r += 4;
-        self::ttdBlock($sheet, $r, $penandatangan, $lastCol);
-    }
-
+    /**
+     * Satu-satunya layout rekapan: tabel list (mengikuti sheet PUNCAK 1),
+     * dipakai untuk berapa pun jumlah titik meternya.
+     */
     private static function list(Worksheet $sheet, array $area, string $periodeLabel, $penandatangan): void
     {
+        $lastCol = self::LAST_COL;
+
         $rows = $area['rows']
             ->filter(fn ($row) => ($row['titik_meter']->status ?? 'aktif') === 'aktif')
             ->values();
 
-        $lastCol = 'G';
-        $sheet->getColumnDimension('A')->setWidth(6);
-        $sheet->getColumnDimension('B')->setWidth(26);
-        $sheet->getColumnDimension('C')->setWidth(12);
-        $sheet->getColumnDimension('D')->setWidth(12);
-        $sheet->getColumnDimension('E')->setWidth(15);
-        $sheet->getColumnDimension('F')->setWidth(13);
-        $sheet->getColumnDimension('G')->setWidth(16);
+        $sheet->getColumnDimension('A')->setWidth(7);   // No. Urut
+        $sheet->getColumnDimension('B')->setWidth(30);  // Nama Titik Meter
+        $sheet->getColumnDimension('C')->setWidth(12);  // Bulan Ini
+        $sheet->getColumnDimension('D')->setWidth(12);  // Bulan Lalu
+        $sheet->getColumnDimension('E')->setWidth(15);  // Jumlah Pengambilan
+        $sheet->getColumnDimension('F')->setWidth(14);  // Tarif
+        $sheet->getColumnDimension('G')->setWidth(17);  // Jumlah Rp
 
-        $r = self::headerBlock($sheet, $periodeLabel, $lastCol, 'BIAYA PEMAKAIAN AIR', 'C');
+        $lokasi = $area['area']->alamat
+            ? $area['area']->nama.' - '.$area['area']->alamat
+            : $area['area']->nama;
+
+        $r = self::headerBlock($sheet, $periodeLabel, $lokasi);
         $dataStart = $r;
 
         $headRow1 = $r;
         $headRow2 = $r + 1;
 
         $sheet->mergeCells('A'.$headRow1.':A'.$headRow2);
-        $sheet->setCellValue('A'.$headRow1, 'No');
+        $sheet->setCellValue('A'.$headRow1, "No.\nUrut");
 
         $sheet->mergeCells('B'.$headRow1.':B'.$headRow2);
         $sheet->setCellValue('B'.$headRow1, 'Nama Titik Meter');
 
         $sheet->mergeCells('C'.$headRow1.':D'.$headRow1);
-        $sheet->setCellValue('C'.$headRow1, 'COUNTER M3');
+        $sheet->setCellValue('C'.$headRow1, 'COUNTER  M³');
         $sheet->setCellValue('C'.$headRow2, 'Bulan Ini');
         $sheet->setCellValue('D'.$headRow2, 'Bulan Lalu');
 
         $sheet->mergeCells('E'.$headRow1.':E'.$headRow2);
-        $sheet->setCellValue('E'.$headRow1, 'Jumlah Pengambilan');
+        $sheet->setCellValue('E'.$headRow1, "Jumlah\nPengambilan");
 
         $sheet->mergeCells('F'.$headRow1.':F'.$headRow2);
-        $sheet->setCellValue('F'.$headRow1, 'Tarif Rp/M3');
+        $sheet->setCellValue('F'.$headRow1, "TARIF\nRp / M³");
 
         $sheet->mergeCells('G'.$headRow1.':G'.$headRow2);
-        $sheet->setCellValue('G'.$headRow1, 'Jumlah (Rp)');
+        $sheet->setCellValue('G'.$headRow1, "JUMLAH\nRp");
 
         foreach (range('A', $lastCol) as $col) {
             $range = $col.$headRow1.':'.$col.$headRow2;
-            $sheet->getStyle($range)->getFont()->setName('Calibri')->setBold(true);
-            $sheet->getStyle($range)->getAlignment()->setHorizontal('center')->setVertical('center')->setWrapText(true);
-            $sheet->getStyle($range)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::HEADER_FILL);
+            $sheet->getStyle($range)->getFont()->setBold(true);
+            $sheet->getStyle($range)->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER)
+                ->setWrapText(true);
+            $sheet->getStyle($range)->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB(self::HEADER_FILL);
         }
-        $sheet->getRowDimension($headRow2)->setRowHeight(16);
+        $sheet->getRowDimension($headRow1)->setRowHeight(18);
+        $sheet->getRowDimension($headRow2)->setRowHeight(18);
         $r = $headRow2 + 1;
 
         $no = 0;
@@ -396,132 +200,76 @@ class RekapanExcel
             $sheet->setCellValue('F'.$r, $tg ? (float) $tg->tarif : (float) ($row['titik_meter']->tarif_harga ?? 0));
             $sheet->setCellValue('G'.$r, $tg ? (float) $tg->jumlah : null);
 
-            foreach (range('A', $lastCol) as $col) {
-                $sheet->getStyle($col.$r)->getFont()->setName('Calibri');
-            }
-            $sheet->getStyle('A'.$r)->getAlignment()->setHorizontal('center');
-            $sheet->getStyle('C'.$r.':E'.$r)->getAlignment()->setHorizontal('center');
-            $sheet->getStyle('F'.$r)->getAlignment()->setHorizontal('center');
-            $sheet->getStyle('F'.$r)->getNumberFormat()->setFormatCode('#,##0.00');
-            $sheet->getStyle('G'.$r)->getAlignment()->setHorizontal('center');
-            $sheet->getStyle('G'.$r)->getNumberFormat()->setFormatCode('#,##0');
-            $sheet->getStyle('G'.$r)->getFont()->setBold(true);
+            $sheet->getStyle('A'.$r)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('C'.$r.':F'.$r)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('C'.$r.':F'.$r)->getNumberFormat()->setFormatCode(self::NUM_FMT);
+            $sheet->getStyle('G'.$r)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle('G'.$r)->getNumberFormat()->setFormatCode(self::NUM_FMT);
 
             $r++;
         }
 
-        $sheet->mergeCells('A'.$r.':E'.$r);
-        $sheet->setCellValue('A'.$r, 'Subtotal');
-        $sheet->getStyle('A'.$r)->getFont()->setName('Calibri')->setBold(true);
-        $sheet->setCellValue('G'.$r, (float) $area['subtotal']);
-        $sheet->getStyle('G'.$r)->getFont()->setName('Calibri')->setBold(true);
-        $sheet->getStyle('G'.$r)->getNumberFormat()->setFormatCode('#,##0');
-        $sheet->getStyle('G'.$r)->getAlignment()->setHorizontal('center');
-        $sheet->getStyle('A'.$r.':'.$lastCol.$r)
-            ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::GRAND_FILL);
-        $r++;
+        // Label ringkasan membentang penuh (A-F), nilainya di kolom JUMLAH.
+        self::summaryRow($sheet, $r, 'Jumlah Total', (float) $area['subtotal'], self::TOTAL_FILL, true);
 
         if ($area['kena_ppn']) {
-            $sheet->mergeCells('A'.$r.':E'.$r);
-            $sheet->setCellValue('A'.$r, 'PPN '.number_format($area['persen_ppn'], 0, ',', '.').'%');
-            $sheet->getStyle('A'.$r)->getFont()->setName('Calibri');
-            $sheet->setCellValue('G'.$r, (float) $area['ppn']);
-            $sheet->getStyle('G'.$r)->getFont()->setName('Calibri');
-            $sheet->getStyle('G'.$r)->getNumberFormat()->setFormatCode('#,##0');
-            $sheet->getStyle('G'.$r)->getAlignment()->setHorizontal('center');
-            $sheet->getStyle('A'.$r.':'.$lastCol.$r)
-                ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::PPN_FILL);
-            $r++;
-
-            $sheet->mergeCells('A'.$r.':E'.$r);
-            $sheet->setCellValue('A'.$r, 'Total');
-            $sheet->getStyle('A'.$r)->getFont()->setName('Calibri')->setBold(true);
-            $sheet->setCellValue('G'.$r, (float) $area['total']);
-            $sheet->getStyle('G'.$r)->getFont()->setName('Calibri')->setBold(true);
-            $sheet->getStyle('G'.$r)->getNumberFormat()->setFormatCode('#,##0');
-            $sheet->getStyle('G'.$r)->getAlignment()->setHorizontal('center');
-            $sheet->getStyle('A'.$r.':'.$lastCol.$r)
-                ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::GRAND_FILL);
-            $r++;
+            self::summaryRow(
+                $sheet,
+                $r,
+                'PPN '.number_format($area['persen_ppn'], 0, ',', '.').'%',
+                (float) $area['ppn'],
+                self::PPN_FILL,
+                false
+            );
+            self::summaryRow($sheet, $r, 'Total', (float) $area['total'], self::TOTAL_FILL, true);
         }
 
         self::borders($sheet, 'A'.$dataStart.':'.$lastCol.($r - 1));
         $r++;
 
-        $barisFoto = $rows->filter(fn ($row) => $row['tagihan'])->values();
-        $anyFoto = $barisFoto->contains(fn ($row) => self::resolveFotoPath($row['tagihan']) !== null);
-
-        if ($barisFoto->isNotEmpty() && $anyFoto) {
-            $sheet->setCellValue('A'.$r, 'Foto Meter :');
-            $sheet->getStyle('A'.$r)->getFont()->setName('Calibri')->setBold(true);
-            $r += 1;
-
-            $fotoSlots = self::fotoGridColumns($lastCol, 4);
-
-            $chunkIndex = 0;
-            foreach ($barisFoto->chunk(4) as $chunk) {
-                $chunkArr = $chunk->values();
-                $labelRow = $r;
-                $photoRow = $r + 1;
-
-                foreach ($chunkArr as $i => $row) {
-                    $slot = $fotoSlots[$i];
-                    [$startCol, $endCol] = [reset($slot), end($slot)];
-
-                    $titikIdx = $rows->search(fn ($item) => ($item['titik_meter']->id ?? null) === ($row['titik_meter']->id ?? null));
-                    $noUrutFoto = $titikIdx !== false ? ($titikIdx + 1) : (($chunkIndex * 4) + $i + 1);
-
-                    $sheet->mergeCells($startCol.$labelRow.':'.$endCol.$labelRow);
-                    $sheet->setCellValue($startCol.$labelRow, $noUrutFoto . '. ' . $row['titik_meter']->nama);
-                    $sheet->getStyle($startCol.$labelRow)->getFont()->setName('Calibri')->setBold(true);
-                    $sheet->getStyle($startCol.$labelRow)->getAlignment()->setHorizontal('center');
-                    $sheet->getStyle($startCol.$labelRow.':'.$endCol.$labelRow)
-                        ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::HEADER_FILL);
-
-                    $sheet->mergeCells($startCol.$photoRow.':'.$endCol.$photoRow);
-
-                    $fotoPath = self::resolveFotoPath($row['tagihan']);
-                    if ($fotoPath) {
-                        $drawing = new Drawing;
-                        $drawing->setName('foto-list-'.$labelRow.'-'.$i);
-                        $drawing->setPath($fotoPath);
-                        $drawing->setResizeProportional(true);
-                        $drawing->setHeight(95);
-
-                        $slotWidthPx = array_sum(array_map(
-                            fn ($col) => $sheet->getColumnDimension($col)->getWidth() * 7,
-                            $slot
-                        ));
-
-                        if ($drawing->getWidth() + 10 > $slotWidthPx) {
-                            $drawing->setWidth((int) floor($slotWidthPx - 10));
-                        }
-
-                        $offsetX = max(2, (int) (($slotWidthPx - $drawing->getWidth()) / 2));
-
-                        $drawing->setCoordinates($startCol.$photoRow);
-                        $drawing->setOffsetX($offsetX);
-                        $drawing->setOffsetY(4);
-                        $drawing->setWorksheet($sheet);
-                    } else {
-                        $sheet->setCellValue($startCol.$photoRow, 'file tidak ditemukan');
-                        $sheet->getStyle($startCol.$photoRow)->getFont()->setName('Calibri')->setItalic(true);
-                        $sheet->getStyle($startCol.$photoRow)->getAlignment()->setHorizontal('center')->setVertical('center');
-                    }
-                }
-
-                $sheet->getRowDimension($labelRow)->setRowHeight(18);
-                $sheet->getRowDimension($photoRow)->setRowHeight(100);
-                $r = $photoRow + 1;
-                $chunkIndex++;
-            }
-        }
+        self::fotoBlock($sheet, $r, $rows);
 
         $r += 3;
-        self::ttdBlock($sheet, $r, $penandatangan, $lastCol);
+        self::ttdBlock($sheet, $r, $penandatangan);
     }
 
-    private static function fotoGridColumns(string $lastCol, int $n = 4): array
+    private static function summaryRow(Worksheet $sheet, int &$r, string $label, float $nilai, string $fill, bool $bold): void
+    {
+        $lastCol = self::LAST_COL;
+        $jumlahCol = self::JUMLAH_COL;
+
+        $sheet->mergeCells('A'.$r.':F'.$r);
+        $sheet->setCellValue('A'.$r, $label);
+        $sheet->getStyle('A'.$r)->getFont()->setBold($bold);
+        $sheet->getStyle('A'.$r)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $sheet->setCellValue($jumlahCol.$r, $nilai);
+        $sheet->getStyle($jumlahCol.$r)->getFont()->setBold($bold);
+        $sheet->getStyle($jumlahCol.$r)->getNumberFormat()->setFormatCode(self::NUM_FMT);
+        $sheet->getStyle($jumlahCol.$r)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+        $sheet->getStyle('A'.$r.':'.$lastCol.$r)
+            ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($fill);
+
+        $sheet->getRowDimension($r)->setRowHeight(18);
+        $r++;
+    }
+
+    /**
+     * Slot foto per baris (tabel 7 kolom, A-G). 1-3 foto dipusatkan
+     * di tengah tabel, 4 foto memakai lebar penuh secara merata.
+     */
+    private static function fotoSlots(int $jumlah): array
+    {
+        return match ($jumlah) {
+            1 => [['C', 'D', 'E']],
+            2 => [['B', 'C'], ['E', 'F']],
+            3 => [['B', 'C'], ['D', 'E'], ['F', 'G']],
+            default => self::fotoGridColumns(self::LAST_COL, 4),
+        };
+    }
+
+    private static function fotoGridColumns(string $lastCol, int $n): array
     {
         $cols = range('A', $lastCol);
         $groupSize = (int) max(1, ceil(count($cols) / $n));
@@ -534,138 +282,84 @@ class RekapanExcel
         return array_slice($chunks, 0, $n);
     }
 
-    private static function titleRow(Worksheet $sheet, int &$r, string $label, string $lastCol = 'D'): void
+    private static function fotoBlock(Worksheet $sheet, int &$r, $rows): void
     {
-        $sheet->setCellValue('A'.$r, $label);
-        $sheet->mergeCells('A'.$r.':'.$lastCol.$r);
-        $sheet->getStyle('A'.$r)->getFont()->setName('Calibri')->setBold(true);
-        $r++;
-    }
+        $barisFoto = $rows
+            ->filter(fn ($row) => $row['tagihan'] && self::resolveFotoPath($row['tagihan']) !== null)
+            ->values();
 
-    private static function kv(Worksheet $sheet, int &$r, string $label, mixed $value, ?string $kode = null, bool $bold = false, ?string $satuan = null, string $lastCol = 'D', ?string $numFmt = null): void
-    {
-        if ($kode !== null) {
-            $sheet->setCellValue('A'.$r, $label);
-            $sheet->getStyle('A'.$r)->getFont()->setName('Calibri');
-
-            $sheet->setCellValue('B'.$r, $kode);
-            $sheet->getStyle('B'.$r)->getFont()->setName('Calibri');
-            $sheet->getStyle('B'.$r)->getAlignment()->setHorizontal('center');
-        } else {
-            $sheet->mergeCells('A'.$r.':B'.$r);
-            $sheet->setCellValue('A'.$r, $label);
-            $sheet->getStyle('A'.$r)->getFont()->setName('Calibri');
-            $sheet->getStyle('A'.$r)->getAlignment()->setHorizontal('left');
+        if ($barisFoto->isEmpty()) {
+            return;
         }
 
-        if ($satuan !== null) {
-            $sheet->setCellValue('C'.$r, $value);
-            $sheet->getStyle('C'.$r)->getFont()->setName('Calibri');
-            $sheet->getStyle('C'.$r)->getAlignment()->setHorizontal('center');
+        $sheet->setCellValue('A'.$r, 'Foto Meter :');
+        $sheet->getStyle('A'.$r)->getFont()->setBold(true);
+        $r += 1;
 
-            $sheet->setCellValue('D'.$r, $satuan);
-            $sheet->getStyle('D'.$r)->getFont()->setName('Calibri');
-            $sheet->getStyle('D'.$r)->getAlignment()->setHorizontal('center');
-        } else {
-            $sheet->mergeCells('C'.$r.':'.$lastCol.$r);
-            $sheet->setCellValue('C'.$r, $value);
-            $sheet->getStyle('C'.$r)->getFont()->setName('Calibri');
-            $sheet->getStyle('C'.$r)->getAlignment()->setHorizontal('center');
-        }
+        $chunkIndex = 0;
 
-        if ($bold) {
-            $sheet->getStyle('A'.$r)->getFont()->setBold(true);
-            $sheet->getStyle('C'.$r)->getFont()->setBold(true);
-        }
+        foreach ($barisFoto->chunk(4) as $chunk) {
+            $chunkArr = $chunk->values();
+            $slots = self::fotoSlots($chunkArr->count());
+            $labelRow = $r;
+            $photoRow = $r + 1;
 
-        if ($numFmt !== null) {
-            $sheet->getStyle('C'.$r)->getNumberFormat()->setFormatCode($numFmt);
-        }
-        $r++;
-    }
+            foreach ($chunkArr as $i => $row) {
+                $slot = $slots[$i];
+                [$startCol, $endCol] = [reset($slot), end($slot)];
 
-    private static function pivotRow(
-        Worksheet $sheet,
-        int &$r,
-        string $label,
-        ?string $kode,
-        array $titikCols,
-        array $values,
-        string $jumlahCol,
-        mixed $jumlahValue,
-        string $unitCol,
-        ?string $satuan,
-        bool $bold = false,
-        ?string $fillColor = null,
-        ?string $lastCol = null,
-        ?string $numFmt = null
-    ): void {
-        $sheet->setCellValue('A'.$r, $label);
-        $sheet->getStyle('A'.$r)->getFont()->setName('Calibri');
+                $titikIdx = $rows->search(fn ($item) => ($item['titik_meter']->id ?? null) === ($row['titik_meter']->id ?? null));
+                $noUrutFoto = $titikIdx !== false ? ($titikIdx + 1) : (($chunkIndex * 4) + $i + 1);
 
-        if ($kode !== null) {
-            $sheet->setCellValue('B'.$r, $kode);
-            $sheet->getStyle('B'.$r)->getFont()->setName('Calibri');
-            $sheet->getStyle('B'.$r)->getAlignment()->setHorizontal('center');
-        }
+                $sheet->mergeCells($startCol.$labelRow.':'.$endCol.$labelRow);
+                $sheet->setCellValue($startCol.$labelRow, $noUrutFoto.'. '.$row['titik_meter']->nama);
+                $sheet->getStyle($startCol.$labelRow)->getFont()->setBold(true);
+                $sheet->getStyle($startCol.$labelRow)->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle($startCol.$labelRow.':'.$endCol.$labelRow)
+                    ->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::HEADER_FILL);
 
-        foreach ($titikCols as $i => $col) {
-            if (array_key_exists($i, $values)) {
-                $sheet->setCellValue($col.$r, $values[$i]);
-                $sheet->getStyle($col.$r)->getFont()->setName('Calibri');
-                $sheet->getStyle($col.$r)->getAlignment()->setHorizontal('center');
-                if ($numFmt !== null) {
-                    $sheet->getStyle($col.$r)->getNumberFormat()->setFormatCode($numFmt);
+                $sheet->mergeCells($startCol.$photoRow.':'.$endCol.$photoRow);
+                $sheet->getStyle($startCol.$photoRow)->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(Alignment::VERTICAL_CENTER);
+
+                self::borders($sheet, $startCol.$labelRow.':'.$endCol.$photoRow);
+
+                $drawing = new Drawing;
+                $drawing->setName('foto-'.$labelRow.'-'.$i);
+                $drawing->setPath(self::resolveFotoPath($row['tagihan']));
+                $drawing->setResizeProportional(true);
+                $drawing->setHeight(95);
+
+                $slotWidthPx = array_sum(array_map(
+                    fn ($col) => $sheet->getColumnDimension($col)->getWidth() * 7,
+                    $slot
+                ));
+
+                if ($drawing->getWidth() + 10 > $slotWidthPx) {
+                    $drawing->setWidth((int) floor($slotWidthPx - 10));
                 }
+
+                // Center horizontal di dalam slot, center vertikal pada tinggi baris 100px.
+                $drawing->setCoordinates($startCol.$photoRow);
+                $drawing->setOffsetX(max(2, (int) (($slotWidthPx - $drawing->getWidth()) / 2)));
+                $drawing->setOffsetY(max(2, (int) ((100 - $drawing->getHeight()) / 2)));
+                $drawing->setWorksheet($sheet);
             }
+
+            $sheet->getRowDimension($labelRow)->setRowHeight(18);
+            $sheet->getRowDimension($photoRow)->setRowHeight(100);
+            $r = $photoRow + 1;
+            $chunkIndex++;
         }
-
-        if ($jumlahValue !== null) {
-            $sheet->setCellValue($jumlahCol.$r, $jumlahValue);
-            $sheet->getStyle($jumlahCol.$r)->getFont()->setName('Calibri');
-            $sheet->getStyle($jumlahCol.$r)->getAlignment()->setHorizontal('center');
-            if ($numFmt !== null) {
-                $sheet->getStyle($jumlahCol.$r)->getNumberFormat()->setFormatCode($numFmt);
-            }
-        }
-
-        if ($satuan !== null) {
-            $sheet->setCellValue($unitCol.$r, $satuan);
-            $sheet->getStyle($unitCol.$r)->getFont()->setName('Calibri');
-            $sheet->getStyle($unitCol.$r)->getAlignment()->setHorizontal('center');
-        }
-
-        if ($bold) {
-            $sheet->getStyle('A'.$r)->getFont()->setBold(true);
-            $sheet->getStyle('B'.$r)->getFont()->setBold(true);
-            foreach ($titikCols as $col) {
-                $sheet->getStyle($col.$r)->getFont()->setBold(true);
-            }
-            $sheet->getStyle($jumlahCol.$r)->getFont()->setBold(true);
-        }
-
-        if ($fillColor !== null && $lastCol !== null) {
-            $sheet->getStyle('A'.$r.':'.$lastCol.$r)
-                ->getFill()->setFillType(Fill::FILL_SOLID)
-                ->getStartColor()->setARGB($fillColor);
-        }
-
-        $r++;
-    }
-
-    private static function hcell(Worksheet $sheet, string $cell, string $value, bool $bold): void
-    {
-        $sheet->setCellValue($cell, $value);
-        $style = $sheet->getStyle($cell);
-        $style->getFont()->setName('Calibri')->setBold($bold);
-        $style->getAlignment()->setHorizontal('center');
-        $style->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB(self::HEADER_FILL);
     }
 
     private static function borders(Worksheet $sheet, string $range): void
     {
         $sheet->getStyle($range)->getBorders()->applyFromArray([
-            'allBorders' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['argb' => 'FF555555']],
+            'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FF333333']],
         ]);
     }
 
@@ -684,118 +378,66 @@ class RekapanExcel
         return is_file($path) ? $path : null;
     }
 
-    private static function ttdBlock(Worksheet $sheet, int &$r, $penandatangan, string $lastCol = 'D'): void
+    private static function ttdBlock(Worksheet $sheet, int &$r, $penandatangan): void
     {
         if (! $penandatangan || $penandatangan->isEmpty()) {
             return;
         }
 
-        $cols = range('A', $lastCol);
-        $colWidths = [];
-        foreach ($cols as $col) {
-            $colWidths[$col] = max(1, $sheet->getColumnDimension($col)->getWidth());
-        }
-        $totalWidth = array_sum($colWidths);
-
-        $chunks = [];
-        $current = [];
-        $currentWidth = 0;
-        $colsLeft = count($cols);
-        $groupsLeft = 2;
-
-        foreach ($cols as $col) {
-            $current[] = $col;
-            $currentWidth += $colWidths[$col];
-            $colsLeft--;
-
-            $targetWidth = $totalWidth * (count($chunks) + 1) / 2;
-            $shouldBreak = $groupsLeft > 1
-                && $currentWidth >= $targetWidth
-                && $colsLeft >= ($groupsLeft - 1);
-
-            if ($shouldBreak) {
-                $chunks[] = $current;
-                $current = [];
-                $currentWidth = 0;
-                $groupsLeft--;
-            }
-        }
-        if (! empty($current)) {
-            $chunks[] = $current;
-        }
-        while (count($chunks) < 2) {
-            $chunks[] = [end($cols)];
-        }
-
-        $leftChunk = $chunks[0];
-        $rightChunk = $chunks[1] ?? end($chunks);
-
-        [$leftStart, $leftEnd] = [reset($leftChunk), end($leftChunk)];
-        [$rightStart, $rightEnd] = [reset($rightChunk), end($rightChunk)];
+        [$leftStart, $leftEnd] = ['A', 'C'];
+        [$rightStart, $rightEnd] = ['E', 'G'];
 
         $pLeft = $penandatangan->first();
         $pRight = $penandatangan->count() > 1 ? $penandatangan->get(1) : null;
 
-        $tempat = $pLeft->tempat ?: ($pRight ? $pRight->tempat : 'paiton');
+        $tempat = $pLeft->tempat ?: ($pRight ? $pRight->tempat : 'Paiton');
         $tanggal = Carbon::now()->locale('id')->translatedFormat('d F Y');
         $dateText = ($tempat ? $tempat.', ' : '').$tanggal;
 
         $rowDate = $r;
         $sheet->mergeCells($rightStart.$rowDate.':'.$rightEnd.$rowDate);
         $sheet->setCellValue($rightStart.$rowDate, $dateText);
-        $sheet->getStyle($rightStart.$rowDate)->getFont()->setName('Calibri');
-        $sheet->getStyle($rightStart.$rowDate)->getAlignment()->setHorizontal('center');
+        $sheet->getStyle($rightStart.$rowDate)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getRowDimension($rowDate)->setRowHeight(18);
         $r++;
 
         $sheet->getRowDimension($r)->setRowHeight(8);
         $r++;
 
-        $rowTitle = $r;
-        $sheet->mergeCells($leftStart.$rowTitle.':'.$leftEnd.$rowTitle);
-        $sheet->setCellValue($leftStart.$rowTitle, 'Menyetujui,');
-        $sheet->getStyle($leftStart.$rowTitle)->getFont()->setName('Calibri')->setBold(true);
-        $sheet->getStyle($leftStart.$rowTitle)->getAlignment()->setHorizontal('center');
+        $baris = [
+            ['Mengetahui,', $pRight ? 'Menyetujui,' : ''],
+            [$pLeft ? ($pLeft->jabatan ?: '') : '', $pRight ? ($pRight->jabatan ?: '') : ''],
+        ];
 
-        if ($pRight) {
-            $sheet->mergeCells($rightStart.$rowTitle.':'.$rightEnd.$rowTitle);
-            $sheet->setCellValue($rightStart.$rowTitle, 'Mengusulkan,');
-            $sheet->getStyle($rightStart.$rowTitle)->getFont()->setName('Calibri')->setBold(true);
-            $sheet->getStyle($rightStart.$rowTitle)->getAlignment()->setHorizontal('center');
+        foreach ($baris as [$kiri, $kanan]) {
+            $sheet->mergeCells($leftStart.$r.':'.$leftEnd.$r);
+            $sheet->setCellValue($leftStart.$r, $kiri);
+            $sheet->getStyle($leftStart.$r)->getFont()->setBold(true);
+            $sheet->getStyle($leftStart.$r)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            $sheet->mergeCells($rightStart.$r.':'.$rightEnd.$r);
+            $sheet->setCellValue($rightStart.$r, $kanan);
+            $sheet->getStyle($rightStart.$r)->getFont()->setBold(true);
+            $sheet->getStyle($rightStart.$r)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            $sheet->getRowDimension($r)->setRowHeight(18);
+            $r++;
         }
-        $sheet->getRowDimension($rowTitle)->setRowHeight(18);
-        $r++;
 
-        $rowJabatan = $r;
-        $sheet->mergeCells($leftStart.$rowJabatan.':'.$leftEnd.$rowJabatan);
-        $sheet->setCellValue($leftStart.$rowJabatan, $pLeft ? $pLeft->jabatan : '');
-        $sheet->getStyle($leftStart.$rowJabatan)->getFont()->setName('Calibri')->setBold(true);
-        $sheet->getStyle($leftStart.$rowJabatan)->getAlignment()->setHorizontal('center');
-
-        if ($pRight) {
-            $sheet->mergeCells($rightStart.$rowJabatan.':'.$rightEnd.$rowJabatan);
-            $sheet->setCellValue($rightStart.$rowJabatan, $pRight->jabatan ?: '');
-            $sheet->getStyle($rightStart.$rowJabatan)->getFont()->setName('Calibri')->setBold(true);
-            $sheet->getStyle($rightStart.$rowJabatan)->getAlignment()->setHorizontal('center');
-        }
-        $sheet->getRowDimension($rowJabatan)->setRowHeight(18);
-        $r++;
-
-        $spaceRow = $r;
-        $sheet->getRowDimension($spaceRow)->setRowHeight(68);
+        $sheet->getRowDimension($r)->setRowHeight(68);
         $r++;
 
         $namaRow = $r;
         $sheet->mergeCells($leftStart.$namaRow.':'.$leftEnd.$namaRow);
         $sheet->setCellValue($leftStart.$namaRow, $pLeft ? ($pLeft->nama ?: '...................................') : '');
-        $sheet->getStyle($leftStart.$namaRow)->getFont()->setName('Calibri')->setBold(true);
-        $sheet->getStyle($leftStart.$namaRow)->getAlignment()->setHorizontal('center');
+        $sheet->getStyle($leftStart.$namaRow)->getFont()->setBold(true)->setUnderline(true);
+        $sheet->getStyle($leftStart.$namaRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         if ($pRight) {
             $sheet->mergeCells($rightStart.$namaRow.':'.$rightEnd.$namaRow);
             $sheet->setCellValue($rightStart.$namaRow, $pRight->nama ?: '...................................');
-            $sheet->getStyle($rightStart.$namaRow)->getFont()->setName('Calibri')->setBold(true);
-            $sheet->getStyle($rightStart.$namaRow)->getAlignment()->setHorizontal('center');
+            $sheet->getStyle($rightStart.$namaRow)->getFont()->setBold(true)->setUnderline(true);
+            $sheet->getStyle($rightStart.$namaRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         }
         $sheet->getRowDimension($namaRow)->setRowHeight(18);
 
