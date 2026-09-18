@@ -76,9 +76,23 @@
         </div>
 
         <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 22px 26px; max-width: 640px;">
-          <div style="text-align: center; color: #94a3b8; font-size: 0.8rem;">Mengetahui / Menyetujui</div>
+          @php
+            $previewTempat = $penandatangan->first()->tempat ?? '';
+            $previewTanggal = now()->locale('id')->translatedFormat('d F Y');
+          @endphp
+          <div style="display: flex; justify-content: space-between; gap: 24px;">
+            <div style="flex: 1;"></div>
+            <div style="flex: 1; text-align: center; color: #475569; font-size: 0.85rem;">
+              {{ ($previewTempat ? $previewTempat . ', ' : '') . $previewTanggal }}
+            </div>
+          </div>
 
-          <div style="display: flex; justify-content: space-between; gap: 24px; margin-top: 18px;">
+          <div style="display: flex; justify-content: space-between; gap: 24px; margin-top: 16px;">
+            <div style="flex: 1; text-align: center; font-weight: 600; color: #334155;">Menyetujui,</div>
+            <div style="flex: 1; text-align: center; font-weight: 600; color: #334155;">{{ $penandatangan->count() > 1 ? 'Mengusulkan,' : '' }}</div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; gap: 24px; margin-top: 8px;">
             @foreach($penandatangan as $i => $row)
               <div style="flex: 1; text-align: center;">
                 <div style="font-size: 0.82rem; font-weight: 600; color: #475569;">{{ $row->jabatan }}</div>
@@ -91,17 +105,9 @@
           <div style="display: flex; justify-content: space-between; gap: 24px;">
             @foreach($penandatangan as $i => $row)
               <div style="flex: 1; text-align: center;">
-                <div style="border-top: 1px dashed #94a3b8; padding-top: 8px; font-size: 0.9rem; color: #1e293b;">{{ $row->nama ?? '...................................' }}</div>
+                <div style="font-size: 0.9rem; font-weight: 600; color: #1e293b; text-decoration: underline;">{{ $row->nama ?? '...................................' }}</div>
               </div>
             @endforeach
-          </div>
-
-          <div style="text-align: center; color: #64748b; font-size: 0.85rem; margin-top: 24px; padding-top: 14px; border-top: 1px solid #e2e8f0;">
-            @php
-              $previewTempat = $penandatangan->first()->tempat ?? '';
-              $previewTanggal = now()->locale('id')->translatedFormat('d F Y');
-            @endphp
-            {{ ($previewTempat ? $previewTempat . ', ' : '') . $previewTanggal }}
           </div>
         </div>
       </div>
