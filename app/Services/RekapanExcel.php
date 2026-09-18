@@ -134,6 +134,14 @@ class RekapanExcel
             ->filter(fn ($row) => ($row['titik_meter']->status ?? 'aktif') === 'aktif')
             ->values();
 
+        // Total hanya menghitung baris AKTIF saja, konsisten dengan baris
+        // yang ditampilkan di tabel (baris nonaktif tidak tampil & tidak dihitung).
+        $subtotal = $rows->sum(fn ($row) => max(0, (float) (($row['tagihan']->jumlah ?? 0) - ($row['tagihan']->ppn_nominal ?? 0))));
+        $ppnValue = $rows->sum(fn ($row) => (float) ($row['tagihan']->ppn_nominal ?? 0));
+        $total = $subtotal + $ppnValue;
+        $firstPpn = $rows->first(fn ($row) => $row['tagihan'] && (float) $row['tagihan']->ppn_persentase > 0);
+        $ppnPersen = $firstPpn ? (float) $firstPpn['tagihan']->ppn_persentase : 0;
+
         $sheet->getColumnDimension('A')->setWidth(7);   // No. Urut
         $sheet->getColumnDimension('B')->setWidth(30);  // Nama Titik Meter
         $sheet->getColumnDimension('C')->setWidth(12);  // Bulan Ini
@@ -192,13 +200,22 @@ class RekapanExcel
             $tg = $row['tagihan'] ?? null;
             $no++;
 
+            // FIX: kolom "JUMLAH Rp" per baris sebelumnya menampilkan
+            // $tg->jumlah (SUDAH termasuk PPN per transaksi), padahal
+            // baris "Jumlah Total" di bawah dihitung SEBELUM PPN
+            // (RekapanController::buildReport -> subtotal = jumlah - ppn_nominal).
+            // Akibatnya total jumlah per baris tidak pernah sama dengan
+            // "Jumlah Total". Sekarang dikurangi ppn_nominal-nya dulu
+            // supaya konsisten dengan ringkasan di bawah tabel.
+            $jumlahSebelumPpn = $tg ? ((float) $tg->jumlah - (float) $tg->ppn_nominal) : null;
+
             $sheet->setCellValue('A'.$r, $no);
             $sheet->setCellValue('B'.$r, $row['titik_meter']->nama);
             $sheet->setCellValue('C'.$r, $tg ? (int) round((float) $tg->meter_ini) : null);
             $sheet->setCellValue('D'.$r, $tg ? (int) round((float) $tg->meter_lalu) : null);
             $sheet->setCellValue('E'.$r, $tg ? (int) round((float) $tg->pemakaian) : null);
             $sheet->setCellValue('F'.$r, $tg ? (float) $tg->tarif : (float) ($row['titik_meter']->tarif_harga ?? 0));
-            $sheet->setCellValue('G'.$r, $tg ? (float) $tg->jumlah : null);
+            $sheet->setCellValue('G'.$r, $jumlahSebelumPpn);
 
             $sheet->getStyle('A'.$r)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $sheet->getStyle('C'.$r.':F'.$r)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -210,18 +227,18 @@ class RekapanExcel
         }
 
         // Label ringkasan membentang penuh (A-F), nilainya di kolom JUMLAH.
-        self::summaryRow($sheet, $r, 'Jumlah Total', (float) $area['subtotal'], self::TOTAL_FILL, true);
+        self::summaryRow($sheet, $r, 'Jumlah Total', (float) $subtotal, self::TOTAL_FILL, true);
 
         if ($area['kena_ppn']) {
             self::summaryRow(
                 $sheet,
                 $r,
-                'PPN '.number_format($area['persen_ppn'], 0, ',', '.').'%',
-                (float) $area['ppn'],
+                'PPN '.number_format($ppnPersen, 0, ',', '.').'%',
+                (float) $ppnValue,
                 self::PPN_FILL,
                 false
             );
-            self::summaryRow($sheet, $r, 'Total', (float) $area['total'], self::TOTAL_FILL, true);
+            self::summaryRow($sheet, $r, 'Total', (float) $total, self::TOTAL_FILL, true);
         }
 
         self::borders($sheet, 'A'.$dataStart.':'.$lastCol.($r - 1));
@@ -405,7 +422,7 @@ class RekapanExcel
         $r++;
 
         $baris = [
-            ['Mengetahui,', $pRight ? 'Menyetujui,' : ''],
+            ['Menyetujui,', $pRight ? 'Mengusulkan,' : ''],
             [$pLeft ? ($pLeft->jabatan ?: '') : '', $pRight ? ($pRight->jabatan ?: '') : ''],
         ];
 

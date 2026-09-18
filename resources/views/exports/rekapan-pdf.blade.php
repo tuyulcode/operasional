@@ -15,7 +15,7 @@
     .doc-header .org-sub { font-size: 11px; margin-top: 2px; }
 
     .area-title { text-align: center; font-weight: bold; font-size: 14px; margin: 12px 0 2px; }
-    .area-lokasi { text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 2px; }
+    .area-lokasi { text-align: center; font-size: 11px; font-weight: bold; margin-bottom: 1px; }
     .area-bulan { text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 8px; }
 
     table.grid { width: 100%; border-collapse: collapse; }
@@ -55,6 +55,14 @@
 
       // Semua area memakai format list yang sama (mengikuti sheet PUNCAK 1).
       $rows = $area['rows']->filter(fn ($r) => ($r['titik_meter']->status ?? 'aktif') === 'aktif')->values();
+
+      // Total hanya menghitung baris AKTIF saja, konsisten dengan baris
+      // yang ditampilkan di tabel (baris nonaktif tidak tampil & tidak dihitung).
+      $subtotal = $rows->sum(fn ($r) => max(0, (float) (($r['tagihan']->jumlah ?? 0) - ($r['tagihan']->ppn_nominal ?? 0))));
+      $ppnValue = $rows->sum(fn ($r) => (float) ($r['tagihan']->ppn_nominal ?? 0));
+      $total = $subtotal + $ppnValue;
+      $firstPpn = $rows->first(fn ($r) => $r['tagihan'] && (float) $r['tagihan']->ppn_persentase > 0);
+      $ppnPersen = $firstPpn ? (float) $firstPpn['tagihan']->ppn_persentase : 0;
     ?>
 
     @if($i > 0)
@@ -78,7 +86,10 @@
     </div>
 
     <div class="area-title">Rekap Biaya Pemakaian Air</div>
-    <div class="area-lokasi">{{ $alamatArea ? $namaArea.' - '.$alamatArea : $namaArea }}</div>
+    <div class="area-lokasi"><b>Nama Pengguna</b> : {{ $namaArea }}</div>
+    @if($alamatArea)
+      <div class="area-lokasi"><b>Lokasi Flow Meter</b> : {{ $alamatArea }}</div>
+    @endif
     <div class="area-bulan">Bulan : {{ $periodeLabel }}</div>
 
     <table class="grid">
@@ -118,17 +129,17 @@
 
         <tr class="row-total">
           <td colspan="6" class="c">Jumlah Total</td>
-          <td class="r">{{ number_format($area['subtotal'], 0, ',', '.') }}</td>
+          <td class="r">{{ number_format($subtotal, 0, ',', '.') }}</td>
         </tr>
 
         @if($area['kena_ppn'])
           <tr class="row-ppn">
-            <td colspan="6" class="c">PPN {{ number_format($area['persen_ppn'], 0, ',', '.') }}%</td>
-            <td class="r">{{ number_format($area['ppn'], 0, ',', '.') }}</td>
+            <td colspan="6" class="c">PPN {{ number_format($ppnPersen, 0, ',', '.') }}%</td>
+            <td class="r">{{ number_format($ppnValue, 0, ',', '.') }}</td>
           </tr>
           <tr class="row-total">
             <td colspan="6" class="c">Total</td>
-            <td class="r">{{ number_format($area['total'], 0, ',', '.') }}</td>
+            <td class="r">{{ number_format($total, 0, ',', '.') }}</td>
           </tr>
         @endif
       </tbody>
@@ -195,8 +206,8 @@
         </tr>
         <tr style="height: 8px;"><td colspan="2"></td></tr>
         <tr>
-          <td class="sign-title">Mengetahui,</td>
-          <td class="sign-title">{{ $ttdKanan ? 'Menyetujui,' : '' }}</td>
+          <td class="sign-title">Menyetujui,</td>
+          <td class="sign-title">{{ $ttdKanan ? 'Mengusulkan,' : '' }}</td>
         </tr>
         <tr>
           <td class="sign-jabatan">{{ $ttdKiri ? $ttdKiri->jabatan : '' }}</td>
