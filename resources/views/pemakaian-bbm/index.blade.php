@@ -232,7 +232,8 @@
               <label for="harga_per_liter_display">Harga per Liter</label>
               <input type="text" id="harga_per_liter_display" class="form-control" readonly
                      placeholder="Isi tanggal & jenis BBM dulu" style="background:#f3f4f6; cursor:not-allowed;">
-              <small class="form-hint form-hint-spacer">&nbsp;</small>
+              <small class="form-hint form-hint-spacer" id="hargaHint">&nbsp;</small>
+              <small class="form-hint form-error" id="hargaError" style="display:none;">Belum ada harga BBM untuk periode ini. Silakan cek kembali di Master Data Harga BBM.</small>
             </div>
 
             <div class="form-group">
@@ -628,7 +629,22 @@
     });
 
     const pemakaianForm = document.getElementById('pemakaianForm');
-    pemakaianForm.addEventListener('submit', function() {
+    pemakaianForm.addEventListener('submit', function(e) {
+      // Cegah submit kalau harga BBM untuk tanggal & jenis yang dipilih belum ada
+      // di Master Data BBM
+      const tanggalCek = document.getElementById('tanggal').value;
+      const jenisCek = document.getElementById('jenis_bbm').value;
+      const hargaCek = cariHargaBbm(tanggalCek, jenisCek);
+
+      if (hargaCek === null) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        document.getElementById('hargaError').style.display = 'block';
+        document.getElementById('hargaHint').style.display = 'none';
+        document.getElementById('harga_per_liter_display').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+      }
+
       serviceOliInput.value = serviceOliInput.value.replace(/[^\d]/g, '');
       jasaInput.value = jasaInput.value.replace(/[^\d]/g, '');
 
@@ -651,14 +667,22 @@
     const tanggal = document.getElementById('tanggal').value;
     const jenis = document.getElementById('jenis_bbm').value;
     const display = document.getElementById('harga_per_liter_display');
+    const hargaError = document.getElementById('hargaError');
+    const hargaHint = document.getElementById('hargaHint');
 
     const harga = cariHargaBbm(tanggal, jenis);
     if (harga !== null) {
       display.value = `Rp ${Number(harga).toLocaleString('id-ID')}`;
+      hargaError.style.display = 'none';
+      hargaHint.style.display = 'block';
     } else if (tanggal && jenis) {
       display.value = 'Belum ada harga untuk tanggal ini';
+      hargaError.style.display = 'block';
+      hargaHint.style.display = 'none';
     } else {
       display.value = '';
+      hargaError.style.display = 'none';
+      hargaHint.style.display = 'block';
     }
   }
 
