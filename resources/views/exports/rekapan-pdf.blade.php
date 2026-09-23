@@ -42,7 +42,7 @@
     .sign-title { font-weight: bold; text-align: center; font-size: 10px; }
     .sign-date { text-align: center; font-size: 10px; }
     .sign-jabatan { font-weight: bold; text-align: center; font-size: 10px; line-height: 1.3; }
-    .sign-nama { font-weight: bold; text-align: center; font-size: 10px; text-decoration: underline; }
+    .sign-nama { font-weight: bold; text-align: center; font-size: 10px; }
     .signature-space { height: 74px; }
   </style>
 </head>
@@ -114,7 +114,7 @@
           <?php
             $tg = $row['tagihan'] ?? null;
             $noUrut++;
-            $jumlah = $tg ? (float) $tg->jumlah : 0;
+            $jumlah = $tg ? ((float) $tg->jumlah - (float) $tg->ppn_nominal) : 0;
           ?>
           <tr>
             <td class="c">{{ $noUrut }}</td>

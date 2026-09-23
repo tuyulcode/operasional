@@ -42,7 +42,7 @@ class RekapanExcel
         if ($spreadsheet->getSheetCount() === 0) {
             $sheet = $spreadsheet->createSheet();
             $sheet->setTitle('Rekap');
-            self::headerBlock($sheet, '', '-');
+            self::headerBlock($sheet, '', '-', null);
             $sheet->setCellValue('A8', 'Tidak ada data untuk periode ini.');
         }
 
@@ -66,61 +66,69 @@ class RekapanExcel
         return $title;
     }
 
-    private static function headerBlock(Worksheet $sheet, string $periodeLabel, string $lokasi): int
-    {
-        $lastCol = self::LAST_COL;
-        $sheet->getParent()->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
+    private static function headerBlock(Worksheet $sheet, string $periodeLabel, string $namaPengguna, ?string $lokasiFlowMeter = null): int
+{
+    $lastCol = self::LAST_COL;
+    $sheet->getParent()->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
 
-        $sheet->getRowDimension(1)->setRowHeight(20);
-        $sheet->getRowDimension(2)->setRowHeight(20);
+    $sheet->getRowDimension(1)->setRowHeight(20);
+    $sheet->getRowDimension(2)->setRowHeight(20);
 
-        $logo = public_path('images/logo.png');
-        if (is_file($logo)) {
-            $drawing = new Drawing;
-            $drawing->setName('logo');
-            $drawing->setPath($logo);
-            $drawing->setCoordinates('A1');
-            $drawing->setOffsetX(4);
-            $drawing->setOffsetY(4);
-            $drawing->setResizeProportional(true);
-            $drawing->setHeight(32);
-            $drawing->setWorksheet($sheet);
-        }
-
-        $sheet->mergeCells('C1:E1');
-        $sheet->setCellValue('C1', 'PT PLN NUSANTARA POWER');
-        $sheet->getStyle('C1')->getFont()->setBold(true)->setSize(11);
-        $sheet->getStyle('C1')->getAlignment()->setVertical('center');
-
-        $sheet->mergeCells('C2:E2');
-        $sheet->setCellValue('C2', 'UNIT PEMBANGKITAN PAITON');
-        $sheet->getStyle('C2')->getFont()->setSize(10);
-        $sheet->getStyle('C2')->getAlignment()->setVertical('center');
-
-        $r = 3;
-
-        $judul = [
-            ['Rekap Biaya Pemakaian Air', 14, true, 26],
-            [$lokasi, 12, true, 20],
-            ['Bulan : '.$periodeLabel, 11, true, 18],
-        ];
-
-        foreach ($judul as [$teks, $size, $bold, $height]) {
-            $sheet->mergeCells("A{$r}:{$lastCol}{$r}");
-            $sheet->setCellValue("A{$r}", $teks);
-            $sheet->getStyle("A{$r}")->getFont()->setBold($bold)->setSize($size);
-            $sheet->getStyle("A{$r}")->getAlignment()
-                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
-                ->setVertical(Alignment::VERTICAL_CENTER);
-            $sheet->getRowDimension($r)->setRowHeight($height);
-            $r++;
-        }
-
-        $sheet->getRowDimension($r)->setRowHeight(8);
-        $r++;
-
-        return $r;
+    $logo = public_path('images/logo.png');
+    if (is_file($logo)) {
+        $drawing = new Drawing;
+        $drawing->setName('logo');
+        $drawing->setPath($logo);
+        $drawing->setCoordinates('A1');
+        $drawing->setOffsetX(4);
+        $drawing->setOffsetY(4);
+        $drawing->setResizeProportional(true);
+        $drawing->setHeight(32);
+        $drawing->setWorksheet($sheet);
     }
+
+    $sheet->mergeCells('C1:E1');
+    $sheet->setCellValue('C1', 'PT PLN NUSANTARA POWER');
+    $sheet->getStyle('C1')->getFont()->setBold(true)->setSize(11);
+    $sheet->getStyle('C1')->getAlignment()->setVertical('center');
+
+    $sheet->mergeCells('C2:E2');
+    $sheet->setCellValue('C2', 'UNIT PEMBANGKITAN PAITON');
+    $sheet->getStyle('C2')->getFont()->setSize(10);
+    $sheet->getStyle('C2')->getAlignment()->setVertical('center');
+
+    $r = 3;
+
+    // FIX: header disamakan dengan PDF - "Nama Pengguna" dan 
+    // "Lokasi Flow Meter" jadi 2 baris terpisah dengan label eksplisit,
+    // bukan digabung jadi 1 baris "nama - alamat" seperti sebelumnya.
+    $judul = [
+        ['Rekap Biaya Pemakaian Air', 14, true, 26, Alignment::HORIZONTAL_CENTER],
+        ['Nama Pengguna : '.$namaPengguna, 12, true, 20, Alignment::HORIZONTAL_CENTER],
+    ];
+
+    if ($lokasiFlowMeter) {
+        $judul[] = ['Lokasi Flow Meter : '.$lokasiFlowMeter, 12, true, 20, Alignment::HORIZONTAL_CENTER];
+    }
+
+    $judul[] = ['Bulan : '.$periodeLabel, 11, true, 18, Alignment::HORIZONTAL_CENTER];
+
+    foreach ($judul as [$teks, $size, $bold, $height, $align]) {
+        $sheet->mergeCells("A{$r}:{$lastCol}{$r}");
+        $sheet->setCellValue("A{$r}", $teks);
+        $sheet->getStyle("A{$r}")->getFont()->setBold($bold)->setSize($size);
+        $sheet->getStyle("A{$r}")->getAlignment()
+            ->setHorizontal($align)
+            ->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getRowDimension($r)->setRowHeight($height);
+        $r++;
+    }
+
+    $sheet->getRowDimension($r)->setRowHeight(8);
+    $r++;
+
+    return $r;
+}
 
     /**
      * Satu-satunya layout rekapan: tabel list (mengikuti sheet PUNCAK 1),
@@ -150,11 +158,7 @@ class RekapanExcel
         $sheet->getColumnDimension('F')->setWidth(14);  // Tarif
         $sheet->getColumnDimension('G')->setWidth(17);  // Jumlah Rp
 
-        $lokasi = $area['area']->alamat
-            ? $area['area']->nama.' - '.$area['area']->alamat
-            : $area['area']->nama;
-
-        $r = self::headerBlock($sheet, $periodeLabel, $lokasi);
+        $r = self::headerBlock($sheet, $periodeLabel, $area['area']->nama, $area['area']->alamat ?: null);
         $dataStart = $r;
 
         $headRow1 = $r;
@@ -203,10 +207,10 @@ class RekapanExcel
             // FIX: kolom "JUMLAH Rp" per baris sebelumnya menampilkan
             // $tg->jumlah (SUDAH termasuk PPN per transaksi), padahal
             // baris "Jumlah Total" di bawah dihitung SEBELUM PPN
-            // (RekapanController::buildReport -> subtotal = jumlah - ppn_nominal).
-            // Akibatnya total jumlah per baris tidak pernah sama dengan
-            // "Jumlah Total". Sekarang dikurangi ppn_nominal-nya dulu
-            // supaya konsisten dengan ringkasan di bawah tabel.
+            // (subtotal = jumlah - ppn_nominal). Akibatnya total jumlah
+            // per baris tidak pernah sama dengan "Jumlah Total". Sekarang
+            // dikurangi ppn_nominal-nya dulu supaya konsisten dengan
+            // ringkasan di bawah tabel.
             $jumlahSebelumPpn = $tg ? ((float) $tg->jumlah - (float) $tg->ppn_nominal) : null;
 
             $sheet->setCellValue('A'.$r, $no);
@@ -444,16 +448,22 @@ class RekapanExcel
         $sheet->getRowDimension($r)->setRowHeight(68);
         $r++;
 
+        // FIX: baris ini sebelumnya HILANG, menyebabkan error
+        // "Undefined variable $namaRow". $namaRow harus di-set = $r
+        // sebelum dipakai di bawah.
         $namaRow = $r;
+
+        // Nama KIRI
         $sheet->mergeCells($leftStart.$namaRow.':'.$leftEnd.$namaRow);
         $sheet->setCellValue($leftStart.$namaRow, $pLeft ? ($pLeft->nama ?: '...................................') : '');
-        $sheet->getStyle($leftStart.$namaRow)->getFont()->setBold(true)->setUnderline(true);
+        $sheet->getStyle($leftStart.$namaRow)->getFont()->setBold(true);
         $sheet->getStyle($leftStart.$namaRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
+        // Nama KANAN
         if ($pRight) {
             $sheet->mergeCells($rightStart.$namaRow.':'.$rightEnd.$namaRow);
             $sheet->setCellValue($rightStart.$namaRow, $pRight->nama ?: '...................................');
-            $sheet->getStyle($rightStart.$namaRow)->getFont()->setBold(true)->setUnderline(true);
+            $sheet->getStyle($rightStart.$namaRow)->getFont()->setBold(true);
             $sheet->getStyle($rightStart.$namaRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         }
         $sheet->getRowDimension($namaRow)->setRowHeight(18);
