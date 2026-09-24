@@ -8,6 +8,10 @@
   ];
   $grandColor = 'ffc000'; // oranye - baris "Jumlah Total"
 
+  // Grup yang TIDAK perlu nampilin label "Unit ..." - semua unit digabung
+  // jadi satu daftar rata tanpa dikelompokin.
+  $groupsTanpaUnit = ['A. Roda Empat', 'B. Roda Tiga'];
+
   // Semua jenis kendaraan SELALU ditampilkan, walaupun tidak ada datanya di
   // periode ini - yang kosong tetap muncul dengan isi strip.
   $byLabel = collect($groups)->keyBy('label');
@@ -41,6 +45,7 @@
           $groupColor = $groupColors[$group['label']] ?? 'ffffff';
           // "A. Roda Empat" -> "A", dipakai buat label "Subtotal A"
           $hurufGroup = substr($group['label'], 0, 1);
+          $tampilkanLabelUnit = !in_array($group['label'], $groupsTanpaUnit);
         @endphp
 
         {{-- Header kolom (No. / Nomor Kendaraan / Liter / Rp.) cuma muncul
@@ -48,7 +53,7 @@
         @if($index === 0)
           <tr style="font-weight:bold; text-align:center;">
             <td style="padding:8px 4px;">No.</td>
-            <td style="padding:8px 4px;">Plat Nomor Kendaraan</td>
+            <td style="padding:8px 4px;">Nomor Kendaraan</td>
             <td style="padding:8px 4px;">Liter</td>
             <td style="padding:8px 4px;">Rp.</td>
           </tr>
@@ -60,7 +65,7 @@
         </tr>
 
         @forelse($group['sections'] as $section)
-          @if($section['label'])
+          @if($section['label'] && $tampilkanLabelUnit)
             <tr style="font-weight:bold;">
               <td colspan="4" style="text-align:center;">{{ $section['label'] }}</td>
             </tr>

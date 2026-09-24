@@ -47,6 +47,12 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
     // Oranye - baris "Jumlah Total"
     private const COLOR_GRAND_BG = 'FFC000';
 
+    /**
+     * Grup yang TIDAK perlu nampilin label "Unit ..." - semua unit digabung
+     * jadi satu daftar rata tanpa dikelompokin.
+     */
+    private const GROUPS_TANPA_UNIT = ['A. Roda Empat', 'B. Roda Tiga'];
+
     public function __construct(protected array $data)
     {
     }
@@ -96,8 +102,9 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
             }
 
             foreach ($groups as $index => $group) {
-                $accentColor = self::GROUP_COLORS[$group['label']] ?? 'FFFFFF';
-                $hurufGroup  = substr($group['label'], 0, 1); // "A. Roda Empat" -> "A"
+                $accentColor        = self::GROUP_COLORS[$group['label']] ?? 'FFFFFF';
+                $hurufGroup         = substr($group['label'], 0, 1); // "A. Roda Empat" -> "A"
+                $tampilkanLabelUnit = !in_array($group['label'], self::GROUPS_TANPA_UNIT, true);
 
                 // Header kolom (No. / Nomor Kendaraan / Liter / Rp.) cuma muncul
                 // sekali, DI ATAS banner grup pertama (Roda Empat).
@@ -112,7 +119,7 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
                     $row = $this->writeEmptyDataRow($sheet, $row);
                 } else {
                     foreach ($group['sections'] as $section) {
-                        if ($section['label']) {
+                        if ($section['label'] && $tampilkanLabelUnit) {
                             $row = $this->writeSectionLabel($sheet, $row, $section['label']);
                         }
 
@@ -193,20 +200,6 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
     }
 
     /**
-     * 1 baris kosong paling atas tabel - di-merge jadi satu sel, ada border,
-     * tanpa warna. Row height dinaikkan sedikit biar ada jarak yang jelas
-     * antara judul di atasnya dan tabel.
-     */
-    private function writeBlankTableRow(Worksheet $sheet, int $row): int
-    {
-        $sheet->mergeCells("A{$row}:D{$row}");
-        $this->applyBorder($sheet, "A{$row}:D{$row}");
-        $sheet->getRowDimension($row)->setRowHeight(10);
-
-        return $row + 1;
-    }
-
-    /**
      * Banner jenis kendaraan ("A. Roda Empat" dst) - di-highlight sesuai warna grupnya.
      */
     private function writeGroupBanner(Worksheet $sheet, int $row, string $label, string $accentColor): int
@@ -230,7 +223,7 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
     private function writeColumnHeader(Worksheet $sheet, int $row): int
     {
         $sheet->setCellValue("A{$row}", 'No.');
-        $sheet->setCellValue("B{$row}", 'Plat Nomor Kendaraan');
+        $sheet->setCellValue("B{$row}", 'Nomor Kendaraan');
         $sheet->setCellValue("C{$row}", 'Liter');
         $sheet->setCellValue("D{$row}", 'Rp.');
 

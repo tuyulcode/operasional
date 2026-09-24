@@ -457,6 +457,11 @@ class PemakaianBbmController extends Controller
      * di atas) tetap manggil build() tanpa parameter itu, jadi tetap ambil
      * semua lokasi seperti biasa.
      *
+     * KHUSUS laporan Pertanggungjawaban: nomor urut (kolom "no") tiap baris di-
+     * generate ULANG jadi 1,2,3,... rata untuk satu grup kendaraan (Roda Empat /
+     * Roda Tiga / Roda Dua), lintas unit - bukan mulai dari 1 lagi tiap unit.
+     * Ini murni renumbering tampilan, tidak mengubah data asli dari rekapService.
+     *
      * totalGabungan = SEMUA jenis kendaraan (Roda Empat + Roda Tiga + Roda Dua),
      * biar angkanya persis sama dengan baris "Jumlah Total" di tabel laporan.
      */
@@ -470,8 +475,10 @@ class PemakaianBbmController extends Controller
 
             $data = $this->rekapService->build($awal, $akhir, 'paiton');
 
+            $groups = $this->renumberRowsPerGroup($data['groups']);
+
             $totalGabungan = ['liter' => 0, 'rp' => 0];
-            foreach ($data['groups'] as $g) {
+            foreach ($groups as $g) {
                 $totalGabungan['liter'] += $g['total']['liter'];
                 $totalGabungan['rp'] += $g['total']['rp'];
             }
@@ -479,13 +486,36 @@ class PemakaianBbmController extends Controller
             $weeks[] = [
                 'no'            => $i + 1,
                 'periodeLabel'  => $data['periodeLabel'],
-                'groups'        => $data['groups'],
+                'groups'        => $groups,
                 'grandTotal'    => $data['grandTotal'],
                 'totalGabungan' => $totalGabungan, // = "Jumlah Total" periode ini
             ];
         }
 
         return $weeks;
+    }
+
+    /**
+     * Generate ulang nomor urut ("no") tiap baris supaya rata 1,2,3,... per
+     * grup kendaraan, lintas section/unit (bukan reset ke 1 tiap section).
+     * Cuma dipakai untuk laporan Pertanggungjawaban - tab Rekapan biasa TIDAK
+     * lewat sini, jadi nomornya di sana tetap seperti aslinya per unit.
+     */
+    private function renumberRowsPerGroup(array $groups): array
+    {
+        foreach ($groups as &$group) {
+            $counter = 1;
+
+            foreach ($group['sections'] as &$section) {
+                foreach ($section['rows'] as &$row) {
+                    $row['no'] = $counter++;
+                }
+            }
+            unset($section, $row);
+        }
+        unset($group);
+
+        return $groups;
     }
 
     /**
