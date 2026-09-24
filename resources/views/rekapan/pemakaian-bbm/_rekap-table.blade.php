@@ -18,7 +18,7 @@
     <thead>
       <tr style="background:#f2f2f2; font-weight:bold; text-align:center;">
         <th rowspan="2" style="padding:10px 4px; vertical-align:middle;">No.</th>
-        <th rowspan="2" style="padding:10px 4px; vertical-align:middle;">Nomor Kendaraan</th>
+        <th rowspan="2" style="padding:10px 4px; vertical-align:middle;">Plat Nomor Kendaraan</th>
         <th colspan="2" style="padding:8px 4px;">BBM</th>
         <th colspan="2" style="padding:8px 4px;">Sparepart Consumable</th>
         <th rowspan="2" style="padding:10px 4px; vertical-align:middle;">Jumlah</th>
