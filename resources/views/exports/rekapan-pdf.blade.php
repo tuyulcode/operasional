@@ -55,14 +55,6 @@
 
       // Semua area memakai format list yang sama (mengikuti sheet PUNCAK 1).
       $rows = $area['rows']->filter(fn ($r) => ($r['titik_meter']->status ?? 'aktif') === 'aktif')->values();
-
-      // Total hanya menghitung baris AKTIF saja, konsisten dengan baris
-      // yang ditampilkan di tabel (baris nonaktif tidak tampil & tidak dihitung).
-      $subtotal = $rows->sum(fn ($r) => max(0, (float) (($r['tagihan']->jumlah ?? 0) - ($r['tagihan']->ppn_nominal ?? 0))));
-      $ppnValue = $rows->sum(fn ($r) => (float) ($r['tagihan']->ppn_nominal ?? 0));
-      $total = $subtotal + $ppnValue;
-      $firstPpn = $rows->first(fn ($r) => $r['tagihan'] && (float) $r['tagihan']->ppn_persentase > 0);
-      $ppnPersen = $firstPpn ? (float) $firstPpn['tagihan']->ppn_persentase : 0;
     ?>
 
     @if($i > 0)
@@ -97,10 +89,10 @@
         <tr>
           <th rowspan="2" style="width: 7%;">No.<br>Urut</th>
           <th rowspan="2" style="width: 27%;">Nama Titik Meter</th>
-          <th colspan="2" style="width: 24%;">COUNTER&nbsp;&nbsp;M<sup>3</sup></th>
-          <th rowspan="2" style="width: 13%;">Jumlah<br>Pengambilan</th>
-          <th rowspan="2" style="width: 12%;">TARIF<br>Rp / M<sup>3</sup></th>
-          <th rowspan="2" style="width: 17%;">JUMLAH<br>Rp</th>
+          <th colspan="2" style="width: 24%;">COUNTER (m<sup>3</sup>)</th>
+          <th rowspan="2" style="width: 13%;">Jumlah Pengambilan (m<sup>3</sup>)</th>
+          <th rowspan="2" style="width: 12%;">Tarif (Rp/m<sup>3</sup>)</th>
+          <th rowspan="2" style="width: 17%;">Jumlah (Rp)</th>
         </tr>
         <tr>
           <th>Bulan Ini</th>
@@ -114,7 +106,7 @@
           <?php
             $tg = $row['tagihan'] ?? null;
             $noUrut++;
-            $jumlah = $tg ? ((float) $tg->jumlah - (float) $tg->ppn_nominal) : 0;
+            $jumlah = $tg ? (float) $row['jumlah_sebelum_ppn'] : 0;
           ?>
           <tr>
             <td class="c">{{ $noUrut }}</td>
@@ -129,17 +121,17 @@
 
         <tr class="row-total">
           <td colspan="6" class="c">Jumlah Total</td>
-          <td class="r">{{ number_format($subtotal, 0, ',', '.') }}</td>
+          <td class="r">{{ number_format($area['subtotal'], 0, ',', '.') }}</td>
         </tr>
 
         @if($area['kena_ppn'])
           <tr class="row-ppn">
-            <td colspan="6" class="c">PPN {{ number_format($ppnPersen, 0, ',', '.') }}%</td>
-            <td class="r">{{ number_format($ppnValue, 0, ',', '.') }}</td>
+            <td colspan="6" class="c">PPN {{ number_format($area['persen_ppn'], 0, ',', '.') }}%</td>
+            <td class="r">{{ number_format($area['ppn'], 0, ',', '.') }}</td>
           </tr>
           <tr class="row-total">
             <td colspan="6" class="c">Total</td>
-            <td class="r">{{ number_format($total, 0, ',', '.') }}</td>
+            <td class="r">{{ number_format($area['total'], 0, ',', '.') }}</td>
           </tr>
         @endif
       </tbody>
@@ -206,8 +198,8 @@
         </tr>
         <tr style="height: 8px;"><td colspan="2"></td></tr>
         <tr>
-          <td class="sign-title">Menyetujui,</td>
-          <td class="sign-title">{{ $ttdKanan ? 'Mengusulkan,' : '' }}</td>
+          <td class="sign-title">Mengetahui,</td>
+          <td class="sign-title">{{ $ttdKanan ? 'Menyetujui,' : '' }}</td>
         </tr>
         <tr>
           <td class="sign-jabatan">{{ $ttdKiri ? $ttdKiri->jabatan : '' }}</td>

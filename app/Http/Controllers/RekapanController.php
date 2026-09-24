@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Area;
 use App\Models\Penandatangan;
+use App\Models\Ppn;
 use App\Models\TagihanAir;
 use App\Services\RekapanExcel;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -33,24 +34,53 @@ class RekapanController extends Controller
             $areaQuery->where('id', $areaId);
         }
 
-        $data = $areaQuery->get()->map(function ($area) use ($tagihans) {
-            $rows = $area->titikMeter->map(fn ($tm) => [
-                'titik_meter' => $tm,
-                'tagihan' => $tagihans->get($tm->id),
-            ]);
+        // PENTING: PPN untuk SEMUA rekapan (PDF, Excel, tab Rekapan) selalu
+        // memakai PPN yang sedang berstatus "aktif" di Master Data PPN saat
+        // laporan ini dibuat -- BUKAN ppn_persentase/ppn_nominal yang sudah
+        // dibekukan di baris tagihan_air saat data itu pertama kali diinput.
+        // Jadi begitu PPN aktif diubah, semua rekapan (termasuk untuk data
+        // lama) otomatis ikut berubah tanpa perlu edit ulang satu-satu.
+        $persenPpnAktif = (float) (Ppn::where('status', 'aktif')->value('persentase') ?? 0);
 
-            $subtotal = $rows->sum(fn ($r) => max(0, (float) ($r['tagihan']->jumlah ?? 0) - (float) ($r['tagihan']->ppn_nominal ?? 0)));
-            $ppn = $rows->sum(fn ($r) => (float) ($r['tagihan']->ppn_nominal ?? 0));
+        $data = $areaQuery->get()->map(function ($area) use ($tagihans, $persenPpnAktif) {
             $kenaPpn = (bool) $area->kena_ppn;
-            $firstPpnTagihan = $rows->first(fn ($r) => $r['tagihan'] && (float) $r['tagihan']->ppn_persentase > 0);
-            $persenPpn = $firstPpnTagihan ? (float) $firstPpnTagihan['tagihan']->ppn_persentase : 0;
+            $persenPpn = $kenaPpn ? $persenPpnAktif : 0;
+
+            $rows = $area->titikMeter->map(function ($tm) use ($tagihans, $persenPpn) {
+                $tagihan = $tagihans->get($tm->id);
+
+                // Jumlah sebelum PPN dihitung ulang dari pemakaian x tarif
+                // (dua-duanya TIDAK terpengaruh PPN), lalu PPN-nya dihitung
+                // pakai persentase aktif saat ini.
+                $jumlahSebelumPpn = $tagihan ? (float) $tagihan->pemakaian * (float) $tagihan->tarif : 0;
+                $ppnNominal = round($jumlahSebelumPpn * $persenPpn / 100, 2);
+
+                return [
+                    'titik_meter' => $tm,
+                    'tagihan' => $tagihan,
+                    'jumlah_sebelum_ppn' => $jumlahSebelumPpn,
+                    'ppn_nominal' => $ppnNominal,
+                    // Dipakai di kolom "JUMLAH Rp" pada PDF & Excel, menggantikan
+                    // $tagihan->jumlah yang nilainya beku dari saat input.
+                    'jumlah_dinamis' => $jumlahSebelumPpn + $ppnNominal,
+                ];
+            });
+
+            // Subtotal/PPN/Total hanya dihitung dari titik meter yang statusnya
+            // "aktif" -- harus sama persis dengan baris yang benar-benar
+            // ditampilkan di tabel PDF/Excel (yang juga difilter aktif saja),
+            // supaya angka Jumlah Total tidak lebih besar dari yang terlihat.
+            $rowsAktif = $rows->filter(fn ($r) => ($r['titik_meter']->status ?? 'aktif') === 'aktif');
+
+            $subtotal = $rowsAktif->sum('jumlah_sebelum_ppn');
+            $ppn = $rowsAktif->sum('ppn_nominal');
 
             return [
                 'area' => $area,
                 'rows' => $rows,
-                'jml_titik' => $area->titikMeter->count(),
+                'jml_titik' => $area->titikMeter->where('status', 'aktif')->count(),
                 'subtotal' => $subtotal,
-                'total_pemakaian' => $rows->sum(fn ($r) => $r['tagihan']->pemakaian ?? 0),
+                'total_pemakaian' => $rowsAktif->sum(fn ($r) => $r['tagihan']->pemakaian ?? 0),
                 'kena_ppn' => $kenaPpn,
                 'persen_ppn' => $persenPpn,
                 'ppn' => $ppn,
