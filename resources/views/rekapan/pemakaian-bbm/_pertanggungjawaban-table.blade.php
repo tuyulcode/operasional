@@ -36,11 +36,6 @@
       <col style="width:30%">
     </colgroup>
     <tbody>
-      {{-- 1 baris kosong di paling atas tabel (di-merge jadi satu sel, tanpa warna) --}}
-      <tr>
-        <td colspan="4">&nbsp;</td>
-      </tr>
-
       @foreach($displayGroups as $index => $group)
         @php
           $groupColor = $groupColors[$group['label']] ?? 'ffffff';
@@ -48,21 +43,21 @@
           $hurufGroup = substr($group['label'], 0, 1);
         @endphp
 
-        {{-- Banner jenis kendaraan, di-highlight sesuai warna grupnya --}}
-        <tr style="background:#{{ $groupColor }}; font-weight:bold;">
-          <td colspan="4" style="text-align:left; padding:8px 12px;">{{ $group['label'] }}</td>
-        </tr>
-
         {{-- Header kolom (No. / Nomor Kendaraan / Liter / Rp.) cuma muncul
-             sekali, di atas grup pertama (Roda Empat). --}}
+             sekali, DI ATAS banner grup pertama (Roda Empat). --}}
         @if($index === 0)
           <tr style="font-weight:bold; text-align:center;">
             <td style="padding:8px 4px;">No.</td>
-            <td style="padding:8px 4px;">Nomor Kendaraan</td>
+            <td style="padding:8px 4px;">Plat Nomor Kendaraan</td>
             <td style="padding:8px 4px;">Liter</td>
             <td style="padding:8px 4px;">Rp.</td>
           </tr>
         @endif
+
+        {{-- Banner jenis kendaraan, di-highlight sesuai warna grupnya --}}
+        <tr style="background:#{{ $groupColor }}; font-weight:bold;">
+          <td colspan="4" style="text-align:left; padding:8px 12px;">{{ $group['label'] }}</td>
+        </tr>
 
         @forelse($group['sections'] as $section)
           @if($section['label'])

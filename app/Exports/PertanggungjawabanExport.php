@@ -95,20 +95,17 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
                 $displayGrandTotal['rp'] += $g['total']['rp'];
             }
 
-            // 1 baris kosong di paling atas tabel (di-merge jadi satu sel, tanpa warna)
-            $row = $this->writeBlankTableRow($sheet, $row);
-
             foreach ($groups as $index => $group) {
                 $accentColor = self::GROUP_COLORS[$group['label']] ?? 'FFFFFF';
                 $hurufGroup  = substr($group['label'], 0, 1); // "A. Roda Empat" -> "A"
 
-                $row = $this->writeGroupBanner($sheet, $row, $group['label'], $accentColor);
-
                 // Header kolom (No. / Nomor Kendaraan / Liter / Rp.) cuma muncul
-                // sekali, di atas grup pertama (Roda Empat).
+                // sekali, DI ATAS banner grup pertama (Roda Empat).
                 if ($index === 0) {
                     $row = $this->writeColumnHeader($sheet, $row);
                 }
+
+                $row = $this->writeGroupBanner($sheet, $row, $group['label'], $accentColor);
 
                 if (empty($group['sections'])) {
                     // Jenis kendaraan ini tidak punya data - tetap ditampilkan, isinya strip
@@ -233,7 +230,7 @@ class PertanggungjawabanExport implements FromArray, WithEvents, WithTitle
     private function writeColumnHeader(Worksheet $sheet, int $row): int
     {
         $sheet->setCellValue("A{$row}", 'No.');
-        $sheet->setCellValue("B{$row}", 'Nomor Kendaraan');
+        $sheet->setCellValue("B{$row}", 'Plat Nomor Kendaraan');
         $sheet->setCellValue("C{$row}", 'Liter');
         $sheet->setCellValue("D{$row}", 'Rp.');
 
