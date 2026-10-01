@@ -27,10 +27,49 @@ class EtollController extends Controller
             ]);
         }
 
-        $pemakaianEtolls = PemakaianEtoll::with('pemegangKendaraan')
+        $search = trim((string) $request->query('search'));
+        $pemegangId = $request->query('pemegang_id');
+
+        $query = PemakaianEtoll::with('pemegangKendaraan')
             ->latest('tanggal')
-            ->latest('id')
-            ->paginate(15)
+            ->latest('id');
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                // 1. Nama pemegang (fuzzy)
+                $q->whereHas('pemegangKendaraan', function ($qq) use ($search) {
+                    $qq->where('nama', 'like', '%' . $search . '%');
+                });
+
+                // 2. Nominal — buang non-digit dulu (bisa ketik "100.000" atau "100000")
+                $nominalDigits = preg_replace('/\D/', '', $search);
+                if ($nominalDigits !== '') {
+                    $q->orWhere('nominal', 'like', '%' . $nominalDigits . '%');
+                }
+
+                // 3. Tanggal — parse d-m-Y / d/m/Y / Y-m-d → cocokkan ke kolom Y-m-d,
+                //    plus LIKE mentah untuk input parsial (mis. "2026" atau "2026-09")
+                $tanggalCandidates = [];
+                foreach (['d-m-Y', 'd/m/Y', 'Y-m-d'] as $fmt) {
+                    try {
+                        $tanggalCandidates[] = Carbon::createFromFormat($fmt, $search)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        // skip — bukan format tanggal yang dikenali
+                    }
+                }
+                if ($tanggalCandidates) {
+                    $q->orWhereIn('tanggal', $tanggalCandidates);
+                }
+                $q->orWhere('tanggal', 'like', '%' . $search . '%');
+            });
+        }
+
+        // 4. Filter dropdown — exact by pemegang_kendaraan_id
+        if ($pemegangId !== null && $pemegangId !== '') {
+            $query->where('pemegang_kendaraan_id', $pemegangId);
+        }
+
+        $pemakaianEtolls = $query->paginate(15)
             ->withQueryString();
         $pemegangKendaraans = PemegangKendaraan::orderBy('nama')->get();
 
