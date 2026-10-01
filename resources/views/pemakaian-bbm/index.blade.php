@@ -11,6 +11,8 @@
       'dexlite'        => 'Dexlite',
       'pertamax_turbo' => 'Pertamax Turbo',
     ];
+    $jenisKendaraanList = $kendaraans->pluck('nama_jenis')->filter()->unique()->sort()->values();
+    $adaFilter = request('search') || request('jenis_kendaraan') || request('kendaraan_id') || request('jenis_bbm') || request('lokasi_pembelian');
   @endphp
 
   <div class="page-header">
@@ -83,6 +85,54 @@
       </div>
     </div>
     <div class="card-body" style="padding: 0;">
+
+      {{-- TOOLBAR SEARCH & FILTER (server-side, mencakup semua halaman) --}}
+      <div class="table-toolbar">
+        <form method="GET" action="{{ route('pemakaian-bbm.index') }}" id="bbmFilterForm">
+          <div class="toolbar-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" name="search" id="bbmSearchInput" class="form-control"
+                   placeholder="Cari plat nomor atau tanggal..."
+                   value="{{ request('search') }}" autocomplete="off">
+          </div>
+
+          <select name="jenis_kendaraan" id="bbmFilterJenisKendaraan" class="form-control toolbar-select">
+            <option value="">Semua Jenis Kendaraan</option>
+            @foreach($jenisKendaraanList as $jk)
+              <option value="{{ $jk }}" {{ request('jenis_kendaraan') === $jk ? 'selected' : '' }}>{{ $jk }}</option>
+            @endforeach
+          </select>
+
+          <select name="kendaraan_id" id="bbmFilterKendaraan" class="form-control toolbar-select">
+            <option value="">Semua Kendaraan</option>
+            @foreach($kendaraans as $k)
+              <option value="{{ $k->id }}" {{ (string) request('kendaraan_id') === (string) $k->id ? 'selected' : '' }}>
+                {{ $k->plat_nomor }} ({{ $k->nama_jenis }})
+              </option>
+            @endforeach
+          </select>
+
+          <select name="jenis_bbm" id="bbmFilterJenis" class="form-control toolbar-select">
+            <option value="">Semua Jenis BBM</option>
+            @foreach($jenisBbmLabels as $value => $label)
+              <option value="{{ $value }}" {{ request('jenis_bbm') === $value ? 'selected' : '' }}>{{ $label }}</option>
+            @endforeach
+          </select>
+
+          <select name="lokasi_pembelian" id="bbmFilterLokasi" class="form-control toolbar-select">
+            <option value="">Semua Lokasi</option>
+            <option value="paiton" {{ request('lokasi_pembelian') === 'paiton' ? 'selected' : '' }}>Paiton</option>
+            <option value="luar_paiton" {{ request('lokasi_pembelian') === 'luar_paiton' ? 'selected' : '' }}>Luar Paiton</option>
+          </select>
+
+          @if($adaFilter)
+            <a href="{{ route('pemakaian-bbm.index') }}" class="btn btn-secondary btn-sm" title="Reset filter">
+              <i class="fa-solid fa-xmark"></i> Reset
+            </a>
+          @endif
+        </form>
+      </div>
+
       <div class="table-responsive">
         <table class="app-sales-table" style="width:100%;">
           <colgroup>
@@ -165,7 +215,11 @@
             <tr>
               <td colspan="10" style="text-align: center; padding: 30px; color: #999;">
                 <i class="fa-solid fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
-                Belum ada data pemakaian BBM & Consumable
+                @if($adaFilter)
+                  Tidak ada data yang cocok dengan pencarian
+                @else
+                  Belum ada data pemakaian BBM & Consumable
+                @endif
               </td>
             </tr>
             @endforelse
@@ -483,6 +537,55 @@
   .app-sales-table td:last-child {
     padding-right: 20px !important;
   }
+
+  /* === Toolbar search & filter (di dalam card-body, di atas tabel) === */
+  .table-toolbar {
+    padding: 14px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fafafa;
+  }
+
+  #bbmFilterForm {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .toolbar-search {
+    position: relative;
+    flex: 1 1 240px;
+    max-width: 320px;
+  }
+
+  .toolbar-search i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 0.85rem;
+    pointer-events: none;
+  }
+
+  .toolbar-search .form-control {
+    width: 100%;
+    padding-left: 34px;
+  }
+
+  .toolbar-select {
+    flex: 0 1 190px;
+    max-width: 220px;
+  }
+
+  @media (max-width: 768px) {
+    .toolbar-search,
+    .toolbar-select {
+      flex: 1 1 100%;
+      max-width: 100%;
+    }
+  }
 </style>
 @endpush
 
@@ -566,6 +669,32 @@
 
     overlay.addEventListener('click', function(e) { if (e.target === overlay) closePemakaianModal(); });
     deleteOverlay.addEventListener('click', function(e) { if (e.target === deleteOverlay) closeDeletePemakaianModal(); });
+
+    // === Search & Filter (server-side, all pages) ===
+    const bbmFilterForm = document.getElementById('bbmFilterForm');
+    const bbmSearchInput = document.getElementById('bbmSearchInput');
+    let bbmSearchTimer = null;
+
+    if (bbmFilterForm && bbmSearchInput) {
+      bbmSearchInput.addEventListener('input', function() {
+        clearTimeout(bbmSearchTimer);
+        bbmSearchTimer = setTimeout(function() {
+          bbmFilterForm.submit();
+        }, 400);
+      });
+
+      ['bbmFilterJenisKendaraan', 'bbmFilterKendaraan', 'bbmFilterJenis', 'bbmFilterLokasi'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', function() { bbmFilterForm.submit(); });
+      });
+
+      @if(request('search'))
+        // Kembalikan fokus + kursor ke akhir setelah reload (nyaman ngetik berlanjut)
+        bbmSearchInput.focus();
+        const searchLen = bbmSearchInput.value.length;
+        bbmSearchInput.setSelectionRange(searchLen, searchLen);
+      @endif
+    }
 
     // Tombol Refresh: hitung ulang Jumlah semua baris berdasarkan Harga BBM yang
     // berlaku sekarang. Server yang nentuin baris mana yang benar-benar berubah

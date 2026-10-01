@@ -27,12 +27,71 @@ class PemakaianBbmController extends Controller
      */
     public function index(Request $request)
     {
-        $pemakaianBbms = PemakaianBbm::with(['kendaraan', 'hargaBbm', 'pencatat'])
+        $search         = trim((string) $request->query('search'));
+        $jenisKendaraan = trim((string) $request->query('jenis_kendaraan')); 
+        $kendaraanId    = $request->query('kendaraan_id');
+        $jenisBbm       = $request->query('jenis_bbm');
+        $lokasi         = $request->query('lokasi_pembelian');
+    
+        $query = PemakaianBbm::with(['kendaraan', 'hargaBbm', 'pencatat'])
             ->orderByDesc('tanggal')
-            ->paginate(20);
-
+            ->orderByDesc('id');
+    
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                // 1. Plat nomor kendaraan
+                $q->whereHas('kendaraan', function ($qq) use ($search) {
+                    $qq->where('plat_nomor', 'like', '%' . $search . '%');
+                });
+    
+                // 2. Tanggal — parse d/m/Y, d-m-Y, Y-m-d → cocokkan ke kolom Y-m-d
+                $tanggalCandidates = [];
+                foreach (['d/m/Y', 'd-m-Y', 'Y-m-d'] as $fmt) {
+                    try {
+                        $tanggalCandidates[] = Carbon::createFromFormat('!' . $fmt, $search)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        // skip — bukan format tanggal yang dikenali
+                    }
+                }
+                if ($tanggalCandidates) {
+                    $q->orWhereIn('tanggal', array_unique($tanggalCandidates));
+                }
+    
+                // 3. Input parsial mentah (mis. "2026" atau "2026-09")
+                $q->orWhere('tanggal', 'like', '%' . $search . '%');
+            });
+        }
+        
+        // Filter jenis kendaraan
+        if ($jenisKendaraan !== '') {
+            $kendaraanIds = Kendaraan::get()
+                ->filter(fn ($k) => $k->nama_jenis === $jenisKendaraan)
+                ->pluck('id');
+    
+            $query->whereIn('kendaraan_id', $kendaraanIds);
+        }
+    
+        if ($kendaraanId !== null && $kendaraanId !== '') {
+            $query->where('kendaraan_id', $kendaraanId);
+        }
+    
+        // Filter dropdown — exact match
+        if ($kendaraanId !== null && $kendaraanId !== '') {
+            $query->where('kendaraan_id', $kendaraanId);
+        }
+    
+        if (in_array($jenisBbm, ['pertamax', 'pertadex', 'dexlite', 'pertamax_turbo'], true)) {
+            $query->where('jenis_bbm', $jenisBbm);
+        }
+    
+        if (in_array($lokasi, ['paiton', 'luar_paiton'], true)) {
+            $query->where('lokasi_pembelian', $lokasi);
+        }
+    
+        $pemakaianBbms = $query->paginate(20)->withQueryString();
+    
         $kendaraans = Kendaraan::orderBy('plat_nomor')->get();
-
+    
         // Daftar riwayat harga BBM (urut terbaru dulu), dipakai JS buat nyari harga
         // yang berlaku pada tanggal transaksi + jenis BBM yang dipilih.
         $hargaBbmList = HargaBbm::orderByDesc('tanggal_berlaku')->get()->map(function ($h) {
@@ -44,12 +103,12 @@ class PemakaianBbmController extends Controller
                 'harga_pertamax_turbo' => (float) $h->harga_pertamax_turbo,
             ];
         });
-
+    
         $edit = null;
         if ($request->has('edit')) {
             $edit = PemakaianBbm::with('hargaBbm')->find($request->query('edit'));
         }
-
+    
         return view('pemakaian-bbm.index', compact('pemakaianBbms', 'kendaraans', 'edit', 'hargaBbmList'));
     }
 
