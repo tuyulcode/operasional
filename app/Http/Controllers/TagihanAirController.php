@@ -17,6 +17,8 @@ use Illuminate\Validation\ValidationException;
 
 class TagihanAirController extends Controller
 {
+    protected const KEEP_QUERY = ['tab', 'q', 'area_id', 'titik_meter_id', 'page'];
+
     public function index(Request $request)
     {
         $tab = $request->query('tab', 'input');
@@ -33,12 +35,33 @@ class TagihanAirController extends Controller
         }
 
         if ($tab === 'data') {
-            $tagihanAirs = TagihanAir::with(['titikMeter.area', 'fotos'])
-                ->latest('periode')
-                ->paginate(15)
-                ->withQueryString(); // FIX: pertahankan query string (tab=data, dst) di link pagination
+            $keyword = trim((string) $request->query('q', ''));
+            $areaId = $request->query('area_id');
+            $titikMeterId = $request->query('titik_meter_id');
 
-            return view('tagihan-air.index', compact('tab', 'tagihanAirs'));
+            $tagihanAirs = TagihanAir::with(['titikMeter.area', 'fotos'])
+                ->when($keyword !== '', function ($query) use ($keyword) {
+                    // escape wildcard LIKE supaya input "%" atau "_" dianggap teks biasa
+                    $like = '%'.addcslashes($keyword, '\\%_').'%';
+
+                    $query->where(function ($w) use ($like) {
+                        $w->whereHas('titikMeter', fn ($t) => $t->where('nama', 'like', $like))
+                            ->orWhereHas('titikMeter.area', fn ($a) => $a->where('nama', 'like', $like))
+                            ->orWhereRaw("DATE_FORMAT(periode, '%m-%Y') like ?", [$like])
+                            ->orWhereRaw("DATE_FORMAT(periode, '%Y-%m') like ?", [$like]);
+                    });
+                })
+                ->when($areaId, fn ($query) => $query->whereHas('titikMeter', fn ($t) => $t->where('area_id', $areaId)))
+                ->when($titikMeterId, fn ($query) => $query->where('titik_meter_id', $titikMeterId))
+                ->latest('periode')
+                ->orderByDesc('id') // urutan stabil antar halaman
+                ->paginate(15)
+                ->withQueryString(); // pertahankan query string (tab, q, filter) di link pagination
+
+            $areas = Area::orderBy('nama')->get(['id', 'nama']);
+            $titikMeters = TitikMeter::orderBy('nama')->get(['id', 'nama', 'area_id']);
+
+            return view('tagihan-air.index', compact('tab', 'tagihanAirs', 'areas', 'titikMeters'));
         }
 
         $areas = Area::latest()->get();
@@ -360,7 +383,10 @@ class TagihanAirController extends Controller
             ]);
         }
 
-        return redirect()->route('tagihan-air.index', request()->only(['tab']))
-            ->with('success', 'Tagihan air berhasil dihapus.');
+        // Pertahankan filter pencarian & halaman setelah hapus
+        return redirect()->route('tagihan-air.index', array_filter(
+            $request->only(self::KEEP_QUERY),
+            fn ($v) => $v !== null && $v !== ''
+        ))->with('success', 'Tagihan air berhasil dihapus.');
     }
 }

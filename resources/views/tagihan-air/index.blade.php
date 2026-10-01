@@ -229,6 +229,11 @@
 
   @elseif($activeTab === 'data')
 
+  @php
+    $hasFilter = request()->hasAny(['q', 'area_id', 'titik_meter_id'])
+                 && (request('q') !== null && request('q') !== '' || request('area_id') || request('titik_meter_id'));
+  @endphp
+
   {{-- TABEL --}}
     <div class="card">
       <div class="card-header">
@@ -238,10 +243,45 @@
         </div>
       </div>
       <div class="card-body" style="padding: 0;">
+
+        {{-- FILTER & PENCARIAN (server-side, mencari ke seluruh data) --}}
+        <form method="GET" action="{{ route('tagihan-air.index') }}" id="filterForm"
+              style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px;">
+          <input type="hidden" name="tab" value="data">
+
+          <div style="position: relative; flex: 1 1 320px; max-width: 320px;">
+            <input type="text" name="q" id="filterQ" class="form-control" value="{{ request('q') }}"
+                   placeholder="Cari nama pengguna, titik meter, atau periode (mm-yyyy)..."
+                   autocomplete="off" style="width: 100%; padding-right: 32px;">
+            <button type="button" id="btnClearQ" title="Hapus pencarian"
+                    style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; cursor: pointer; font-size: 18px; line-height: 1; color: #94a3b8; padding: 0 4px; display: {{ request('q') !== null && request('q') !== '' ? 'block' : 'none' }};">
+              &times;
+            </button>
+          </div>
+
+          <select name="area_id" id="filterArea" class="form-control" style="max-width: 220px;">
+            <option value="">Semua Nama Pengguna</option>
+            @foreach($areas as $a)
+              <option value="{{ $a->id }}" {{ request('area_id') == $a->id ? 'selected' : '' }}>{{ $a->nama }}</option>
+            @endforeach
+          </select>
+
+          <select name="titik_meter_id" id="filterTitikMeter" class="form-control" style="max-width: 220px;">
+            <option value="">Semua Titik Meter</option>
+            @foreach($titikMeters as $tm)
+              <option value="{{ $tm->id }}" data-area="{{ $tm->area_id }}"
+                      {{ request('titik_meter_id') == $tm->id ? 'selected' : '' }}>{{ $tm->nama }}</option>
+            @endforeach
+          </select>
+
+          @if($hasFilter)
+            <a href="{{ route('tagihan-air.index', ['tab' => 'data']) }}" class="btn btn-secondary btn-sm">
+              <i class="fa-solid fa-rotate-left"></i> Reset
+            </a>
+          @endif
+        </form>
+
         <div class="table-responsive">
-          <input type="text" id="quickSearch" class="form-control"
-                 placeholder="Cari area, titik meter, atau periode..."
-                 style="max-width: 340px; margin: 12px 12px 8px;">
           <table class="app-sales-table">
             <thead>
               <tr>
@@ -306,7 +346,7 @@
                       <i class="fa-solid fa-lock"></i>
                     </button>
                   @else
-                  <form action="{{ route('tagihan-air.destroy', ['id' => $t->id, 'tab' => 'data']) }}"
+                  <form action="{{ route('tagihan-air.destroy', array_merge(['id' => $t->id, 'tab' => 'data'], array_filter(request()->only(['q', 'area_id', 'titik_meter_id', 'page']), fn ($v) => $v !== null && $v !== ''))) }}"
                         method="POST" class="delete-tagihan-form ajax-form" style="display: inline;">
                     @csrf
                     @method('DELETE')
@@ -320,17 +360,11 @@
               @empty
               <tr>
                 <td colspan="14" style="text-align: center; padding: 30px; color: #999;">
-                  <i class="fa-solid fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
-                  Belum ada data tagihan air
+                  <i class="fa-solid {{ $hasFilter ? 'fa-magnifying-glass' : 'fa-inbox' }}" style="font-size: 2rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
+                  {{ $hasFilter ? 'Tidak ada data yang cocok' : 'Belum ada data tagihan air' }}
                 </td>
               </tr>
               @endforelse
-              <tr id="noSearchRow" style="display: none;">
-                <td colspan="14" style="text-align: center; padding: 30px; color: #999;">
-                  <i class="fa-solid fa-magnifying-glass" style="font-size: 1.6rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
-                  Tidak ada data yang cocok
-                </td>
-              </tr>
             </tbody>
           </table>
         </div>
@@ -867,31 +901,68 @@
 @push('scripts')
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    const quickSearch = document.getElementById('quickSearch');
-    if (quickSearch) {
-      const tbody = document.getElementById('tbData');
-      const noSearchRow = document.getElementById('noSearchRow');
-      let searchTimer = null;
+    // ---- Filter & pencarian (server-side) ----
+    const filterForm = document.getElementById('filterForm');
+    const filterArea = document.getElementById('filterArea');
+    const filterTm   = document.getElementById('filterTitikMeter');
 
-      quickSearch.addEventListener('input', function() {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(function() {
-          const kw = quickSearch.value.trim().toLowerCase();
-          let visibleCount = 0;
-          const rows = tbody ? tbody.querySelectorAll('tr') : [];
-          rows.forEach(function(tr) {
-            if (tr.id === 'noSearchRow') return;
-            if (tr.hasAttribute('colspan')) { tr.style.display = kw ? 'none' : ''; return; }
-            const match = kw === '' || tr.textContent.toLowerCase().includes(kw);
-            tr.style.display = match ? '' : 'none';
-            if (match) visibleCount++;
-          });
-          if (noSearchRow) {
-            noSearchRow.style.display = (kw !== '' && visibleCount === 0) ? '' : 'none';
-          }
-        }, 250);
-      });
+    // Titik meter ikut tersaring sesuai nama pengguna yang dipilih
+    function syncTitikMeterOptions() {
+      const area = filterArea.value;
+      for (const opt of filterTm.options) {
+        if (opt.value === '') continue;
+        opt.hidden = !!area && opt.dataset.area !== area;
+      }
+      const sel = filterTm.selectedOptions[0];
+      if (sel && sel.value !== '' && area && sel.dataset.area !== area) filterTm.value = '';
     }
+    syncTitikMeterOptions();
+
+    filterArea.addEventListener('change', function() {
+      syncTitikMeterOptions();
+      filterForm.submit();
+    });
+    filterTm.addEventListener('change', function() {
+      filterForm.submit();
+    });
+
+    // Pencarian otomatis (debounce) + tombol x untuk menghapus pencarian
+    const filterQ  = document.getElementById('filterQ');
+    const btnClearQ = document.getElementById('btnClearQ');
+    let lastSubmittedQ = filterQ.value;
+    let qTimer = null;
+
+    function submitSearch() {
+      if (filterQ.value === lastSubmittedQ) return;
+      lastSubmittedQ = filterQ.value;
+      // halaman reload, jadi tandai supaya kursor kembali ke kolom cari
+      try { sessionStorage.setItem('tagihanSearchFocus', '1'); } catch (e) {}
+      filterForm.submit();
+    }
+
+    // Kembalikan fokus & kursor ke akhir teks setelah reload karena mengetik
+    try {
+      if (sessionStorage.getItem('tagihanSearchFocus')) {
+        sessionStorage.removeItem('tagihanSearchFocus');
+        filterQ.focus();
+        const len = filterQ.value.length;
+        filterQ.setSelectionRange(len, len);
+      }
+    } catch (e) {}
+
+    filterQ.addEventListener('input', function() {
+      btnClearQ.style.display = filterQ.value ? 'block' : 'none';
+      clearTimeout(qTimer);
+      qTimer = setTimeout(submitSearch, 500);
+    });
+
+    btnClearQ.addEventListener('click', function() {
+      clearTimeout(qTimer);
+      filterQ.value = '';
+      btnClearQ.style.display = 'none';
+      lastSubmittedQ = '';
+      filterForm.submit();
+    });
 
     // ---- Modal konfirmasi hapus ----
     const hapusModal = document.getElementById('hapusModal');
