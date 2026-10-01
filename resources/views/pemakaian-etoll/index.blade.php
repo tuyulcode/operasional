@@ -61,6 +61,38 @@
         </div>
       </div>
       <div class="card-body" style="padding: 0;">
+
+        {{-- TOOLBAR SEARCH & FILTER --}}
+        <div class="table-toolbar">
+          <form method="GET" action="{{ route('pemakaian-etoll.index') }}" id="etollSearchForm">
+            <input type="hidden" name="tab" value="input">
+
+            <div class="toolbar-search">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" name="search" id="etollSearchInput" class="form-control"
+                     placeholder="Cari nama, tanggal, atau nominal..."
+                     value="{{ request('search') }}" autocomplete="off">
+            </div>
+
+            <select name="pemegang_id" id="etollFilterPemegang" class="form-control toolbar-select">
+              <option value="">Semua Pemegang</option>
+              @foreach($pemegangKendaraans as $pemegang)
+                <option value="{{ $pemegang->id }}"
+                  {{ request('pemegang_id') == $pemegang->id ? 'selected' : '' }}>
+                  {{ $pemegang->nama }}
+                </option>
+              @endforeach
+            </select>
+
+            @if(request('search') || request('pemegang_id'))
+              <a href="{{ route('pemakaian-etoll.index', ['tab' => 'input']) }}"
+                 class="btn btn-secondary btn-sm" title="Reset filter">
+                <i class="fa-solid fa-xmark"></i> Reset
+              </a>
+            @endif
+          </form>
+        </div>
+
         <div class="table-responsive">
           <table class="app-sales-table">
             <thead>
@@ -111,7 +143,11 @@
               <tr>
                 <td colspan="5" style="text-align: center; padding: 30px; color: #999;">
                   <i class="fa-solid fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
-                  Belum ada data pemakaian e-toll
+                  @if(request('search') || request('pemegang_id'))
+                    Tidak ada data yang cocok dengan pencarian
+                  @else
+                    Belum ada data pemakaian e-toll
+                  @endif
                 </td>
               </tr>
               @endforelse
@@ -311,6 +347,59 @@
     background-color: #15803d;
     border-color: #15803d;
   }
+
+  /* === Toolbar search & filter (di dalam card-body, di atas tabel) === */
+  .table-toolbar {
+    padding: 14px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fafafa;
+  }
+
+  #etollSearchForm {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .toolbar-search {
+    position: relative;
+    flex: 1 1 260px;
+    max-width: 360px;
+  }
+
+  .toolbar-search i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 0.85rem;
+    pointer-events: none;
+  }
+
+  .toolbar-search .form-control {
+    width: 100%;
+    padding-left: 34px;
+  }
+
+  .toolbar-select {
+    flex: 0 1 220px;
+    max-width: 220px;
+  }
+
+  @media (max-width: 768px) {
+    .card-actions {
+      flex-wrap: wrap;
+    }
+
+    .toolbar-search,
+    .toolbar-select {
+      flex: 1 1 100%;
+      max-width: 100%;
+    }
+  }
 </style>
 @endpush
 
@@ -367,6 +456,38 @@
         formatRupiah(nominalInput);
       @endif
     }
+
+    // === Search & Filter Pemegang Kendaraan (server-side, all pages) ===
+    const etollSearchForm = document.getElementById('etollSearchForm');
+    const etollSearchInput = document.getElementById('etollSearchInput');
+    const etollFilterPemegang = document.getElementById('etollFilterPemegang');
+    let etollSearchTimer = null;
+
+    if (etollSearchInput && etollSearchForm) {
+      etollSearchInput.addEventListener('input', function() {
+        clearTimeout(etollSearchTimer);
+        etollSearchTimer = setTimeout(function() {
+          etollSearchForm.submit();
+        }, 400);
+      });
+    }
+
+    if (etollFilterPemegang && etollSearchForm) {
+      etollFilterPemegang.addEventListener('change', function() {
+        etollSearchForm.submit();
+      });
+    }
+
+    @if(request('search'))
+      // Kembalikan fokus + kursor ke akhir setelah reload (nyaman ngetik berlanjut)
+      (function() {
+        const el = document.getElementById('etollSearchInput');
+        if (!el) return;
+        el.focus();
+        const len = el.value.length;
+        el.setSelectionRange(len, len);
+      })();
+    @endif
   });
 
   function formatRupiah(input) {
