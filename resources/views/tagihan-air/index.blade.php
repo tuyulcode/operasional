@@ -326,10 +326,16 @@
                   @if($t->fotos->count())
                     <div style="display: flex; flex-wrap: wrap; gap: 4px; max-width: 180px;">
                       @foreach($t->fotos as $f)
-                        <a href="{{ $f->url }}" target="_blank" title="Lihat foto">
-                          <img src="{{ $f->url }}" alt="Foto"
-                               style="width: 40px; height: 32px; object-fit: cover; border: 1px solid #ddd; border-radius: 3px;">
-                        </a>
+                        <div style="position: relative; display: inline-block; line-height: 0;">
+                          <a href="{{ $f->url }}" target="_blank" title="Lihat foto">
+                            <img src="{{ $f->url }}" alt="Foto"
+                                 style="width: 40px; height: 32px; object-fit: cover; border: 1px solid #ddd; border-radius: 3px;">
+                          </a>
+                          <a href="{{ route('tagihan-air.foto.download', $f->id) }}" title="Unduh foto"
+                             style="position: absolute; right: 2px; bottom: 2px; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.65); color: #fff; border-radius: 3px; font-size: 9px; text-decoration: none; line-height: 1;">
+                            <i class="fa-solid fa-download"></i>
+                          </a>
+                        </div>
                       @endforeach
                     </div>
                   @else
