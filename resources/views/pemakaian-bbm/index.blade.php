@@ -194,6 +194,7 @@
                         data-jenis-bbm="{{ $item->jenis_bbm }}"
                         data-lokasi-pembelian="{{ $item->lokasi_pembelian }}"
                         data-liter="{{ $item->liter }}"
+                        data-rp="{{ $item->rp }}"
                         data-service-oli="{{ $item->service_oli }}"
                         data-jasa="{{ $item->jasa }}"
                         onclick="openEditPemakaian(this)">
@@ -305,15 +306,25 @@
                   <span>Luar Paiton</span>
                 </label>
               </div>
-              <small class="form-hint form-hint-spacer">&nbsp;</small>
             </div>
 
-            <div class="form-group">
+            {{-- Cell kosong: biar Lokasi Pembelian sendirian di barisnya,
+                 Liter & Total Harga bersebelahan di baris berikutnya --}}
+            <div class="form-group"></div>
+
+            <div class="form-group form-group-tight">
               <label for="liter">Liter</label>
               <input type="text" inputmode="decimal" id="liter" name="liter" class="form-control"
                      placeholder="00,000" value="{{ old('liter', isset($edit->liter) ? str_replace('.', ',', (string) $edit->liter) : '') }}">
               <small class="form-hint" id="literHint">Input 0, jika tidak ada data (maks. 2 angka di depan koma, 3 angka di belakang koma)</small>
               <small class="form-hint form-error" id="literError" style="display:none;">Inputan didepan koma maksimal harus 2 angka, dan 3 angka untuk dibelakang koma</small>
+            </div>
+
+            <div class="form-group form-group-tight">
+              <label for="total_harga">Total Harga (Rp)</label>
+              <input type="text" inputmode="numeric" id="total_harga" name="total_harga" class="form-control"
+                     value="{{ old('total_harga', $edit->rp ?? '') }}">
+              <small class="form-hint form-error" id="totalHargaError" style="display:none;">Total Harga menghasilkan Liter melebihi batas (maks. 99 liter)</small>
             </div>
           </div>
 
@@ -404,10 +415,14 @@
     font-weight: 600;
   }
   #pemakaianForm .form-grid {
-    row-gap: 14px;
+    row-gap: 8px;
   }
   #pemakaianForm .form-group {
     margin-bottom: 0;
+  }
+  /* Baris Liter | Total Harga ditarik lebih rapat ke baris di atasnya */
+  #pemakaianForm .form-group-tight {
+    margin-top: -4px;
   }
 
   .form-section-title {
@@ -611,6 +626,68 @@
     return (nilai === undefined || nilai === null) ? null : nilai;
   }
 
+  // === Sinkron dua arah Liter <-> Total Harga ===
+  // lastEdited mencatat field mana yang terakhir diedit user, jadi saat harga
+  // berubah (tanggal/jenis BBM ganti) yang dihitung ulang adalah field LAINNYA.
+  let lastEdited = 'liter';
+
+  // Saat modal baru dibuka (tambah/edit), nilai liter & rp dari DB dipertahankan
+  // apa adanya - sinkronisasi otomatis DIHENTIKAN dulu lewat flag ini, supaya rp
+  // manual yang tersimpan nggak ketimpa liter x harga (selisih pembulatan).
+  let initMode = false;
+
+  function hargaPerLiterAktif() {
+    return cariHargaBbm(document.getElementById('tanggal').value,
+                        document.getElementById('jenis_bbm').value);
+  }
+
+  // Liter -> Total Harga. Total = liter x harga per liter (2 desimal).
+  function sinkronTotalDariLiter() {
+    const harga = hargaPerLiterAktif();
+    const input = document.getElementById('total_harga');
+    if (harga === null || harga <= 0) { input.value = ''; return; }
+
+    const liter = parseFloat((document.getElementById('liter').value || '').replace(',', '.')) || 0;
+    const total = Math.round(liter * harga * 100) / 100;
+    input.value = total > 0 ? Number(total.toFixed(0)).toLocaleString('id-ID') : '';
+  }
+
+  // Total Harga (manual) -> Liter. Liter = total / harga, dibulatkan 3 desimal.
+  function sinkronLiterDariTotal() {
+    const harga = hargaPerLiterAktif();
+    const totalDigits = document.getElementById('total_harga').value.replace(/[^\d]/g, '');
+    const literInput = document.getElementById('liter');
+    if (harga === null || harga <= 0 || !totalDigits) {
+      hideTotalHargaError();
+      return;
+    }
+
+    const liter = Math.round((Number(totalDigits) / harga) * 1000) / 1000;
+    const integerPart = Math.floor(liter).toString();
+
+    // Batas mask Liter: maks 2 angka di depan koma. Kalau melanggar, tampilkan
+    // error Total Harga dan liter TIDAK diubah.
+    if (integerPart.length > 2) {
+      showTotalHargaError();
+      return;
+    }
+
+    hideTotalHargaError();
+    const literValue = liter.toFixed(3).replace('.', ',').replace(/,?0+$/, '');
+    if (literValue === '' || literValue === ',') return;
+    literInput.value = literValue;
+    literInput.dataset.prevValid = literValue;
+    hideLiterError();
+  }
+
+  function showTotalHargaError() {
+    document.getElementById('totalHargaError').style.display = 'block';
+  }
+
+  function hideTotalHargaError() {
+    document.getElementById('totalHargaError').style.display = 'none';
+  }
+
   function renderKendaraanDropdown(filter) {
     const list = document.getElementById('kendaraanDropdownList');
     const term = filter.toLowerCase();
@@ -714,9 +791,17 @@
 
     const serviceOliInput = document.getElementById('service_oli');
     const jasaInput = document.getElementById('jasa');
+    const totalHargaInput = document.getElementById('total_harga');
 
     serviceOliInput.addEventListener('input', function() { formatRupiah(serviceOliInput); });
     jasaInput.addEventListener('input', function() { formatRupiah(jasaInput); });
+
+    // Total Harga diedit manual -> liter otomatis terkonversi (dibulatkan 3 desimal)
+    totalHargaInput.addEventListener('input', function() {
+      formatRupiah(totalHargaInput);
+      lastEdited = 'total';
+      sinkronLiterDariTotal();
+    });
 
     document.getElementById('jenis_bbm').addEventListener('change', updateHargaPerLiterDisplay);
 
@@ -743,6 +828,10 @@
         this.dataset.prevValid = v;
         this.value = v;
       }
+
+      // Liter berubah -> Total Harga ikut terhitung ulang (otomatis)
+      lastEdited = 'liter';
+      sinkronTotalDariLiter();
     });
 
     const kendaraanSearch = document.getElementById('kendaraan_search');
@@ -775,8 +864,18 @@
         return false;
       }
 
+      // Cegah submit kalau Total Harga manual menghasilkan Liter melebihi batas
+      if (document.getElementById('totalHargaError').style.display === 'block') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        totalHargaInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+      }
+
       serviceOliInput.value = serviceOliInput.value.replace(/[^\d]/g, '');
       jasaInput.value = jasaInput.value.replace(/[^\d]/g, '');
+      // Total Harga dikirim sebagai angka mentah tanpa format ribuan
+      totalHargaInput.value = totalHargaInput.value.replace(/[^\d]/g, '');
 
       // Kirim ke server pakai titik (format numerik standar), tampilan tetap koma
       const literInput = document.getElementById('liter');
@@ -784,12 +883,17 @@
     });
 
     @if($edit || $errors->any())
+      initMode = true;
       document.getElementById('pemakaianModal').classList.add('show');
       formatRupiah(serviceOliInput);
       formatRupiah(jasaInput);
+      formatRupiah(totalHargaInput);
+      lastEdited = 'liter';
       updateHargaPerLiterDisplay();
       setKendaraanById(document.getElementById('kendaraan_id').value);
       document.getElementById('liter').dataset.prevValid = document.getElementById('liter').value;
+      hideTotalHargaError();
+      initMode = false;
     @endif
   });
 
@@ -813,6 +917,21 @@
       display.value = '';
       hargaError.style.display = 'none';
       hargaHint.style.display = 'block';
+    }
+
+    // Harga berganti (tanggal/jenis BBM diganti) -> hitung ulang field yang
+    // BUKAN acuan terakhir, supaya input manual user tidak hilang percuma.
+    if (initMode) return;
+
+    const hargaBaru = cariHargaBbm(tanggal, jenis);
+    if (hargaBaru !== null && hargaBaru > 0) {
+      if (lastEdited === 'total') {
+        sinkronLiterDariTotal();
+      } else {
+        sinkronTotalDariLiter();
+      }
+    } else {
+      hideTotalHargaError();
     }
   }
 
@@ -840,6 +959,7 @@
   }
 
   function openAddPemakaian() {
+    initMode = true;
     const form = document.getElementById('pemakaianForm');
     form.reset();
     form.action = '{{ route('pemakaian-bbm.store') }}';
@@ -855,15 +975,21 @@
     literInputAdd.dataset.prevValid = '';
     hideLiterError();
 
+    document.getElementById('total_harga').value = '';
+    hideTotalHargaError();
+    lastEdited = 'liter';
+
     document.getElementById('service_oli').value = '0';
     document.getElementById('jasa').value = '0';
     formatRupiah(document.getElementById('service_oli'));
     formatRupiah(document.getElementById('jasa'));
 
     document.getElementById('pemakaianModal').classList.add('show');
+    initMode = false;
   }
 
   function openEditPemakaian(btn) {
+    initMode = true;
     const form = document.getElementById('pemakaianForm');
     form.reset();
     form.action = '{{ route('pemakaian-bbm.update', '__ID__') }}'.replace('__ID__', btn.dataset.id);
@@ -881,6 +1007,14 @@
     literInputEdit.value = literValueEdit;
     literInputEdit.dataset.prevValid = literValueEdit;
     hideLiterError();
+
+    // Total Harga (rp) datang dari DB pakai titik - tampilan format ribuan
+    const totalHargaEdit = document.getElementById('total_harga');
+    totalHargaEdit.value = String(btn.dataset.rp || '').replace(/[^\d]/g, '');
+    formatRupiah(totalHargaEdit);
+    hideTotalHargaError();
+    lastEdited = 'liter';
+
     document.getElementById('service_oli').value = btn.dataset.serviceOli;
     document.getElementById('jasa').value = btn.dataset.jasa;
     formatRupiah(document.getElementById('service_oli'));
@@ -888,11 +1022,13 @@
     updateHargaPerLiterDisplay();
     document.getElementById('pemakaianModalTitle').textContent = 'Edit Pemakaian BBM';
     document.getElementById('pemakaianModal').classList.add('show');
+    initMode = false;
   }
 
   function closePemakaianModal() {
     document.getElementById('pemakaianModal').classList.remove('show');
     hideLiterError();
+    hideTotalHargaError();
   }
 
   function openDeletePemakaian(btn) {
