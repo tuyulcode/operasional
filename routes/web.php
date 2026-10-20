@@ -39,6 +39,7 @@ Route::middleware(['auth', 'role.access'])->group(function () {
     Route::prefix('ppn')->name('ppn.')->group(function () {
         Route::get('/', [PpnController::class, 'index'])->name('index');
         Route::post('/', [PpnController::class, 'store'])->name('store');
+        Route::put('/{id}', [PpnController::class, 'update'])->name('update'); // [BARU] edit data PPN
         Route::post('/{id}/aktifkan', [PpnController::class, 'activate'])->name('activate');
         Route::delete('/{id}', [PpnController::class, 'destroy'])->name('destroy');
     });
@@ -63,6 +64,7 @@ Route::middleware(['auth', 'role.access'])->group(function () {
         Route::post('/', [TagihanAirController::class, 'store'])->name('store');
         Route::put('/{id}', [TagihanAirController::class, 'update'])->name('update');
         Route::delete('/{id}', [TagihanAirController::class, 'destroy'])->name('destroy');
+        Route::get('/foto/{foto}/download', [TagihanAirController::class, 'downloadFoto'])->name('foto.download');
         Route::delete('/foto/{foto}', [TagihanAirController::class, 'destroyFoto'])->name('foto.destroy');
     });
 

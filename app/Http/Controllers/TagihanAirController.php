@@ -12,6 +12,7 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -344,6 +345,22 @@ class TagihanAirController extends Controller
 
         return redirect()->route('tagihan-air.index', request()->only(['tab']))
             ->with('success', 'Tagihan air berhasil diperbarui.');
+    }
+
+    public function downloadFoto($id)
+    {
+        $foto = TagihanAirFoto::with('tagihanAir.titikMeter')->findOrFail($id);
+
+        $path = $foto->file_path;
+        abort_if(! $path || ! is_file($path), 404, 'File foto tidak ditemukan.');
+
+        $namaTitik = $foto->tagihanAir?->titikMeter?->nama ?: 'Tagihan';
+        $periode = $foto->tagihanAir?->periode?->format('Y-m') ?: 'tanpa-periode';
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION) ?: 'jpg');
+
+        $namaFile = 'Foto-Meter-'.Str::slug($namaTitik, '-').'-'.$periode.'-'.$foto->id.'.'.$ext;
+
+        return response()->download($path, $namaFile);
     }
 
     public function destroyFoto(Request $request, $id)

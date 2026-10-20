@@ -199,7 +199,7 @@
         <tr style="height: 8px;"><td colspan="2"></td></tr>
         <tr>
           <td class="sign-title">Mengetahui,</td>
-          <td class="sign-title">{{ $ttdKanan ? 'Menyetujui,' : '' }}</td>
+          <td class="sign-title">{{ $ttdKanan ? 'Mengusulkan,' : '' }}</td>
         </tr>
         <tr>
           <td class="sign-jabatan">{{ $ttdKiri ? $ttdKiri->jabatan : '' }}</td>
