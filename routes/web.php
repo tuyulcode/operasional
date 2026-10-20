@@ -63,6 +63,7 @@ Route::middleware(['auth', 'role.access'])->group(function () {
         Route::post('/', [TagihanAirController::class, 'store'])->name('store');
         Route::put('/{id}', [TagihanAirController::class, 'update'])->name('update');
         Route::delete('/{id}', [TagihanAirController::class, 'destroy'])->name('destroy');
+        Route::get('/foto/{foto}/download', [TagihanAirController::class, 'downloadFoto'])->name('foto.download');
         Route::delete('/foto/{foto}', [TagihanAirController::class, 'destroyFoto'])->name('foto.destroy');
     });
 
