@@ -40,18 +40,28 @@ class RekapanController extends Controller
         // dibekukan di baris tagihan_air saat data itu pertama kali diinput.
         // Jadi begitu PPN aktif diubah, semua rekapan (termasuk untuk data
         // lama) otomatis ikut berubah tanpa perlu edit ulang satu-satu.
-        $persenPpnAktif = (float) (Ppn::where('status', 'aktif')->value('persentase') ?? 0);
+        //
+        // [DIUBAH] Satu data PPN sekarang punya 2 persentase:
+        // - Persentase Laporan     (kolom persentase)           -> hanya untuk TAMPILAN label, contoh "PPN 12%"
+        // - Persentase Perhitungan (kolom persentase_realisasi) -> dipakai untuk HITUNG nominal, contoh 11%
+        // Kalau persentase_realisasi kosong, otomatis memakai persentase laporan.
+        $ppnAktif = Ppn::where('status', 'aktif')->first();
+        $persenPpnLaporan = (float) ($ppnAktif->persentase ?? 0);
+        $persenPpnHitung = (float) ($ppnAktif->persentase_realisasi ?? $ppnAktif->persentase ?? 0);
 
-        $data = $areaQuery->get()->map(function ($area) use ($tagihans, $persenPpnAktif) {
+        $data = $areaQuery->get()->map(function ($area) use ($tagihans, $persenPpnLaporan, $persenPpnHitung) {
             $kenaPpn = (bool) $area->kena_ppn;
-            $persenPpn = $kenaPpn ? $persenPpnAktif : 0;
+
+            // [DIUBAH] persenPpn (dipakai menghitung) dan persenPpnTampil (dipakai label) dipisah
+            $persenPpn = $kenaPpn ? $persenPpnHitung : 0;
+            $persenPpnTampil = $kenaPpn ? $persenPpnLaporan : 0;
 
             $rows = $area->titikMeter->map(function ($tm) use ($tagihans, $persenPpn) {
                 $tagihan = $tagihans->get($tm->id);
 
                 // Jumlah sebelum PPN dihitung ulang dari pemakaian x tarif
                 // (dua-duanya TIDAK terpengaruh PPN), lalu PPN-nya dihitung
-                // pakai persentase aktif saat ini.
+                // pakai persentase PERHITUNGAN aktif saat ini.
                 $jumlahSebelumPpn = $tagihan ? (float) $tagihan->pemakaian * (float) $tagihan->tarif : 0;
                 $ppnNominal = round($jumlahSebelumPpn * $persenPpn / 100, 2);
 
@@ -82,7 +92,10 @@ class RekapanController extends Controller
                 'subtotal' => $subtotal,
                 'total_pemakaian' => $rowsAktif->sum(fn ($r) => $r['tagihan']->pemakaian ?? 0),
                 'kena_ppn' => $kenaPpn,
-                'persen_ppn' => $persenPpn,
+                // [DIUBAH] persen_ppn sekarang berisi Persentase LAPORAN (untuk label "PPN 12%"
+                // di PDF & Excel). Nominal $ppn di bawah tetap dihitung dari Persentase PERHITUNGAN.
+                'persen_ppn' => $persenPpnTampil,
+                'persen_ppn_hitung' => $persenPpn, // [BARU] persentase yang dipakai menghitung (info saja)
                 'ppn' => $ppn,
                 'total' => $subtotal + $ppn,
             ];
