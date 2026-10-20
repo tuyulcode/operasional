@@ -370,6 +370,7 @@ class PemakaianBbmController extends Controller
             'jenis_bbm'        => 'required|in:pertamax,pertadex,dexlite,pertamax_turbo,solar',
             'lokasi_pembelian' => 'required|in:paiton,luar_paiton',
             'liter'            => 'nullable|numeric|min:0',
+            'total_harga'      => 'nullable|numeric|min:0',
             'service_oli'      => 'nullable|numeric|min:0',
             'jasa'             => 'nullable|numeric|min:0',
         ], [
@@ -381,6 +382,8 @@ class PemakaianBbmController extends Controller
             'jenis_bbm.in'              => 'Jenis BBM tidak valid.',
             'lokasi_pembelian.required' => 'Lokasi pembelian wajib dipilih.',
             'liter.numeric'             => 'Liter harus berupa angka.',
+            'total_harga.numeric'       => 'Total Harga harus berupa angka.',
+            'total_harga.min'           => 'Total Harga tidak boleh kurang dari 0.',
             'service_oli.numeric'       => 'Sparepart Consumable harus berupa angka.',
             'jasa.numeric'              => 'Jasa harus berupa angka.',
         ]);
@@ -410,7 +413,13 @@ class PemakaianBbmController extends Controller
         $serviceOli = (float) ($validated['service_oli'] ?? 0);
         $jasa       = (float) ($validated['jasa'] ?? 0);
 
-        $rp     = $liter * $hargaPerLiter;
+        // Total Harga dari form (rp) jadi otoritatif kalau diisi - user boleh
+        // input manual. Kalau kosong, fallback ke liter x harga per liter.
+        $totalHarga = $validated['total_harga'] ?? null;
+        $rp = ($totalHarga !== null && $totalHarga !== '')
+            ? (float) $totalHarga
+            : $liter * $hargaPerLiter;
+
         $jumlah = $rp + $serviceOli + $jasa;
 
         return [
