@@ -608,6 +608,10 @@
               <div class="lbl">Dexlite</div>
               <div class="val">Rp {{ number_format($hargaBbmTerbaru->harga_dexlite, 0, ',', '.') }}</div>
             </div>
+            <div class="risk-detail-item">
+              <div class="lbl">Solar</div>
+              <div class="val">Rp {{ number_format($hargaBbmTerbaru->harga_solar, 0, ',', '.') }}</div>
+            </div>
           </div>
         @else
           <div class="empty-state">

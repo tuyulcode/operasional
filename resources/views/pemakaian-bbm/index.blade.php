@@ -10,6 +10,7 @@
       'pertadex'       => 'Pertadex',
       'dexlite'        => 'Dexlite',
       'pertamax_turbo' => 'Pertamax Turbo',
+      'solar'          => 'Solar',
     ];
     $jenisKendaraanList = $kendaraans->pluck('nama_jenis')->filter()->unique()->sort()->values();
     $adaFilter = request('search') || request('jenis_kendaraan') || request('kendaraan_id') || request('jenis_bbm') || request('lokasi_pembelian');

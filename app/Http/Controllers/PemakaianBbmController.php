@@ -80,7 +80,7 @@ class PemakaianBbmController extends Controller
             $query->where('kendaraan_id', $kendaraanId);
         }
     
-        if (in_array($jenisBbm, ['pertamax', 'pertadex', 'dexlite', 'pertamax_turbo'], true)) {
+        if (in_array($jenisBbm, ['pertamax', 'pertadex', 'dexlite', 'pertamax_turbo', 'solar'], true)) {
             $query->where('jenis_bbm', $jenisBbm);
         }
     
@@ -101,6 +101,7 @@ class PemakaianBbmController extends Controller
                 'harga_pertadex'       => (float) $h->harga_pertadex,
                 'harga_dexlite'        => (float) $h->harga_dexlite,
                 'harga_pertamax_turbo' => (float) $h->harga_pertamax_turbo,
+                'harga_solar'          => (float) $h->harga_solar,
             ];
         });
     
@@ -366,7 +367,7 @@ class PemakaianBbmController extends Controller
         return $request->validate([
             'tanggal'          => 'required|date',
             'kendaraan_id'     => 'required|exists:kendaraan,id',
-            'jenis_bbm'        => 'required|in:pertamax,pertadex,dexlite,pertamax_turbo',
+            'jenis_bbm'        => 'required|in:pertamax,pertadex,dexlite,pertamax_turbo,solar',
             'lokasi_pembelian' => 'required|in:paiton,luar_paiton',
             'liter'            => 'nullable|numeric|min:0',
             'service_oli'      => 'nullable|numeric|min:0',
