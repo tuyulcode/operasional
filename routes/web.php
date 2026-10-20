@@ -39,6 +39,7 @@ Route::middleware(['auth', 'role.access'])->group(function () {
     Route::prefix('ppn')->name('ppn.')->group(function () {
         Route::get('/', [PpnController::class, 'index'])->name('index');
         Route::post('/', [PpnController::class, 'store'])->name('store');
+        Route::put('/{id}', [PpnController::class, 'update'])->name('update'); // [BARU] edit data PPN
         Route::post('/{id}/aktifkan', [PpnController::class, 'activate'])->name('activate');
         Route::delete('/{id}', [PpnController::class, 'destroy'])->name('destroy');
     });
