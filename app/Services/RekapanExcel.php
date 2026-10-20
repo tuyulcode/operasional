@@ -483,7 +483,7 @@ class RekapanExcel
         $r++;
 
         $baris = [
-            ['Mengetahui,', $pRight ? 'Menyetujui,' : ''],
+            ['Mengetahui,', $pRight ? 'Mengusulkan,' : ''],
             [$pLeft ? ($pLeft->jabatan ?: '') : '', $pRight ? ($pRight->jabatan ?: '') : ''],
         ];
 
