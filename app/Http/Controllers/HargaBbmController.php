@@ -26,6 +26,7 @@ class HargaBbmController extends Controller
             'harga_pertadex' => ['required', 'numeric', 'min:1'],
             'harga_dexlite' => ['required', 'numeric', 'min:1'],
             'harga_pertamax_turbo' => ['required', 'numeric', 'min:1'],
+            'harga_solar' => ['required', 'numeric', 'min:1'],
         ];
 
         $messages = [
@@ -34,6 +35,7 @@ class HargaBbmController extends Controller
             'harga_pertadex.min' => 'Harga Pertadex tidak boleh 0.',
             'harga_dexlite.min' => 'Harga Dexlite tidak boleh 0.',
             'harga_pertamax_turbo.min' => 'Harga Pertamax Turbo tidak boleh 0.',
+            'harga_solar.min' => 'Harga Solar tidak boleh 0.',
         ];
 
         // Tanggal data baru tidak boleh mundur dari tanggal yang terakhir diinputkan
@@ -68,12 +70,14 @@ class HargaBbmController extends Controller
             'harga_pertadex' => ['required', 'numeric', 'min:1'],
             'harga_dexlite' => ['required', 'numeric', 'min:1'],
             'harga_pertamax_turbo' => ['required', 'numeric', 'min:1'],
+            'harga_solar' => ['required', 'numeric', 'min:1'],
         ], [
             'tanggal_berlaku.unique' => 'Sudah ada data harga BBM untuk tanggal ini.',
             'harga_pertamax.min' => 'Harga Pertamax tidak boleh 0.',
             'harga_pertadex.min' => 'Harga Pertadex tidak boleh 0.',
             'harga_dexlite.min' => 'Harga Dexlite tidak boleh 0.',
             'harga_pertamax_turbo.min' => 'Harga Pertamax Turbo tidak boleh 0.',
+            'harga_solar.min' => 'Harga Solar tidak boleh 0.',
         ]);
 
         $hargaBbm->update($validated);

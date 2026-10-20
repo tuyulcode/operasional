@@ -59,6 +59,7 @@
               <th>Pertamax Turbo</th>
               <th>Dexlite</th>
               <th>Pertadex</th>
+              <th>Solar</th>
               <th>Aksi</th>
             </tr>
           </thead>
@@ -71,6 +72,7 @@
               <td>Rp {{ number_format($item->harga_pertamax_turbo, 0, ',', '.') }}</td>
               <td>Rp {{ number_format($item->harga_dexlite, 0, ',', '.') }}</td>
               <td>Rp {{ number_format($item->harga_pertadex, 0, ',', '.') }}</td>
+              <td>Rp {{ number_format($item->harga_solar, 0, ',', '.') }}</td>
               <td>
                 <button type="button" class="btn btn-icon btn-edit" title="Edit"
                         data-id="{{ $item->id }}"
@@ -79,6 +81,7 @@
                         data-harga-pertamax-turbo="{{ $item->harga_pertamax_turbo }}"
                         data-harga-pertadex="{{ $item->harga_pertadex }}"
                         data-harga-dexlite="{{ $item->harga_dexlite }}"
+                        data-harga-solar="{{ $item->harga_solar }}"
                         onclick="openEditHargaBbm(this)">
                   <i class="fa-solid fa-pen"></i>
                 </button>
@@ -105,7 +108,7 @@
             </tr>
             @empty
             <tr>
-              <td colspan="7" style="text-align: center; padding: 30px; color: #999;">
+              <td colspan="8" style="text-align: center; padding: 30px; color: #999;">
                 <i class="fa-solid fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
                 Belum ada data harga BBM
               </td>
@@ -140,6 +143,7 @@
             <div><span>Pertamax Turbo</span><strong>Rp {{ number_format($terakhir->harga_pertamax_turbo, 0, ',', '.') }}</strong></div>
             <div><span>Dexlite</span><strong>Rp {{ number_format($terakhir->harga_dexlite, 0, ',', '.') }}</strong></div>
             <div><span>Pertadex</span><strong>Rp {{ number_format($terakhir->harga_pertadex, 0, ',', '.') }}</strong></div>
+            <div><span>Solar</span><strong>Rp {{ number_format($terakhir->harga_solar, 0, ',', '.') }}</strong></div>
           </div>
         </div>
       @endif
@@ -189,12 +193,20 @@
             <small class="field-error" id="err_harga_dexlite"></small>
           </div>
 
-          <div class="form-group" style="margin-bottom: 0;">
+          <div class="form-group">
             <label for="harga_pertadex">Harga Pertadex</label>
             <input type="text" id="harga_pertadex" name="harga_pertadex" class="form-control rupiah-input"
                    inputmode="numeric" placeholder="Harga Pertadex per liter"
                    value="{{ old('harga_pertadex') }}" required>
             <small class="field-error" id="err_harga_pertadex"></small>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="harga_solar">Harga Solar</label>
+            <input type="text" id="harga_solar" name="harga_solar" class="form-control rupiah-input"
+                   inputmode="numeric" placeholder="Harga Solar per liter"
+                   value="{{ old('harga_solar') }}" required>
+            <small class="field-error" id="err_harga_solar"></small>
           </div>
         </div>
 
@@ -455,6 +467,7 @@
       'harga_pertamax_turbo' => (string) $terakhir->harga_pertamax_turbo,
       'harga_pertadex' => (string) $terakhir->harga_pertadex,
       'harga_dexlite' => (string) $terakhir->harga_dexlite,
+      'harga_solar' => (string) $terakhir->harga_solar,
   ] : null;
 @endphp
 
@@ -472,6 +485,7 @@
     { id: 'harga_pertamax_turbo', label: 'Harga Pertamax Turbo' },
     { id: 'harga_dexlite', label: 'Harga Dexlite' },
     { id: 'harga_pertadex', label: 'Harga Pertadex' },
+    { id: 'harga_solar', label: 'Harga Solar' },
   ];
 
   document.addEventListener('DOMContentLoaded', function() {
@@ -572,12 +586,14 @@
       const turbo    = parseIdValue(document.getElementById('harga_pertamax_turbo').value);
       const dexlite  = parseIdValue(document.getElementById('harga_dexlite').value);
       const pertadex = parseIdValue(document.getElementById('harga_pertadex').value);
+      const solar    = parseIdValue(document.getElementById('harga_solar').value);
 
       const isSamaDenganTerakhir = TERAKHIR && !isEditMode &&
         pertamax === Number(TERAKHIR.harga_pertamax) &&
         turbo    === Number(TERAKHIR.harga_pertamax_turbo) &&
         dexlite  === Number(TERAKHIR.harga_dexlite) &&
-        pertadex === Number(TERAKHIR.harga_pertadex);
+        pertadex === Number(TERAKHIR.harga_pertadex) &&
+        solar    === Number(TERAKHIR.harga_solar);
 
       if (isSamaDenganTerakhir) {
         document.getElementById('samaHargaTanggalTerakhir').textContent =
@@ -764,7 +780,7 @@
   }
 
   function resetHargaFields() {
-    ['harga_pertamax', 'harga_pertamax_turbo', 'harga_dexlite', 'harga_pertadex'].forEach(function(id) {
+    ['harga_pertamax', 'harga_pertamax_turbo', 'harga_dexlite', 'harga_pertadex', 'harga_solar'].forEach(function(id) {
       document.getElementById(id).value = '';
     });
   }
@@ -835,6 +851,7 @@
     document.getElementById('harga_pertamax_turbo').value = formatRupiahValue(btn.dataset.hargaPertamaxTurbo);
     document.getElementById('harga_pertadex').value = formatRupiahValue(btn.dataset.hargaPertadex);
     document.getElementById('harga_dexlite').value = formatRupiahValue(btn.dataset.hargaDexlite);
+    document.getElementById('harga_solar').value = formatRupiahValue(btn.dataset.hargaSolar);
 
     // Sembunyikan panel "data terakhir" saat mode edit biar tidak membingungkan
     const box = document.getElementById('dataTerakhirBox');

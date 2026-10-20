@@ -14,6 +14,7 @@ class HargaBbm extends Model
         'harga_pertadex',
         'harga_dexlite',
         'harga_pertamax_turbo',
+        'harga_solar',
     ];
 
     protected $casts = [
@@ -22,6 +23,7 @@ class HargaBbm extends Model
         'harga_pertadex' => 'decimal:2',
         'harga_dexlite' => 'decimal:2',
         'harga_pertamax_turbo' => 'decimal:2',
+        'harga_solar' => 'decimal:2',
     ];
 
     public function pemakaianBbm()
