@@ -204,7 +204,16 @@ function submitAjaxForm(form) {
     }
   })
   .then(function(response) {
-    return response.json().then(function(data) {
+    return response.text().then(function(body) {
+      var data;
+      try {
+        data = JSON.parse(body);
+      } catch (error) {
+        throw {
+          message: 'Server mengembalikan halaman HTML (HTTP ' + response.status + '), bukan JSON. Periksa log Laravel atau error server hosting.'
+        };
+      }
+
       if (!response.ok) throw data;
       return data;
     });

@@ -146,4 +146,4 @@ Route::middleware(['auth', 'role.access'])->group(function () {
 // Root redirect
 Route::get('/', function () {
     return redirect()->route('login');
-});
+}); 
