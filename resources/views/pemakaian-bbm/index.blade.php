@@ -146,6 +146,7 @@
             <col style="width:9%">
             <col style="width:8%">
             <col style="width:10%">
+            <col style="width:8%">
             <col style="width:9%">
           </colgroup>
           <thead>
@@ -159,6 +160,7 @@
               <th style="text-align:center;">Sparepart</th>
               <th style="text-align:center;">Jasa</th>
               <th>Jumlah</th>
+              <th style="text-align:center;">Bukti BBM</th>
               <th style="text-align:center;">Aksi</th>
             </tr>
           </thead>
@@ -187,6 +189,32 @@
               <td style="text-align:center;">{{ $item->jasa ? number_format($item->jasa, 0, ',', '.') : '-' }}</td>
               <td>{{ number_format($item->jumlah, 0, ',', '.') }}</td>
               <td style="text-align:center;">
+                @if($item->bukti_bbm)
+                  @php
+                    $buktiUrl = asset('storage/' . $item->bukti_bbm);
+                    $buktiExt = strtolower(pathinfo($item->bukti_bbm, PATHINFO_EXTENSION));
+                  @endphp
+                  @if(in_array($buktiExt, ['jpg', 'jpeg', 'png'], true))
+                    <div style="position: relative; display: inline-block; line-height: 0;">
+                      <a href="{{ $buktiUrl }}" target="_blank" rel="noopener noreferrer" title="Lihat bukti BBM">
+                        <img src="{{ $buktiUrl }}" alt="Bukti BBM"
+                             style="width: 40px; height: 32px; object-fit: cover; border: 1px solid #ddd; border-radius: 3px;">
+                      </a>
+                      <a href="{{ $buktiUrl }}" download title="Unduh bukti BBM"
+                         style="position: absolute; right: 2px; bottom: 2px; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.65); color: #fff; border-radius: 3px; font-size: 9px; text-decoration: none; line-height: 1;">
+                        <i class="fa-solid fa-download"></i>
+                      </a>
+                    </div>
+                  @else
+                    <a href="{{ $buktiUrl }}" target="_blank" rel="noopener noreferrer" title="Lihat bukti BBM">
+                      <i class="fa-solid fa-file-pdf" style="font-size: 1.4rem; color: #dc3545;"></i>
+                    </a>
+                  @endif
+                @else
+                  -
+                @endif
+              </td>
+              <td style="text-align:center;">
                 <button type="button" class="btn btn-icon btn-edit" title="Edit"
                         data-id="{{ $item->id }}"
                         data-tanggal="{{ \Carbon\Carbon::parse($item->tanggal)->format('Y-m-d') }}"
@@ -197,6 +225,7 @@
                         data-rp="{{ $item->rp }}"
                         data-service-oli="{{ $item->service_oli }}"
                         data-jasa="{{ $item->jasa }}"
+                        data-bukti-bbm-url="{{ $item->bukti_bbm ? asset('storage/' . $item->bukti_bbm) : '' }}"
                         onclick="openEditPemakaian(this)">
                   <i class="fa-solid fa-pen"></i>
                 </button>
@@ -215,7 +244,7 @@
             </tr>
             @empty
             <tr>
-              <td colspan="10" style="text-align: center; padding: 30px; color: #999;">
+              <td colspan="11" style="text-align: center; padding: 30px; color: #999;">
                 <i class="fa-solid fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 8px; opacity: 0.3;"></i>
                 @if($adaFilter)
                   Tidak ada data yang cocok dengan pencarian
@@ -241,7 +270,7 @@
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <form id="pemakaianForm" class="ajax-form" method="POST"
+      <form id="pemakaianForm" class="ajax-form" method="POST" enctype="multipart/form-data"
             action="{{ $edit ? route('pemakaian-bbm.update', $edit->id) : route('pemakaian-bbm.store') }}">
         @csrf
         <input type="hidden" name="_method" id="pemakaianMethod" value="{{ $edit ? 'PUT' : '' }}">
@@ -325,6 +354,17 @@
               <input type="text" inputmode="numeric" id="total_harga" name="total_harga" class="form-control"
                      value="{{ old('total_harga', $edit->rp ?? '') }}">
               <small class="form-hint form-error" id="totalHargaError" style="display:none;">Total Harga menghasilkan Liter melebihi batas (maks. 99 liter)</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="bukti_bbm">Bukti BBM</label>
+            <input type="file" id="bukti_bbm" name="bukti_bbm" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+            <small class="form-hint">Format JPG, PNG, atau PDF; maksimal 5 MB. Kosongkan jika tidak ingin mengganti bukti.</small>
+            <div id="buktiBbmTersimpan" style="{{ $edit && $edit->bukti_bbm ? 'margin-top:8px;' : 'display:none; margin-top:8px;' }}">
+              <a id="buktiBbmTersimpanLink"
+                 href="{{ $edit && $edit->bukti_bbm ? asset('storage/' . $edit->bukti_bbm) : '#' }}"
+                 target="_blank" rel="noopener noreferrer">Lihat bukti yang tersimpan</a>
             </div>
           </div>
 
@@ -962,6 +1002,7 @@
     initMode = true;
     const form = document.getElementById('pemakaianForm');
     form.reset();
+    setBuktiBbmTersimpan('');
     form.action = '{{ route('pemakaian-bbm.store') }}';
     document.getElementById('pemakaianMethod').value = '';
     document.getElementById('pemakaianModalTitle').textContent = 'Tambah Pemakaian BBM';
@@ -992,11 +1033,11 @@
     initMode = true;
     const form = document.getElementById('pemakaianForm');
     form.reset();
+    setBuktiBbmTersimpan(btn.dataset.buktiBbmUrl || '');
     form.action = '{{ route('pemakaian-bbm.update', '__ID__') }}'.replace('__ID__', btn.dataset.id);
     document.getElementById('pemakaianMethod').value = 'PUT';
     tanggalPicker.setDate(btn.dataset.tanggal, true);
     setKendaraanById(btn.dataset.kendaraanId);
-    document.getElementById('jenis_bbm').value = btn.dataset.jenisBbm;
 
     const lokasiRadio = document.querySelector('input[name="lokasi_pembelian"][value="' + btn.dataset.lokasiPembelian + '"]');
     if (lokasiRadio) lokasiRadio.checked = true;
@@ -1019,10 +1060,20 @@
     document.getElementById('jasa').value = btn.dataset.jasa;
     formatRupiah(document.getElementById('service_oli'));
     formatRupiah(document.getElementById('jasa'));
+    // Set this after resetting the form and restoring the other fields so the
+    // saved fuel type cannot fall back to the select's default option.
+    document.getElementById('jenis_bbm').value = btn.dataset.jenisBbm || '';
     updateHargaPerLiterDisplay();
     document.getElementById('pemakaianModalTitle').textContent = 'Edit Pemakaian BBM';
     document.getElementById('pemakaianModal').classList.add('show');
     initMode = false;
+  }
+
+  function setBuktiBbmTersimpan(url) {
+    const buktiWrap = document.getElementById('buktiBbmTersimpan');
+    const buktiLink = document.getElementById('buktiBbmTersimpanLink');
+    buktiLink.href = url || '#';
+    buktiWrap.style.display = url ? 'block' : 'none';
   }
 
   function closePemakaianModal() {

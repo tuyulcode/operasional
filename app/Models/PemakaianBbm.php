@@ -9,7 +9,7 @@ class PemakaianBbm extends Model
     protected $table = 'pemakaian_bbm';
     protected $fillable = [
         'kendaraan_id', 'harga_bbm_id', 'tanggal', 'lokasi_pembelian', 'jenis_bbm',
-        'liter', 'rp', 'service_oli', 'jasa', 'jumlah', 'dicatat_oleh',
+        'liter', 'rp', 'service_oli', 'jasa', 'jumlah', 'bukti_bbm', 'dicatat_oleh',
     ];
 
     protected $casts = [
