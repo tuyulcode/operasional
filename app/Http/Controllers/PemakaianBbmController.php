@@ -13,6 +13,7 @@ use App\Services\PemakaianBbmRekapService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -116,8 +117,13 @@ class PemakaianBbmController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validatePemakaian($request);
+        $payload = $this->buildPayload($validated);
 
-        PemakaianBbm::create($this->buildPayload($validated));
+        if ($request->hasFile('bukti_bbm')) {
+            $payload['bukti_bbm'] = $request->file('bukti_bbm')->store('bukti-bbm', 'public');
+        }
+
+        PemakaianBbm::create($payload);
 
         if ($request->ajax()) {
             return response()->json(['success' => true, 'message' => 'Data pemakaian BBM berhasil disimpan.']);
@@ -132,8 +138,18 @@ class PemakaianBbmController extends Controller
         $pemakaian = PemakaianBbm::findOrFail($id);
 
         $validated = $this->validatePemakaian($request);
+        $payload = $this->buildPayload($validated);
+        $buktiLama = $pemakaian->bukti_bbm;
 
-        $pemakaian->update($this->buildPayload($validated));
+        if ($request->hasFile('bukti_bbm')) {
+            $payload['bukti_bbm'] = $request->file('bukti_bbm')->store('bukti-bbm', 'public');
+        }
+
+        $pemakaian->update($payload);
+
+        if (isset($payload['bukti_bbm']) && $buktiLama) {
+            Storage::disk('public')->delete($buktiLama);
+        }
 
         if ($request->ajax()) {
             return response()->json(['success' => true, 'message' => 'Data pemakaian BBM berhasil diperbarui.']);
@@ -147,6 +163,10 @@ class PemakaianBbmController extends Controller
     {
         $pemakaian = PemakaianBbm::findOrFail($id);
         $pemakaian->delete();
+
+        if ($pemakaian->bukti_bbm) {
+            Storage::disk('public')->delete($pemakaian->bukti_bbm);
+        }
 
         if ($request->ajax()) {
             return response()->json(['success' => true, 'message' => 'Data pemakaian BBM berhasil dihapus.']);
@@ -373,6 +393,7 @@ class PemakaianBbmController extends Controller
             'total_harga'      => 'nullable|numeric|min:0',
             'service_oli'      => 'nullable|numeric|min:0',
             'jasa'             => 'nullable|numeric|min:0',
+            'bukti_bbm'        => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ], [
             'tanggal.required'          => 'Tanggal wajib diisi.',
             'tanggal.date'              => 'Format tanggal tidak valid.',
@@ -386,6 +407,9 @@ class PemakaianBbmController extends Controller
             'total_harga.min'           => 'Total Harga tidak boleh kurang dari 0.',
             'service_oli.numeric'       => 'Sparepart Consumable harus berupa angka.',
             'jasa.numeric'              => 'Jasa harus berupa angka.',
+            'bukti_bbm.file'            => 'Bukti BBM harus berupa file.',
+            'bukti_bbm.mimes'           => 'Bukti BBM harus berupa JPG, PNG, atau PDF.',
+            'bukti_bbm.max'             => 'Ukuran bukti BBM maksimal 5 MB.',
         ]);
     }
 
