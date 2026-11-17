@@ -24,6 +24,8 @@ class RekapanExcel
 
     private const JUMLAH_COL = 'G';           // nilai rupiah
 
+    private const MM_TO_PX = 3.7795275591;    // 1 mm = 96 DPI / 25.4
+
     public static function generate(array $report): Spreadsheet
     {
         $spreadsheet = new Spreadsheet;
@@ -31,12 +33,13 @@ class RekapanExcel
 
         $penandatangan = $report['penandatangan'] ?? collect();
         $periodeLabel = $report['periodeLabel'] ?? '';
+        $fotoMeter = $report['fotoMeter'] ?? [];
 
         $used = [];
         foreach ($report['data'] as $area) {
             $sheet = $spreadsheet->createSheet();
             $sheet->setTitle(self::sheetTitle($area['area']->nama, $used));
-            self::list($sheet, $area, $periodeLabel, $penandatangan);
+            self::list($sheet, $area, $periodeLabel, $penandatangan, $fotoMeter);
         }
 
         if ($spreadsheet->getSheetCount() === 0) {
@@ -127,7 +130,7 @@ class RekapanExcel
      * Satu-satunya layout rekapan: tabel list (mengikuti sheet PUNCAK 1),
      * dipakai untuk berapa pun jumlah titik meternya.
      */
-    private static function list(Worksheet $sheet, array $area, string $periodeLabel, $penandatangan): void
+    private static function list(Worksheet $sheet, array $area, string $periodeLabel, $penandatangan, array $fotoMeter = []): void
     {
         $lastCol = self::LAST_COL;
 
@@ -227,7 +230,7 @@ class RekapanExcel
         self::borders($sheet, 'A'.$dataStart.':'.$lastCol.($r - 1));
         $r++;
 
-        self::fotoBlock($sheet, $r, $rows);
+        self::fotoBlock($sheet, $r, $rows, $fotoMeter);
 
         $r += 3;
         self::ttdBlock($sheet, $r, $penandatangan);
@@ -262,60 +265,77 @@ class RekapanExcel
      */
     private static function splitColumnsEqually(array $cols, array $widths, int $jumlah): array
     {
-        $total = array_sum($widths);
         $numCols = count($cols);
-        $target = $total / $jumlah;
+        if ($numCols === 0) {
+            return [];
+        }
 
-        $groups = [];
-        $current = [];
-        $cumulative = 0;
-        $groupIndex = 1;
+        $jumlah = max(1, min($jumlah, $numCols));
+        if ($jumlah === 1) {
+            return [$cols];
+        }
 
-        foreach ($cols as $i => $col) {
-            $current[] = $col;
-            $cumulative += $widths[$col];
+        $bestGroups = [];
+        $bestMax = null;
+        $bestMin = null;
+        $bestVariance = null;
+        $cuts = [];
 
-            $colsUsed = $i + 1;
-            $colsRemaining = $numCols - $colsUsed;
-            $groupsRemaining = $jumlah - $groupIndex;
+        $search = function (int $start, int $remaining) use (
+            &$search, &$cuts, &$bestGroups, &$bestMax, &$bestMin, &$bestVariance,
+            $cols, $widths, $numCols, $jumlah
+        ): void {
+            if ($remaining === 0) {
+                $groups = [];
+                $previous = 0;
+                foreach ($cuts as $cut) {
+                    $groups[] = array_slice($cols, $previous, $cut - $previous);
+                    $previous = $cut;
+                }
+                $groups[] = array_slice($cols, $previous);
 
-            if (
-                $groupIndex < $jumlah
-                && $colsRemaining >= $groupsRemaining
-                && $cumulative >= $target * $groupIndex
-            ) {
-                $groups[] = $current;
-                $current = [];
-                $groupIndex++;
+                $groupWidths = [];
+                foreach ($groups as $group) {
+                    $groupWidths[] = array_sum(array_intersect_key($widths, array_flip($group)));
+                }
+
+                $max = max($groupWidths);
+                $min = min($groupWidths);
+                $mean = array_sum($groupWidths) / $jumlah;
+                $variance = array_sum(array_map(fn ($width) => ($width - $mean) ** 2, $groupWidths));
+
+                if (
+                    $bestMax === null
+                    || $max < $bestMax
+                    || ($max === $bestMax && $min > $bestMin)
+                    || ($max === $bestMax && $min === $bestMin && $variance < $bestVariance)
+                ) {
+                    $bestGroups = $groups;
+                    $bestMax = $max;
+                    $bestMin = $min;
+                    $bestVariance = $variance;
+                }
+
+                return;
             }
-        }
-        if (! empty($current)) {
-            $groups[] = $current;
-        }
 
-        return $groups;
+            // Sisakan minimal satu kolom untuk setiap kelompok berikutnya.
+            $maxCut = $numCols - $remaining;
+            for ($cut = $start; $cut <= $maxCut; $cut++) {
+                $cuts[] = $cut;
+                $search($cut + 1, $remaining - 1);
+                array_pop($cuts);
+            }
+        };
+
+        $search(1, $jumlah - 1);
+
+        return $bestGroups;
     }
 
-    /**
-     * Slot foto per baris, meniru tata letak di PDF: kalau fotonya cuma 1-3,
-     * "tabel mini" foto itu dipersempit (persentase sama seperti di PDF) lalu
-     * dipusatkan secara horizontal di tengah tabel; kalau 4 foto, lebar penuh
-     * dibagi rata seperti biasa.
-     */
-    private static function fotoSlots(Worksheet $sheet, int $jumlah): array
+    private static function miniFotoSlots(array $cols, array $widths, int $jumlah): array
     {
-        $cols = range('A', self::LAST_COL);
-        $widths = [];
-        foreach ($cols as $col) {
-            $widths[$col] = max(1, $sheet->getColumnDimension($col)->getWidth());
-        }
         $total = array_sum($widths);
-
-        if ($jumlah >= 4) {
-            return self::splitColumnsEqually($cols, $widths, $jumlah);
-        }
-
-        // Persentase lebar "tabel mini" -- sama seperti $lebarTabel di PDF.
         $persenLebar = [1 => 30, 2 => 55, 3 => 78][$jumlah] ?? 100;
         $targetUsed = $total * $persenLebar / 100;
         $margin = ($total - $targetUsed) / 2;
@@ -353,7 +373,55 @@ class RekapanExcel
         return self::splitColumnsEqually($activeCols, $activeWidths, $jumlah);
     }
 
-    private static function fotoBlock(Worksheet $sheet, int &$r, $rows): void
+    private static function slotWidthPx(Worksheet $sheet, array $slot): int
+    {
+        return (int) array_sum(array_map(
+            fn ($col) => $sheet->getColumnDimension($col)->getWidth() * 7,
+            $slot
+        ));
+    }
+
+    private static function slotsFit(Worksheet $sheet, array $slots, int $minSlotWidthPx): bool
+    {
+        foreach ($slots as $slot) {
+            if (self::slotWidthPx($sheet, $slot) < $minSlotWidthPx) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Slot foto per baris, meniru tata letak di PDF: kalau fotonya cuma 1-3,
+     * "tabel mini" foto itu dipersempit (persentase sama seperti di PDF) lalu
+     * dipusatkan secara horizontal di tengah tabel; kalau 4 foto, lebar penuh
+     * dibagi rata seperti biasa. Kalau gambar tidak muat di tabel mini, lebar
+     * penuh dipakai supaya gambar tidak diperkecil paksa.
+     */
+    private static function fotoSlots(Worksheet $sheet, int $jumlah, int $minSlotWidthPx = 0): array
+    {
+        $cols = range('A', self::LAST_COL);
+        $widths = [];
+        foreach ($cols as $col) {
+            $widths[$col] = max(1, $sheet->getColumnDimension($col)->getWidth());
+        }
+
+        $jumlah = max(1, min($jumlah, count($cols)));
+
+        if ($jumlah >= 4) {
+            return self::splitColumnsEqually($cols, $widths, $jumlah);
+        }
+
+        $mini = self::miniFotoSlots($cols, $widths, $jumlah);
+        if ($minSlotWidthPx <= 0 || self::slotsFit($sheet, $mini, $minSlotWidthPx)) {
+            return $mini;
+        }
+
+        return self::splitColumnsEqually($cols, $widths, $jumlah);
+    }
+
+    private static function fotoBlock(Worksheet $sheet, int &$r, $rows, array $fotoMeter = []): void
     {
         $barisFoto = $rows
             ->filter(fn ($row) => $row['tagihan'] && self::resolveFotoPath($row['tagihan']) !== null)
@@ -363,16 +431,37 @@ class RekapanExcel
             return;
         }
 
+        $lebarMm = (float) ($fotoMeter['lebar_mm'] ?? 38);
+        $tinggiMm = (float) ($fotoMeter['tinggi_mm'] ?? 27);
+        $maxWidthPx = (int) round($lebarMm * self::MM_TO_PX);
+        $maxHeightPx = (int) round($tinggiMm * self::MM_TO_PX);
+        $photoRowHeight = $maxHeightPx + 10;
+
+        $totalColumnsWidthPx = array_sum(array_map(
+            fn ($col) => $sheet->getColumnDimension($col)->getWidth() * 7,
+            range('A', self::LAST_COL)
+        ));
+        $slotNeedPx = $maxWidthPx + 10;
+        $maxFotoPerBaris = max(1, min(4, (int) floor($totalColumnsWidthPx / max(1, $slotNeedPx))));
+        $fotoPerBaris = 1;
+        for ($n = $maxFotoPerBaris; $n >= 1; $n--) {
+            $slots = self::fotoSlots($sheet, $n, $slotNeedPx);
+            if (count($slots) === $n && self::slotsFit($sheet, $slots, $slotNeedPx)) {
+                $fotoPerBaris = $n;
+                break;
+            }
+        }
+
         $sheet->setCellValue('A'.$r, 'Foto Meter :');
         $sheet->getStyle('A'.$r)->getFont()->setBold(true)->setSize(11);
         $r += 1;
 
         $chunkIndex = 0;
-        $totalChunks = $barisFoto->chunk(4)->count();
+        $totalChunks = $barisFoto->chunk($fotoPerBaris)->count();
 
-        foreach ($barisFoto->chunk(4) as $chunk) {
+        foreach ($barisFoto->chunk($fotoPerBaris) as $chunk) {
             $chunkArr = $chunk->values();
-            $slots = self::fotoSlots($sheet, $chunkArr->count());
+            $slots = self::fotoSlots($sheet, $chunkArr->count(), $slotNeedPx);
             $labelRow = $r;
             $photoRow = $r + 1;
 
@@ -381,7 +470,7 @@ class RekapanExcel
                 [$startCol, $endCol] = [reset($slot), end($slot)];
 
                 $titikIdx = $rows->search(fn ($item) => ($item['titik_meter']->id ?? null) === ($row['titik_meter']->id ?? null));
-                $noUrutFoto = $titikIdx !== false ? ($titikIdx + 1) : (($chunkIndex * 4) + $i + 1);
+                $noUrutFoto = $titikIdx !== false ? ($titikIdx + 1) : (($chunkIndex * $fotoPerBaris) + $i + 1);
 
                 $sheet->mergeCells($startCol.$labelRow.':'.$endCol.$labelRow);
                 $sheet->setCellValue($startCol.$labelRow, $noUrutFoto.'. '.$row['titik_meter']->nama);
@@ -404,7 +493,11 @@ class RekapanExcel
                 $drawing->setName('foto-'.$labelRow.'-'.$i);
                 $drawing->setPath(self::resolveFotoPath($row['tagihan']));
                 $drawing->setResizeProportional(true);
-                $drawing->setHeight(95);
+                $drawing->setHeight($maxHeightPx);
+
+                if ($drawing->getWidth() > $maxWidthPx) {
+                    $drawing->setWidth($maxWidthPx);
+                }
 
                 $slotWidthPx = array_sum(array_map(
                     fn ($col) => $sheet->getColumnDimension($col)->getWidth() * 7,
@@ -415,15 +508,15 @@ class RekapanExcel
                     $drawing->setWidth((int) floor($slotWidthPx - 10));
                 }
 
-                // Center horizontal di dalam slot, center vertikal pada tinggi baris 105px.
+                // Center horizontal di dalam slot, center vertikal pada tinggi baris foto.
                 $drawing->setCoordinates($startCol.$photoRow);
                 $drawing->setOffsetX(max(2, (int) (($slotWidthPx - $drawing->getWidth()) / 2)));
-                $drawing->setOffsetY(max(2, (int) ((105 - $drawing->getHeight()) / 2)));
+                $drawing->setOffsetY(max(2, (int) (($photoRowHeight - $drawing->getHeight()) / 2)));
                 $drawing->setWorksheet($sheet);
             }
 
             $sheet->getRowDimension($labelRow)->setRowHeight(26);
-            $sheet->getRowDimension($photoRow)->setRowHeight(105);
+            $sheet->getRowDimension($photoRow)->setRowHeight($photoRowHeight);
             $r = $photoRow + 1;
             $chunkIndex++;
 

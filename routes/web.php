@@ -10,6 +10,7 @@ use App\Http\Controllers\KendaraanController;
 use App\Http\Controllers\PemakaianBbmController;
 use App\Http\Controllers\PemegangKendaraanController;
 use App\Http\Controllers\PenandatanganController;
+use App\Http\Controllers\PengaturanLaporanController;
 use App\Http\Controllers\PpnController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RekapanController;
@@ -79,6 +80,11 @@ Route::middleware(['auth', 'role.access'])->group(function () {
         Route::put('/', [PenandatanganController::class, 'update'])->name('update');
     });
 
+    Route::prefix('pengaturan-laporan')->name('pengaturan-laporan.')->group(function () {
+        Route::get('/', [PengaturanLaporanController::class, 'index'])->name('index');
+        Route::put('/', [PengaturanLaporanController::class, 'update'])->name('update');
+    });
+
     Route::prefix('harga-bbm')->name('harga-bbm.')->group(function () {
         Route::get('/', [HargaBbmController::class, 'index'])->name('index');
         Route::post('/', [HargaBbmController::class, 'store'])->name('store');
@@ -146,4 +152,4 @@ Route::middleware(['auth', 'role.access'])->group(function () {
 // Root redirect
 Route::get('/', function () {
     return redirect()->route('login');
-}); 
+});

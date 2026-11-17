@@ -116,6 +116,15 @@
     </li>
     @endif
 
+    <li class="menu-item {{ request()->routeIs('pengaturan-laporan.*') ? 'active' : '' }}">
+      <a href="{{ route('pengaturan-laporan.index') }}" class="menu-link">
+        <div class="link-left">
+          <i class="fa-solid fa-image link-icon"></i>
+          <span class="link-text">Pengaturan Laporan</span>
+        </div>
+      </a>
+    </li>
+
     <li class="menu-item {{ request()->routeIs('penandatangan.*') ? 'active' : '' }}">
       <a href="{{ route('penandatangan.index') }}" class="menu-link">
         <div class="link-left">

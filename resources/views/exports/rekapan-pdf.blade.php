@@ -4,6 +4,16 @@
   <meta charset="utf-8">
   <title>Rekapan Tagihan Air</title>
   <style>
+    @php
+      $fotoLebarMm = (float) ($fotoMeter['lebar_mm'] ?? 38);
+      $fotoTinggiMm = (float) ($fotoMeter['tinggi_mm'] ?? 27);
+
+      // Lebar area cetak A4 portrait setelah margin @page (210mm - kiri/kanan).
+      $lebarAreaFotoMm = 198.0;
+      $ruangSlotMm = 5.0;
+      $fotoPerBaris = max(1, min(4, (int) floor($lebarAreaFotoMm / ($fotoLebarMm + $ruangSlotMm))));
+    @endphp
+
     @page { margin: 22px 20px; }
     body { font-family: Arial, sans-serif; font-size: 10px; color: #111; }
 
@@ -32,8 +42,8 @@
     table.foto-group { border-collapse: collapse; margin: 0 auto 4px; table-layout: fixed; page-break-inside: avoid; }
     table.foto-group td { border: 1px solid #333; padding: 3px 4px; font-size: 9px; word-wrap: break-word; overflow-wrap: break-word; }
     table.foto-group td.foto-label-cell { background: #d9e2f3; font-weight: bold; text-align: center; }
-    table.foto-group td.foto-cell { text-align: center; vertical-align: middle; height: 30mm; }
-    table.foto-group td.foto-cell img { max-width: 38mm; max-height: 27mm; width: auto; height: auto; display: block; margin: 0 auto; border: 1px solid #888; }
+    table.foto-group td.foto-cell { text-align: center; vertical-align: middle; }
+    table.foto-group td.foto-cell img { max-width: {{ $fotoLebarMm }}mm; max-height: {{ $fotoTinggiMm }}mm; width: auto; height: auto; display: block; margin: 0 auto 2mm; border: 1px solid #888; }
     .foto-empty-row { color: #888; text-align: center; font-style: italic; }
 
     .sign { margin-top: 40px; page-break-inside: avoid; }
@@ -139,7 +149,7 @@
 
     <?php
       $barisFoto = $rows->filter(fn ($r) => $r['tagihan'] && $r['tagihan']->fotos->count() > 0)->values();
-      $fotoChunksList = $barisFoto->chunk(4)->values();
+      $fotoChunksList = $barisFoto->chunk($fotoPerBaris)->values();
     ?>
     @if($barisFoto->count())
       <div class="foto-section">
@@ -148,8 +158,11 @@
           <?php
             $chunkArr = $chunk->values();
             $jmlSlot = $chunkArr->count();
-            // 1-3 foto: tabel dipersempit lalu dipusatkan. 4 foto: penuh selebar tabel.
-            $lebarTabel = [1 => 30, 2 => 55, 3 => 78][$jmlSlot] ?? 100;
+            // Tabel mini 1-3 foto dipakai kalau ukuran gambar masih muat.
+            // Kalau gambar diperbesar, lebar tabel ikut membesar supaya tidak terpotong.
+            $persenDasar = [1 => 30, 2 => 55, 3 => 78][$jmlSlot] ?? 100;
+            $persenMinimum = (($fotoLebarMm + $ruangSlotMm) * $jmlSlot / $lebarAreaFotoMm) * 100;
+            $lebarTabel = round(min(100, max($persenDasar, $persenMinimum)), 2);
             $lebarSlot = round(100 / $jmlSlot, 2);
           ?>
           <table class="foto-group" style="width: {{ $lebarTabel }}%;">
@@ -157,14 +170,18 @@
               @foreach($chunkArr as $idx => $row)
                 <?php
                   $titikIdx = $rows->search(fn ($item) => ($item['titik_meter']->id ?? null) === ($row['titik_meter']->id ?? null));
-                  $noLabel = $titikIdx !== false ? ($titikIdx + 1) : ($chunkIdx * 4 + $idx + 1);
+                  $noLabel = $titikIdx !== false ? ($titikIdx + 1) : ($chunkIdx * $fotoPerBaris + $idx + 1);
                 ?>
                 <td class="foto-label-cell" style="width: {{ $lebarSlot }}%;">{{ $noLabel }}. {{ $row['titik_meter']->nama }}</td>
               @endforeach
             </tr>
             <tr>
               @foreach($chunkArr as $row)
-                <td class="foto-cell" style="width: {{ $lebarSlot }}%;">
+                <?php
+                  $jmlFoto = $row['tagihan']->fotos->count();
+                  $tinggiCellMm = max(1, $jmlFoto) * ($fotoTinggiMm + 2) + 4;
+                ?>
+                <td class="foto-cell" style="width: {{ $lebarSlot }}%; height: {{ round($tinggiCellMm, 2) }}mm;">
                   @foreach($row['tagihan']->fotos as $foto)
                     @if($foto->file_path && is_file($foto->file_path))
                       <img src="{{ $foto->file_path }}" alt="Foto meter">

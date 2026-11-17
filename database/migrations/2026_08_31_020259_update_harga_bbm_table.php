@@ -12,10 +12,20 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Index unik lama harus dilepas dulu, kalau tidak SQLite menolak
+        // dropColumn('jenis') karena index masih mereferensikan kolom itu.
+        if (Schema::hasIndex('harga_bbm', 'harga_bbm_jenis_unique')) {
+            Schema::table('harga_bbm', function (Blueprint $table) {
+                $table->dropUnique('harga_bbm_jenis_unique');
+            });
+        }
+
         // 1. Hapus kolom jenis
-        Schema::table('harga_bbm', function (Blueprint $table) {
-            $table->dropColumn('jenis');
-        });
+        if (Schema::hasColumn('harga_bbm', 'jenis')) {
+            Schema::table('harga_bbm', function (Blueprint $table) {
+                $table->dropColumn('jenis');
+            });
+        }
 
         // 2. Rename kolom harga
         Schema::table('harga_bbm', function (Blueprint $table) {
