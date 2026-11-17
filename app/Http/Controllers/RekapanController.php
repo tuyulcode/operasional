@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Area;
 use App\Models\Penandatangan;
+use App\Models\PengaturanLaporan;
 use App\Models\Ppn;
 use App\Models\TagihanAir;
 use App\Services\RekapanExcel;
@@ -101,6 +102,8 @@ class RekapanController extends Controller
             ];
         });
 
+        $pengaturanLaporan = PengaturanLaporan::current();
+
         return [
             'bulan' => $bulan,
             'areaId' => $areaId,
@@ -110,6 +113,10 @@ class RekapanController extends Controller
             'grandTotal' => $data->sum('total'),
             'grandPemakaian' => $data->sum('total_pemakaian'),
             'penandatangan' => Penandatangan::orderBy('id')->get(),
+            'fotoMeter' => [
+                'lebar_mm' => (float) $pengaturanLaporan->foto_meter_lebar_mm,
+                'tinggi_mm' => (float) $pengaturanLaporan->foto_meter_tinggi_mm,
+            ],
         ];
     }
 
